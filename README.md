@@ -219,6 +219,7 @@ test/                      headless contract, fill truth, perf, offline, screens
 fetch_channels.py          snapshot capture from the live API into src/data/ + fixtures/
 fetch_nodes.py             node-detail capture helper
 make_launcher_icons.py     regenerates the Android launcher icons from assets/icon-512.png
+make_icons.py              regenerates the web icon set from assets/icon-master.png
 android/                   WebView wrapper: Gradle project, manifest, launcher icons
 .github/workflows/         build-apk.yml — build + package the APK on CI
 ```

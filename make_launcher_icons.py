@@ -60,12 +60,11 @@ def main():
         round_icon.putalpha(mask(legacy, 0.5))
         round_icon.save(os.path.join(mip, 'ic_launcher_round.png'), optimize=True)
 
-        inner = round(fg * 72 / 108)
-        fg_img = Image.new('RGBA', (fg, fg), (0, 0, 0, 0))
-        art = src.resize((inner, inner), Image.LANCZOS)
-        off = (fg - inner) // 2
-        fg_img.paste(art, (off, off), art)
-        fg_img.save(os.path.join(drw, 'ic_launcher_foreground.png'), optimize=True)
+        # Adaptive foreground: the artwork full-bleed, square. The launcher applies its own
+        # shape mask over it, and res/values/colors.xml matches the artwork's own background
+        # so no seam shows at the masked edge.
+        src.resize((fg, fg), Image.LANCZOS).convert('RGBA').save(
+            os.path.join(drw, 'ic_launcher_foreground.png'), optimize=True)
 
         print('%s: launcher %dpx, foreground %dpx' % (bucket, legacy, fg))
 
