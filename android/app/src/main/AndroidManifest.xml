@@ -18,7 +18,7 @@
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|density"
             android:exported="true"
             android:launchMode="singleTask"
-            android:screenOrientation="fullSensor"
+            android:screenOrientation="user"
             android:theme="@style/Theme.NodePulse">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
