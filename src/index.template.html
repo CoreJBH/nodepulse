@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#040914">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="NODEPULSE — 비트코인 메인넷 실시간 네트워크 감시. 블록·멤풀·해시레이트·라이트닝 노드를 실제 mempool.space API로 표시합니다.">
+<title>NODEPULSE · 비트코인 메인넷 네트워크 감시</title>
+<link rel="icon" type="image/png" sizes="64x64" href="data:image/png;base64,__ICON_FAVICON__">
+<link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,__ICON_TOUCH__">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NODEPULSE">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+/*__CSS__*/
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="globe" aria-label="비트코인 네트워크 지구본"></canvas></div>
+
+<header class="topbar" id="topbar">
+  <div class="head">
+    <div class="mark" aria-hidden="true">₿</div>
+    <div class="titles">
+      <div class="brand"><b>NODEPULSE</b></div>
+    </div>
+    <div class="pills">
+      <span class="pill pulse" id="livePill"><i></i><span id="liveTxt">WAIT</span></span>
+      <span class="pill off" id="wsPill"><i></i><span id="wsTxt">POLL</span></span>
+    </div>
+    <button class="toggle" id="toggle" aria-expanded="false" aria-controls="panel" aria-label="실시간 네트워크 패널 열기">+</button>
+  </div>
+  <div class="subrow">BITCOIN MAINNET · LIGHTNING NODE · GLOBAL NETWORK</div>
+
+  <div class="panel" id="panel">
+    <div class="panel-in">
+      <div class="clockrow">
+        <div>
+          <div class="lbl">현재 시각 (UTC)</div>
+          <div class="clock"><span id="clock">--:--:--</span><small id="clockKst"></small></div>
+        </div>
+        <div class="sync" id="syncWrap"><span>상태</span><b id="syncTxt">연결 중</b></div>
+      </div>
+
+      <div class="sec"><span>NETWORK · 실시간</span><span id="srcTag">MEMPOOL.SPACE</span></div>
+      <div class="row"><div class="k">블록 높이<em>BLOCK HEIGHT</em></div><div class="v" id="pHeight">—</div></div>
+      <div class="row"><div class="k">해시레이트<em>HASHRATE</em></div><div class="v" id="pHash">—</div></div>
+      <div class="row"><div class="k">멤풀<em>MEMPOOL</em></div><div class="v" id="pMem">—</div></div>
+      <div class="row"><div class="k">권장 수수료<em>RECOMMENDED FEE</em></div><div class="v" id="pFee">—</div></div>
+      <div class="row"><div class="k">다음 난이도 조정<em>DIFFICULTY</em></div><div class="v" id="pDiff">—</div></div>
+      <div class="row"><div class="k">라이트닝 노드<em>LIGHTNING NODES</em></div><div class="v" id="pLN">—</div></div>
+      <div class="row"><div class="k">라이트닝 채널 · 용량<em>CHANNELS · CAPACITY</em></div><div class="v" id="pLNCap">—</div></div>
+
+      <div class="sec"><span>대륙별 노드 분포</span><span id="distTotal"></span></div>
+      <div id="dist"></div>
+
+      <div class="tabs">
+        <button class="tab on" id="tabBlocks" data-tab="blocks">최근 블록</button>
+        <button class="tab" id="tabTxs" data-tab="txs">최근 트랜잭션</button>
+      </div>
+      <div class="list on" id="listBlocks"><div class="item"><div class="l2">불러오는 중…</div></div></div>
+      <div class="list" id="listTxs"><div class="item"><div class="l2">불러오는 중…</div></div></div>
+
+      <p class="note" id="note"><b>DATA</b> mempool.space REST · WebSocket.</p>
+    </div>
+  </div>
+</header>
+
+<div class="hint" id="hint">DRAG TO ROTATE · SCROLL / PINCH TO ZOOM</div>
+
+<div class="hud">
+  <button class="strip" id="strip" aria-label="실시간 네트워크 패널 열기">
+    <span class="lb">MEMPOOL</span><span class="sep lb">·</span><b id="sMem">—</b>
+    <span class="sep">·</span><b id="sFee">—</b>
+    <span class="chev">▾</span>
+  </button>
+  <div class="legend">
+    <span class="l"><span class="dot"></span>LIGHTNING NODE</span>
+    <span class="l"><span class="line"></span>LIGHTNING CHANNEL (실측)</span>
+  </div>
+  <div class="metrics">
+    <button class="metric" id="mNodes"><div class="val" id="vNodes">—</div><div class="lbl">LIGHTNING<br>NODES</div></button>
+    <div class="vr" aria-hidden="true"></div>
+    <button class="metric" id="mHeight"><div class="val" id="vHeight">—</div><div class="lbl">BLOCK<br>HEIGHT</div></button>
+    <div class="vr" aria-hidden="true"></div>
+    <button class="metric" id="mHash"><div class="val" id="vHash">—</div><div class="lbl">NETWORK<br>HASHRATE</div></button>
+  </div>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="노드 상세 정보">
+  <div class="card" id="card"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<noscript><p style="position:fixed;inset:auto 0 40% 0;text-align:center;color:#8fb8ee;font-family:monospace">NODEPULSE는 JavaScript가 필요합니다.</p></noscript>
+
+<script>/*__WORLD__*/</script>
+<script>/*__COUNTRY__*/</script>
+<script>/*__SEED__*/</script>
+<script>/*__CHANNELS__*/</script>
+<script>/*__APP__*/</script>
+</body>
+</html>

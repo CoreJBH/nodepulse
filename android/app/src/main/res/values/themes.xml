@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.NodePulse" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/np_background</item>
+        <item name="android:statusBarColor">@color/np_background</item>
+        <item name="android:navigationBarColor">@color/np_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:colorAccent">#38bdf8</item>
+    </style>
+
+</resources>

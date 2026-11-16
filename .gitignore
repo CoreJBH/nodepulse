@@ -1,0 +1,15 @@
+# Build artefacts and scratch
+__pycache__/
+*.pyc
+*.tmp
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/assets/index.html
+
+# OS noise
+.DS_Store
+Thumbs.db
