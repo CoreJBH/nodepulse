@@ -233,3 +233,10 @@ Network data comes from [mempool.space](https://mempool.space) (REST + WebSocket
 and is not affiliated with or endorsed by mempool.space. Public API endpoints are rate
 limited; the app is designed to disclose throttling and outages rather than to hide them.
 
+---
+
+## Contributors
+
+* **[@JBITmstr](https://github.com/JBITmstr)** — Creator, product direction & design
+* **길버트 (Gilbert)** — AI co-builder (implementation, 3D globe rendering & CI)
+
