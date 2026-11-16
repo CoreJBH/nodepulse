@@ -111,7 +111,7 @@ visible, at under 1 % of the raw edge count.
 
 ### 5. Zero-dependency build and an automated verification suite
 `build.py` inlines CSS, geometry, snapshots, application code, and the base64 app icon into
-one document — about 194 KB — with tokens that fail the build if any substitution is missed,
+one document — about 186 KB — with tokens that fail the build if any substitution is missed,
 and it refuses to emit a file that could break out of its own `<script>` block.
 
 | Harness | What it proves | Result |
