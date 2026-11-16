@@ -238,5 +238,5 @@ limited; the app is designed to disclose throttling and outages rather than to h
 ## Contributors
 
 * **[@JBITmstr](https://github.com/JBITmstr)** — Creator, product direction & design
-* **길버트 (Gilbert)** — AI co-builder (implementation, 3D globe rendering & CI)
+* **길버트 (Gilbert) · Pickle** — AI co-builder (implementation, 3D globe rendering & CI)
 
