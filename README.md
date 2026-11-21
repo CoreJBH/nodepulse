@@ -40,8 +40,8 @@ honest options are to draw nothing or to invent a mesh — it draws nothing. Tor
 totals and the transport split but not placed on the globe.
 
 <div align="center">
-<img src="assets/screenshot-mobile.jpg" width="47%" alt="NodePulse on a phone">
-<img src="assets/screenshot-desktop.jpg" width="50%" alt="NodePulse on a desktop browser">
+<img src="assets/screenshot-mobile.jpg" width="46%" alt="NodePulse on a phone: Bitcoin L1 full-node globe, orange identity">
+<img src="assets/screenshot-desktop.jpg" width="52%" alt="NodePulse on a desktop browser">
 </div>
 
 ---
