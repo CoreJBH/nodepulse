@@ -920,7 +920,7 @@
     if (!f || !num(f.fastestFee)) return;
     var now = Date.now();
     S.feeHist.push({ v: f.fastestFee, t: now });
-    if (S.feeHist.length > 60) S.feeHist.splice(0, S.feeHist.length - 60);
+    if (S.feeHist.length > 240) S.feeHist.splice(0, S.feeHist.length - 240);
   }
 
   function handleWS(m) {
@@ -1004,7 +1004,7 @@
       }
     }
 
-    var p = S.pools;
+    var p = (S.pools && S.poolsAt && now - S.poolsAt < 24 * 3600 * 1000) ? S.pools : null;
     if (p && p.pools && p.pools.length && num(p.blockCount) && p.blockCount > 0) {
       var top1 = p.pools[0];
       var share = top1.blockCount / p.blockCount;
@@ -1036,7 +1036,7 @@
   }
 
   /* ------------------------------------------------------------- painting */
-  var paintQueued = false, lastPaint = 0, noteDirty = true;
+  var paintQueued = false, lastPaint = 0, noteDirty = true, lastSave = 0;
 
   function schedulePaint() {
     if (paintQueued) return;
@@ -1063,7 +1063,7 @@
       lastHudH = hud.offsetHeight;
       Globe.relayout();
     }
-    saveCache();
+    if (Date.now() - lastSave > 15000) { lastSave = Date.now(); saveCache(); }
   }
 
   function paintStatus() {
@@ -1278,7 +1278,8 @@
     });
     out += '</div>';
     setHTML('nextBlocks', out);
-    txt('nextTotal', S.mblocks.length + ' ' + (S.lang === 'en' ? 'blocks queued' : '블록 대기'));
+    txt('nextTotal', S.mblocks.length + ' ' + (S.lang === 'en' ? 'blocks queued' : '블록 대기') +
+      (S.mblocksAt ? ' · ' + ago(S.mblocksAt) : ''));
   }
 
   function paintWatch() {
@@ -2527,7 +2528,17 @@
     var lb = $('langBtn');
     if (lb) lb.addEventListener('click', function () { S.lang = S.lang === 'en' ? 'ko' : 'en'; applyLang(); });
     var wp = $('watchPill');
-    if (wp) wp.addEventListener('click', function () { setPanel(true); var w = $('watch'); if (w && w.scrollIntoView) w.scrollIntoView({ block: 'center' }); });
+    if (wp) {
+      function openWatch() {
+        setPanel(true);
+        var w = $('watch');
+        if (w && w.scrollIntoView) w.scrollIntoView({ block: 'center' });
+      }
+      wp.addEventListener('click', openWatch);
+      wp.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openWatch(); }
+      });
+    }
     var modal = $('modal');
     if (modal) modal.addEventListener('click', function (e) { if (e.target === modal) closeNodeCard(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeNodeCard(); });

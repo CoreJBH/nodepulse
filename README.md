@@ -9,7 +9,7 @@
 ![zero dependencies](https://img.shields.io/badge/dependencies-0-0b1220?style=flat-square)
 ![single file](https://img.shields.io/badge/build-single%20file%20HTML-0b1220?style=flat-square)
 ![canvas 2d](https://img.shields.io/badge/render-Canvas%202D-38bdf8?style=flat-square)
-![tests](https://img.shields.io/badge/assertions-166%20passing-2ea043?style=flat-square)
+![tests](https://img.shields.io/badge/assertions-169%20passing-2ea043?style=flat-square)
 ![data](https://img.shields.io/badge/L1-bitnodes-f7931a?style=flat-square)
 ![data](https://img.shields.io/badge/mainnet-mempool.space-orange?style=flat-square)
 
@@ -146,12 +146,12 @@ visible, at under 1 % of the raw edge count.
 
 ### 5. Zero-dependency build and an automated verification suite
 `build.py` inlines CSS, geometry, snapshots, application code, and the base64 app icon into
-one document — about 354 KB — with tokens that fail the build if any substitution is missed,
+one document — about 355 KB — with tokens that fail the build if any substitution is missed,
 and it refuses to emit a file that could break out of its own `<script>` block.
 
 | Harness | What it proves | Result |
 | --- | --- | --- |
-| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge, snapshots, mempool-blocks, all four watchdog alerts, mirror fallback, EN/KO | **166 / 166 assertions pass** |
+| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge, snapshots, mempool-blocks, all four watchdog alerts, mirror fallback, EN/KO | **169 / 169 assertions pass** |
 | `test/fill-truth.js` | Rendered continent fill compared with the land polygons over 50 camera angles, 743 k sampled pixels | ≈ 0.4 % false-positive / 0.26 % false-negative, all on sub-pixel Antarctic coastline edges |
 | `test/perf.js` | Frame cadence at a 390×844 phone viewport, DPR clamped to 2, then with 4× CPU throttling | p50 16.7 ms (60 fps), p95 33.4 ms under throttle |
 | `test/offline.js` | Boot with every network route aborted: snapshot geometry, status disclosure, no JS errors | pass |
@@ -180,7 +180,7 @@ node --check src/app.js   # syntax gate
 **Test it.**
 
 ```bash
-node test/headless.js               # 166 assertions, no browser required
+node test/headless.js               # 169 assertions, no browser required
 python3 build.py && node test/fill-truth.js   # browser harness, needs Playwright
 node test/perf.js                   # frame-time probe
 ```

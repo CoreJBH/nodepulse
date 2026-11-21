@@ -636,6 +636,12 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   let w3 = NP.watch();
   check('pool concentration above 35% raises an alert', w3.alerts.some(a => a.k === 'pool'),
     w3.alerts.map(a => a.text).join(' | '));
+  /* a stale pool snapshot must not keep alerting */
+  const savedAt = S.poolsAt;
+  S.poolsAt = Date.now() - 48 * 3600 * 1000;
+  check('a two-day-old pool snapshot raises no alert',
+    NP.watch().alerts.every(a => a.k !== 'pool'), NP.watch().alerts.map(a => a.text).join(' | '));
+  S.poolsAt = savedAt;
   S.pools = savedPools;
 
   /* reorg: a different hash at an already-seen height */
