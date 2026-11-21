@@ -522,11 +522,12 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     transactions: [{ txid: 'f'.repeat(64), fee: 900, vsize: 200, value: 123456789, rate: 4.5, time: Math.floor(Date.now() / 1000) }],
     'mempool-blocks': FIX.mempoolBlocks
   });
+  const blockToast = els.toast.textContent;      /* read before the watchdog repaints the toast */
   runFrames(rafQueue, 3);
   await sleep(120);
   check('ws block raised tip', S.tip === oldTip + 1, S.tip + ' vs ' + (oldTip + 1));
   check('ws block triggered ripple', G.ripples.length > 0, G.ripples.length);
-  check('ws block toast', els.toast.textContent.indexOf('NEW BLOCK') === 0, els.toast.textContent);
+  check('ws block toast', blockToast.indexOf('NEW BLOCK') === 0, blockToast);
   check('ws mempool applied', S.mem.count === 12345, S.mem.count);
   check('ws fees applied', S.fees.fastestFee === 7.5, S.fees.fastestFee);
   check('ws tx prepended', S.recent[0].txid === 'f'.repeat(64) && S.recent.length <= 10, S.recent.length);
@@ -592,6 +593,19 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   check('no alert on a fresh block and low fees', w0.alerts.length === 0,
     w0.alerts.map(a => a.k + ':' + a.text).join(' | '));
   check('watchdog badge reads zero', els.watchTxt.textContent === 'WDG 0', els.watchTxt.textContent);
+  /* /api/v1/blocks has arrived oldest-first from some deployments: the list must still
+     be newest-first, or the watchdog reports a block delay that does not exist */
+  const ascending = liveBlocks.slice().reverse();
+  wsInstance.deliver({ blocks: ascending });
+  runFrames(rafQueue, 2);
+  await sleep(300);
+  check('blocks are ordered newest-first whatever the payload order',
+    S.blocks[0].height === oldTip + 1 && S.blocks[7].height < S.blocks[0].height,
+    S.blocks.map(b => b.height).join(','));
+  check('an oldest-first payload does not fake a block delay',
+    NP.watch().alerts.every(a => a.k !== 'gap'),
+    NP.watch().alerts.map(a => a.text).join(' | '));
+
   check('watchdog ok rows name the last block', els.watch.innerHTML.indexOf(String(oldTip + 1).replace(/\B(?=(\d{3})+(?!\d))/g, ',')) > 0,
     els.watch.innerHTML.slice(0, 160));
 

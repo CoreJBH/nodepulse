@@ -327,10 +327,15 @@
     return found;
   }
 
+  /* newest first, whatever order the mirror served */
+  function orderBlocks(list) {
+    return list.slice().sort(function (a, b) { return (b && b.height) - (a && a.height); });
+  }
+
   function loadBlocks() {
     return request('/api/v1/blocks').then(function (arr) {
       if (!arr || !arr.length) throw new Error('no blocks');
-      S.blocks = arr.slice(0, 8).map(mapBlock);
+      S.blocks = orderBlocks(arr.map(mapBlock)).slice(0, 8);
       if (S.tip === null) { S.tip = S.blocks[0].height; S.tipSeenAt = Date.now(); }
       trackChain(S.blocks);
       ok(); schedulePaint();
@@ -927,7 +932,7 @@
     if (m.fees) { S.fees = m.fees; noteFee(m.fees); touched = true; }
     if (m.da) { S.diff = m.da; touched = true; }
     if (m.blocks && m.blocks.length) {
-      var list = m.blocks.slice(0, 8).map(mapBlock);
+      var list = orderBlocks(m.blocks.map(mapBlock)).slice(0, 8);
       var top = list[0].height;
       if (S.tip !== null && top > S.tip) blockEvent(top, list[0]);
       S.tip = Math.max(S.tip || 0, top);
@@ -1403,7 +1408,7 @@
       at2: [[0, 'rgba(247,147,26,0.10)'], [0.45, 'rgba(200,110,20,0.04)'], [1, 'rgba(200,110,20,0)']],
       hi: 'rgba(255,205,150,0.05)',
       rimLine: 'rgba(255,190,130,0.44)', rimLine2: 'rgba(247,147,26,0.14)',
-      land: 'rgba(247,147,26,0.12)', coast: 'rgba(255,208,160,0.46)', coastGlow: 'rgba(247,147,26,0.16)',
+      land: 'rgba(247,147,26,0.16)', coast: 'rgba(255,214,170,0.5)', coastGlow: 'rgba(247,147,26,0.18)',
       grid: 'rgba(200,140,70,0.085)', gridBack: 'rgba(150,100,50,0.030)', equator: 'rgba(230,160,80,0.14)',
       dot: '255,222,180', halo: '247,147,26', arc: '247,147,26', packet: '247,147,26',
       glow: ['rgba(255,238,220,0.95)', 'rgba(255,190,110,0.60)', 'rgba(247,147,26,0.22)', 'rgba(247,147,26,0.06)', 'rgba(247,147,26,0)']
