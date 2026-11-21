@@ -46,7 +46,11 @@ totals and the transport split but not placed on the globe.
 
 <div align="center">
 <img src="assets/screenshot-mobile.jpg" width="46%" alt="NodePulse on a phone: Bitcoin L1 full-node globe, cyan / deep-blue identity">
-<img src="assets/screenshot-desktop.jpg" width="52%" alt="NodePulse on a desktop browser">
+<img src="assets/screenshot-lightning.jpg" width="46%" alt="NodePulse on a phone: Lightning channel graph, electric violet identity">
+</div>
+
+<div align="center">
+<img src="assets/screenshot-desktop.jpg" width="92%" alt="NodePulse on a desktop browser">
 </div>
 
 ---
