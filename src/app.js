@@ -1,39 +1,127 @@
 /* ============================================================================
-   NODEPULSE — Bitcoin mainnet network monitor
+   NodePulse — Bitcoin L1 mainnet monitor
    ----------------------------------------------------------------------------
-   Data: mempool.space (REST + WebSocket). Everything shown as a network value
-   comes from an API field; nothing is generated, randomised or estimated for
-   display. See the panel footnote ("DATA") for the exact sources and for the
-   two things that are deliberately NOT shown because the API does not carry
-   them (per-node latency, uptime, disk size, per-node chain height).
+   Two layers, one rule: every value on screen is a value an API reported.
 
-   Globe links: every arc is one real open Lightning channel taken from
-   /api/v1/lightning/channels-geo, drawn only between the nodes that are on the
-   globe and cut to LINK_PER_NODE arcs per dot. There is no nearest-neighbour or
-   proximity fallback. Only the near hemisphere is stroked: a channel or coastline
-   behind the globe is never drawn through it.
+     Bitcoin L1 (default)  Bitnodes crawler export — reachable full-node count,
+                           clear-net/Tor/I2P split, country + continent counts,
+                           client versions (/Satoshi:x.y.z/), and the unique
+                           coordinates the crawler geolocated.
+     Lightning             mempool.space — the real public channel graph.
+
+   Nothing is generated, interpolated or estimated for display. Bitnodes does not
+   publish a per-node peer graph, so the L1 globe draws no links at all rather
+   than invent one; Tor/I2P nodes carry no coordinates, so they are not placed.
+
+   On Android the Bitnodes requests go through the native HTTP bridge
+   (window.NPBridge, MainActivity.java) because bitnodes.io sends no CORS header;
+   in a plain browser they are attempted with fetch and fall back to the bundled
+   build-time Bitnodes snapshot (fetch_l1.py), which the panel labels by date.
    ========================================================================== */
 (function () {
   'use strict';
 
   var DEG = Math.PI / 180, TAU = Math.PI * 2;
   var API_HOSTS = ['https://mempool.space', 'https://mempool.emzy.de', 'https://mempool.ninja'];
-  var WS_URL = 'wss://mempool.space/api/v1/ws';
+  var WS_HOSTS = ['mempool.space', 'mempool.emzy.de', 'mempool.ninja'];
+  var WS_PATH = '/api/v1/ws';
+  var BIT = 'https://bitnodes.io';
+  var BIT_COORDS = BIT + '/api/v1/snapshots/latest/?field=coordinates';
+  var BIT_TOP = BIT + '/api/v1/snapshots/latest/?field=top';
   var CH_PATH = '/api/v1/lightning/channels-geo';
-  var LS_CACHE = 'nodepulse.cache.v1';
-  var LS_NODES = 'nodepulse.nodes.v2';   // node sample + the real channels between them
-  var NODE_TTL = 6 * 3600 * 1000;     // node geo re-fetch window
+  var LS_CACHE = 'nodepulse.cache.v2';
+  var LS_NODES = 'nodepulse.nodes.v2';   // lightning node sample + real channels between them
+  var LS_PREF = 'nodepulse.pref.v1';     // layer + language
+  var NODE_TTL = 6 * 3600 * 1000;
+  var L1_TTL = 5 * 60 * 1000;
+  var POOL_TTL = 30 * 60 * 1000;
   var MAX_NODES = 22;
   var STALE_MS = 90000;
-  var CELL_DEG = 20;                  // lat/lon bucket that keeps two picks off one dot
+  var CELL_DEG = 20;
   var CELL_CAP = 2;
   var REGION_CAP = 5;
+  var L1_CELL_DEG = 3;                   // globe bucket for Bitnodes coordinates
+  /* watchdog thresholds — documented in the panel footnote */
+  var WD_BLOCK_SEC = 30 * 60;
+  var WD_FEE_SPIKE = 80;                 // sat/vB
+  var WD_POOL_SHARE = 0.35;              // one pool's share of a week's blocks
+  var WD_REORG_MS = 30 * 60 * 1000;      // how long a reorg stays on the badge
+
+  /* ------------------------------------------------------------------ i18n */
+  var STR = {
+    ko: {
+      utc: '현재 시각 (UTC)', state: '상태',
+      secNet: 'BITCOIN MAINNET · 실시간', secL1: 'BITCOIN L1 · 풀노드', secLN: 'LIGHTNING · MEMPOOL.SPACE',
+      kHeight: '블록 높이', kMem: '멤풀', kFee: '최속 수수료', kHash: '해시레이트', kDiff: '다음 난이도 조정',
+      kL1: '도달 가능 풀노드', kPlat: '접속망', kL1H: '크롤러 기준 높이', kL1At: '측정 시각',
+      kLN: '라이트닝 노드', kLNCap: '채널 · 용량',
+      secDistL1: '대륙별 L1 노드 분포', secDistLN: '대륙별 라이트닝 노드 분포',
+      secVer: '클라이언트 버전', secNext: '다음 블록 · NEXT BLOCKS', secWatch: '네트워크 감시 · WATCHDOG',
+      secLedger: '최근 블록 · 최근 트랜잭션', hBlocks: '최근 블록', hTxs: '최근 트랜잭션',
+      loading: '불러오는 중…', syncing: '실시간 동기화', polling: '폴링 갱신', retry: '연결 재시도 중',
+      live: '실시간', snap: '내장 스냅샷', cache: '저장본', none: '—',
+      subL1: 'FULL NODE NETWORK · BITNODES', subLN: 'LIGHTNING CHANNEL GRAPH · MEMPOOL.SPACE',
+      legL1dot: 'L1 풀노드 위치 (Bitnodes)', legL1note: 'Tor·I2P 노드는 좌표 없음', legLNdot: 'LIGHTNING NODE',
+      legLNline: 'LIGHTNING CHANNEL (실측)',
+      hint: 'DRAG TO ROTATE · SCROLL / PINCH TO ZOOM',
+      pOpen: '실시간 네트워크 패널 열기', pClose: '실시간 네트워크 패널 닫기',
+      nextWaiting: '블록 분량 대기', nextNone: 'mempool-blocks 대기 중 — WebSocket 연결되면 표시됩니다',
+      nextBlock: '다음', nextFee: 'sat/vB',
+      wOkChain: '체인 정상', wOkGap: '마지막 블록', wOkFee: '수수료 정상', wOkPool: '채굴 풀 집중도',
+      wGap: '블록 지연', wFee: '수수료 급등', wPool: '채굴 풀 집중', wReorg: '리오그 감지',
+      wNoData: '감시 데이터 대기 중',
+      tNewBlock: 'NEW BLOCK', tReorg: 'REORG 감지', tSnap: '비트노즈 스냅샷 표시 중 · 갱신 중',
+      tCached: '저장된 마지막 데이터 표시 중 · 갱신 중',
+      cCoord: '좌표', cCell: '격자 내 위치', cCountry: '국가', cPlace: '지역', cSrc: '출처', cSnapAt: '기준 시각',
+      cChainTip: 'CHAIN TIP · 네트워크 공통', cHeight: '높이', cWhere: '위치',
+      cL1Note: '이 지점은 Bitnodes가 좌표를 보고한 실제 노드 위치입니다. Bitnodes는 노드별 P2P 연결 그래프를 공개하지 않으므로 지구본에 연결선은 그리지 않습니다. 지연시간·가동시간·디스크 용량처럼 크롤러가 알 수 없는 값도 표시하지 않습니다.',
+      cLNNote: '표시 값은 mempool.space Lightning API 응답 그대로입니다(별칭·국가·도시·좌표·채널·용량·AS·관측 시각). 지연시간, 가동시간, 디스크 용량, 개별 노드의 동기화 높이처럼 API가 제공하지 않는 항목은 표시하지 않습니다. CHAIN TIP은 이 노드가 보고한 값이 아니라 네트워크 공통 현재 tip입니다. 노드 사이의 호는 lightning/channels-geo에 실린 실제 공개 채널이며, 근접 추정으로 이은 선은 없습니다.',
+      cPeers: 'REAL CHANNELS · 실제 채널 상대', cMapCh: '지도 채널', cCh: '채널', cCap: '용량', cAS: 'AS 조직',
+      cSock: '소켓', cFirst: '최초 관측', cUpd: '최근 갱신', cCluster: '클러스터', cCells: '곳',
+      noteL1a: 'BITNODES · L1 풀노드', noteL1b: '국가 분포 · 내장 스냅샷', noteL1c: '지구본 지점',
+      apl: '접속망', ua: '클라이언트'
+    },
+    en: {
+      utc: 'CURRENT TIME (UTC)', state: 'STATUS',
+      secNet: 'BITCOIN MAINNET · LIVE', secL1: 'BITCOIN L1 · FULL NODES', secLN: 'LIGHTNING · MEMPOOL.SPACE',
+      kHeight: 'Block height', kMem: 'Mempool', kFee: 'Fastest fee', kHash: 'Hashrate', kDiff: 'Next difficulty',
+      kL1: 'Reachable full nodes', kPlat: 'Transport', kL1H: 'Crawler height', kL1At: 'Measured at',
+      kLN: 'Lightning nodes', kLNCap: 'Channels · capacity',
+      secDistL1: 'L1 nodes by continent', secDistLN: 'Lightning nodes by continent',
+      secVer: 'Client versions', secNext: 'Next blocks', secWatch: 'Network watchdog',
+      secLedger: 'Recent blocks · recent transactions', hBlocks: 'Recent blocks', hTxs: 'Recent txs',
+      loading: 'loading…', syncing: 'live sync', polling: 'polling', retry: 'reconnecting',
+      live: 'live', snap: 'built-in snapshot', cache: 'cached', none: '—',
+      subL1: 'FULL NODE NETWORK · BITNODES', subLN: 'LIGHTNING CHANNEL GRAPH · MEMPOOL.SPACE',
+      legL1dot: 'L1 FULL NODE LOCATION (Bitnodes)', legL1note: 'Tor/I2P nodes have no coordinates', legLNdot: 'LIGHTNING NODE',
+      legLNline: 'LIGHTNING CHANNEL (measured)',
+      hint: 'DRAG TO ROTATE · SCROLL / PINCH TO ZOOM',
+      pOpen: 'Open the network panel', pClose: 'Close the network panel',
+      nextWaiting: 'blocks queued', nextNone: 'waiting for mempool-blocks over WebSocket',
+      nextBlock: 'next', nextFee: 'sat/vB',
+      wOkChain: 'chain normal', wOkGap: 'last block', wOkFee: 'fees normal', wOkPool: 'mining pool concentration',
+      wGap: 'block delay', wFee: 'fee spike', wPool: 'pool concentration', wReorg: 'reorg detected',
+      wNoData: 'waiting for data',
+      tNewBlock: 'NEW BLOCK', tReorg: 'REORG DETECTED', tSnap: 'showing the Bitnodes snapshot · refreshing',
+      tCached: 'showing cached data · refreshing',
+      cCoord: 'Coordinate', cCell: 'Locations in cell', cCountry: 'Country', cPlace: 'Place', cSrc: 'Source', cSnapAt: 'Captured',
+      cChainTip: 'CHAIN TIP · network-wide', cHeight: 'height', cWhere: 'location',
+      cL1Note: 'This is a real node location Bitnodes geolocated. Bitnodes publishes no per-node peer graph, so no link is drawn on the globe, and values the crawler cannot know (latency, uptime, disk size) are not shown.',
+      cLNNote: 'Every value shown is the mempool.space Lightning API response as-is (alias, country, city, coordinates, channels, capacity, AS, observation time). Latency, uptime, disk size and per-node sync height are not shown because the API does not carry them. CHAIN TIP is the network-wide tip, not a value reported by this node. Arcs are real public channels from lightning/channels-geo — never a proximity guess.',
+      cPeers: 'REAL CHANNELS', cMapCh: 'Mapped channels', cCh: 'Channels', cCap: 'Capacity', cAS: 'AS org',
+      cSock: 'Sockets', cFirst: 'First seen', cUpd: 'Updated', cCluster: 'Cluster', cCells: 'locations',
+      noteL1a: 'BITNODES · L1 FULL NODES', noteL1b: 'Country split · built-in snapshot', noteL1c: 'Globe points',
+      apl: 'transport', ua: 'clients'
+    }
+  };
+  function L(k) { var t = STR[S.lang] || STR.ko; return t[k] !== undefined ? t[k] : (STR.ko[k] !== undefined ? STR.ko[k] : k); }
 
   /* ------------------------------------------------------------------ dom */
   function $(id) { return document.getElementById(id); }
   function txt(id, s) { var e = $(id); if (e && e.textContent !== s) e.textContent = s; }
   function setHTML(id, s) { var e = $(id); if (e && e.innerHTML !== s) e.innerHTML = s; }
   function mark(el, name, on) { if (!el) return; if (on) { el.classList.add(name); } else { el.classList.remove(name); } }
+  function show(id, on) { var e = $(id); if (e) e.style.display = on ? '' : 'none'; }
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
       return c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : '&quot;';
@@ -57,6 +145,14 @@
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     return parts.join('.');
   }
+  function fmtBtcCap(sats) {
+    if (!num(sats)) return '—';
+    var b = sats / 1e8;
+    var s = (b >= 100 ? b.toFixed(1) : b >= 1 ? b.toFixed(2) : b.toFixed(4));
+    var parts = s.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return parts.join('.');
+  }
   var UNITS = [[1e21, 'ZH/s'], [1e18, 'EH/s'], [1e15, 'PH/s'], [1e12, 'TH/s'], [1e9, 'GH/s']];
   function hashParts(hs) {
     if (!num(hs) || hs <= 0) return { v: '—', u: '' };
@@ -70,23 +166,24 @@
   }
   function ago(ms) {
     if (!num(ms) || ms <= 0) return '—';
-    var s = Math.max(0, (Date.now() - ms) / 1000);
-    if (s < 60) return Math.floor(s) + '초 전';
-    if (s < 3600) return Math.floor(s / 60) + '분 전';
-    if (s < 86400) return Math.floor(s / 3600) + '시간 전';
-    return Math.floor(s / 86400) + '일 전';
+    var s = Math.max(0, (Date.now() - ms) / 1000), en = S.lang === 'en';
+    if (s < 60) return Math.floor(s) + (en ? 's ago' : '초 전');
+    if (s < 3600) return Math.floor(s / 60) + (en ? 'm ago' : '분 전');
+    if (s < 86400) return Math.floor(s / 3600) + (en ? 'h ago' : '시간 전');
+    return Math.floor(s / 86400) + (en ? 'd ago' : '일 전');
   }
   function durSec(sec) {
     if (!num(sec) || sec < 0) return '—';
-    if (sec < 60) return Math.floor(sec) + '초';
-    if (sec < 3600) return Math.floor(sec / 60) + '분';
-    if (sec < 86400) return Math.floor(sec / 3600) + '시간 ' + Math.floor((sec % 3600) / 60) + '분';
-    return Math.floor(sec / 86400) + '일 ' + Math.floor((sec % 86400) / 3600) + '시간';
+    var en = S.lang === 'en';
+    if (sec < 60) return Math.floor(sec) + (en ? 's' : '초');
+    if (sec < 3600) return Math.floor(sec / 60) + (en ? 'm' : '분');
+    if (sec < 86400) return Math.floor(sec / 3600) + (en ? 'h ' : '시간 ') + Math.floor((sec % 3600) / 60) + (en ? 'm' : '분');
+    return Math.floor(sec / 86400) + (en ? 'd ' : '일 ') + Math.floor((sec % 86400) / 3600) + (en ? 'h' : '시간');
   }
   function dateOf(v) {
     var d;
-    if (typeof v === 'string') d = new Date(v);                       // ISO strings (e.g. lightning stats "added")
-    else if (num(v) && v > 0) d = new Date(v < 1e12 ? v * 1000 : v);  // epoch seconds or milliseconds
+    if (typeof v === 'string') d = new Date(v);
+    else if (num(v) && v > 0) d = new Date(v < 1e12 ? v * 1000 : v);
     else return '—';
     if (!d || isNaN(d.getTime())) return '—';
     function p(n) { return (n < 10 ? '0' : '') + n; }
@@ -109,7 +206,44 @@
     hr: null, diff: null, ln: null, lnAt: 0, countries: [], conts: null,
     nodes: [], links: [], nodeSrc: 'none', nodeAt: 0,
     chanRows: 0, chanAt: 0,
-    lastOk: 0, ws: 'idle', wsTries: 0, fail: 0, panelOpen: false, tab: 'blocks'
+    lastOk: 0, ws: 'idle', wsTries: 0, wsHost: 0, fail: 0, panelOpen: false,
+    layer: 'l1', lang: 'ko',
+    l1: null, l1Tried: 0,
+    mblocks: [], mblocksAt: 0,
+    pools: null, poolsAt: 0,
+    wd: null, alertSig: '', feeHist: [], chain: {}, reorgAt: 0, reorgAtHeight: 0
+  };
+
+  /* --------------------------------------------------------- native bridge */
+  /* MainActivity exposes NPBridge.fetch(id, url) and calls back
+     window.NPBridgeOnData(id, ok, text). It exists because bitnodes.io sends no
+     Access-Control-Allow-Origin, and because the app should not depend on the
+     WebView's own network stack for the primary dataset. */
+  var BR = {
+    on: false, seq: 0, wait: {},
+    init: function () {
+      if (!window.NPBridge || typeof window.NPBridge.fetch !== 'function') return false;
+      window.NPBridgeOnData = function (id, ok, text) {
+        var p = BR.wait[id];
+        if (!p) return;
+        delete BR.wait[id];
+        if (p.timer) clearTimeout(p.timer);
+        if (ok) p.res(String(text || '')); else p.rej(new Error('bridge ' + id));
+      };
+      BR.on = true;
+      return true;
+    },
+    get: function (url, ms) {
+      var id = ++BR.seq;
+      return new Promise(function (res, rej) {
+        var timer = setTimeout(function () {
+          if (BR.wait[id]) { delete BR.wait[id]; rej(new Error('bridge timeout')); }
+        }, ms || 20000);
+        BR.wait[id] = { res: res, rej: rej, timer: timer };
+        try { window.NPBridge.fetch(String(id), String(url)); }
+        catch (e) { delete BR.wait[id]; clearTimeout(timer); rej(e); }
+      });
+    }
   };
 
   /* ------------------------------------------------------------------- api */
@@ -137,6 +271,25 @@
     return go();
   }
 
+  /* one absolute GET, through the native bridge when it exists */
+  function getJSON(url, ms, asText) {
+    if (BR.on) {
+      return BR.get(url, ms).then(function (t) { if (asText) return t; try { return JSON.parse(t); } catch (e) { throw new Error('bad json'); } });
+    }
+    var opt = { cache: 'no-store', credentials: 'omit', mode: 'cors' };
+    var ctrl = null, timer = null;
+    if (typeof AbortController !== 'undefined') {
+      ctrl = new AbortController();
+      opt.signal = ctrl.signal;
+      timer = setTimeout(function () { try { ctrl.abort(); } catch (e) { } }, ms || 15000);
+    }
+    return fetch(url, opt).then(function (r) {
+      if (timer) clearTimeout(timer);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return asText ? r.text() : r.json();
+    }, function (e) { if (timer) clearTimeout(timer); throw e; });
+  }
+
   function ok() { S.lastOk = Date.now(); if (S.fail > 0) S.fail = 0; }
 
   function loadTip() {
@@ -158,11 +311,28 @@
     };
   }
 
+  /* Keep the last heights' hashes so a second block at an already-seen height
+     with a different hash is a reorg rather than a new block. */
+  function trackChain(list) {
+    if (!list || !list.length) return;
+    var found = 0;
+    list.forEach(function (b) {
+      if (!b || !num(b.height) || !b.id) return;
+      var prev = S.chain[b.height];
+      if (prev && prev !== b.id) { reorgEvent(b.height + 1, b.height, b); found++; }
+      S.chain[b.height] = b.id;
+    });
+    var ks = Object.keys(S.chain).map(Number).sort(function (a, b) { return b - a; });
+    ks.slice(14).forEach(function (k) { delete S.chain[k]; });
+    return found;
+  }
+
   function loadBlocks() {
     return request('/api/v1/blocks').then(function (arr) {
       if (!arr || !arr.length) throw new Error('no blocks');
       S.blocks = arr.slice(0, 8).map(mapBlock);
       if (S.tip === null) { S.tip = S.blocks[0].height; S.tipSeenAt = Date.now(); }
+      trackChain(S.blocks);
       ok(); schedulePaint();
     });
   }
@@ -176,7 +346,7 @@
 
   function loadRecentTxs() {
     return request('/api/mempool/recent').then(function (arr) {
-      S.recent = arr.slice(0, 8).map(function (t) {
+      S.recent = arr.slice(0, 10).map(function (t) {
         return { txid: t.txid, fee: t.fee, vsize: t.vsize, value: t.value, rate: t.vsize ? t.fee / t.vsize : null };
       });
       ok(); schedulePaint();
@@ -185,7 +355,7 @@
 
   function loadFees() {
     return request('/api/v1/fees/recommended').then(function (f) {
-      S.fees = f; ok(); schedulePaint();
+      S.fees = f; noteFee(f); ok(); schedulePaint();
     });
   }
 
@@ -198,6 +368,13 @@
   function loadDiff() {
     return request('/api/v1/difficulty-adjustment').then(function (d) {
       S.diff = d; ok(); schedulePaint();
+    });
+  }
+
+  function loadPools() {
+    return request('/api/v1/mining/pools/1w').then(function (p) {
+      if (!p || !p.pools || !p.pools.length) throw new Error('no pools');
+      S.pools = p; S.poolsAt = Date.now(); schedulePaint();
     });
   }
 
@@ -216,9 +393,114 @@
     });
   }
 
+  /* --------------------------------------------------------------- L1 data */
+  /* Bitnodes carries two light endpoints with everything the app shows live:
+       ?field=coordinates  total_nodes, latest_height, unique lat/lon pairs
+       ?field=top          top ASNs (TOR/I2P are listed here too) and client versions
+     The per-node country counts come from the bundled fetch_l1.py snapshot; the
+     panel says so and stamps it with the capture date. */
+  function applyL1(d) {
+    var prev = S.l1;
+    S.l1 = {
+      total: num(d.total) ? d.total : null,
+      reachable: num(d.reachable) ? d.reachable : null,
+      height: num(d.height) ? d.height : null,
+      at: num(d.at) ? d.at : 0,
+      coords: d.coords || [],
+      platforms: d.platforms || null,
+      asns: d.asns || null,
+      vers: (d.vers && d.vers.length) ? d.vers : l1Versions(d),
+      src: d.src || 'live',
+      loadAt: Date.now()
+    };
+    if (S.layer === 'l1') Globe.build();
+    noteDirty = true;
+    schedulePaint();
+    if (prev && prev.src !== 'live' && S.l1.src === 'live') toast(L('live') + ' · Bitnodes');
+  }
+
+  function l1Platforms(d) {
+    if (d.platforms && num(d.platforms.clearnet)) return d.platforms;
+    var tor = 0, i2p = 0, asns = d.asns || [];
+    asns.forEach(function (a) {
+      if (!a) return;
+      if (a[0] === 'TOR') tor = a[1];
+      else if (a[0] === 'I2P') i2p = a[1];
+    });
+    if (!num(d.total) || (!tor && !i2p)) return null;
+    return { tor: tor, i2p: i2p, clearnet: d.total - tor - i2p };
+  }
+
+  function l1Versions(d) {
+    var total = num(d.total) ? d.total : 0;
+    if (d.ua && d.ua.length) {
+      return d.ua.slice(0, 6).map(function (r) {
+        return { name: String(r[0]), pct: num(r[1]) ? r[1] : null };
+      });
+    }
+    if (d.versions && d.versions.length) {
+      var all = 0;
+      d.versions.forEach(function (v) { all += v[1] || 0; });
+      return d.versions.slice(0, 6).map(function (v) {
+        return { name: String(v[0]), pct: all ? (v[1] / all * 100) : null };
+      });
+    }
+    return [];
+  }
+
+  function applySnapshotL1(why) {
+    var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
+    if (!s) return false;
+    applyL1({
+      total: s.totalNodes, reachable: s.reachableNodes, height: s.height,
+      at: (s.capturedAt || 0) * 1000, coords: s.coords || [],
+      platforms: s.platforms || null, asns: s.topAsns || null,
+      versions: s.versions || null, ua: s.userAgents || null,
+      src: 'snapshot', why: why
+    });
+    return true;
+  }
+
+  function loadL1() {
+    S.l1Tried = Date.now();
+    var coords = getJSON(BIT_COORDS, 22000).catch(function () { return null; });
+    var top = getJSON(BIT_TOP, 16000).catch(function () { return null; });
+    return Promise.all([coords, top]).then(function (res) {
+      var c = res[0], t = res[1];
+      if (!c || !c.coordinates || !num(c.total_nodes)) throw new Error('bitnodes unavailable');
+      var tops = (t && t.top) || {};
+      var d = {
+        total: c.total_nodes,
+        reachable: (c.metadata && c.metadata.reachable_nodes) || null,
+        height: c.latest_height,
+        at: (c.timestamp || 0) * 1000,
+        coords: c.coordinates,
+        asns: tops.top_asns || null,
+        ua: tops.top_user_agents || null,
+        src: 'live'
+      };
+      d.platforms = l1Platforms(d);
+      d.vers = l1Versions(d);
+      applyL1(d);
+      store(LS_CACHE + '.l1', { t: Date.now(), d: { total: d.total, reachable: d.reachable, height: d.height, at: d.at, coords: d.coords, asns: d.asns, ua: d.ua, platforms: d.platforms } });
+    }).catch(function () {
+      var cached = recall(LS_CACHE + '.l1');
+      if (cached && cached.d && cached.d.coords && cached.d.coords.length) {
+        var d = cached.d;
+        d.src = 'cache'; d.vers = l1Versions(d);
+        if (!d.platforms) d.platforms = l1Platforms(d);
+        applyL1(d);
+      } else if (!S.l1 || S.l1.src !== 'live') {
+        applySnapshotL1('fallback');
+      }
+    });
+  }
+
   /* -------------------------------------------------------- continents ---- */
   var CONT_ORDER = ['NA', 'EU', 'AS', 'SA', 'OC', 'AF', 'OT'];
   var CONT_KO = { NA: '북미', EU: '유럽', AS: '아시아', SA: '남미', OC: '오세아니아', AF: '아프리카', OT: '기타' };
+  var CONT_EN = { NA: 'North America', EU: 'Europe', AS: 'Asia', SA: 'South America', OC: 'Oceania', AF: 'Africa', OT: 'Other' };
+  function contName(k) { return S.lang === 'en' ? (CONT_EN[k] || k) : (CONT_KO[k] || k); }
 
   function contOf(iso) {
     var meta = (typeof COUNTRY_META !== 'undefined' && COUNTRY_META.cont) ? COUNTRY_META.cont : {};
@@ -227,6 +509,11 @@
   function countryKo(iso, fallback) {
     var ko = (typeof COUNTRY_META !== 'undefined' && COUNTRY_META.ko) ? COUNTRY_META.ko : {};
     return ko[String(iso || '').toUpperCase()] || fallback || '';
+  }
+  function countryName(iso, fallback) {
+    var names = (typeof L1_SNAPSHOT !== 'undefined' && L1_SNAPSHOT.countryNames) ? L1_SNAPSHOT.countryNames : {};
+    var en = names[String(iso || '').toUpperCase()] || fallback || iso || '';
+    return S.lang === 'en' ? en : (countryKo(iso, en) || en);
   }
   function aggregateContinents(list) {
     var acc = {}, total = 0, cap = {};
@@ -237,6 +524,18 @@
       total += c.count || 0;
     });
     return { count: acc, capacity: cap, total: total };
+  }
+  /* L1 country rows are [iso, count] pairs from the Bitnodes snapshot */
+  function aggregateL1Countries() {
+    var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
+    if (!s || !s.countries) return null;
+    var acc = {}, total = 0;
+    s.countries.forEach(function (r) {
+      var k = contOf(r[0]);
+      acc[k] = (acc[k] || 0) + (r[1] || 0);
+      total += r[1] || 0;
+    });
+    return { count: acc, total: total, countries: s.countries.length };
   }
 
   /* ------------------------------------------------------------- nodes ---- */
@@ -269,10 +568,7 @@
     return Object.keys(by).map(function (k) { return by[k]; });
   }
 
-  /* ---- real channel graph: mempool.space /api/v1/lightning/channels-geo -------
-     One row is [pubkeyA, aliasA, lonA, latA, pubkeyB, aliasB, lonB, latB]. A row
-     can be drawn only when both endpoints carry coordinates, and a drawn arc is
-     always exactly one of these rows — the globe has no other source of links. */
+  /* ---- real channel graph: mempool.space /api/v1/lightning/channels-geo ------- */
   function graphFrom(rows) {
     var g = { by: {}, keys: [], links: [] };
     function touch(pk, alias, lat, lon) {
@@ -291,15 +587,13 @@
       if (la === null || loa === null || lb === null || lob === null) return;
       if (Math.abs(la) > 90 || Math.abs(lb) > 90 || Math.abs(loa) > 180 || Math.abs(lob) > 180) return;
       var A = touch(a, r[1], la, loa), B = touch(b, r[5], lb, lob);
-      if (A.peers[b]) return;                       // one row per pair; guard anyway
+      if (A.peers[b]) return;
       A.peers[b] = 1; B.peers[a] = 1; A.deg++; B.deg++;
       g.links.push([a, b]);
     });
     return g;
   }
 
-  /* Coarse globe buckets. They only spread the sample over the map (the card
-     shows the API's real country/coordinate, never these labels). */
   function regionOf(lat, lon) {
     if (lat < -10 && (lon > 110 || lon < -170)) return 'OC';
     if (lat >= 12 && lon > -170 && lon < -30) return 'NA';
@@ -319,10 +613,6 @@
     return Math.round(lat / 4) + ':' + Math.round(lon / 4);
   }
 
-  /* Choose the nodes to draw: greedy on the real channel graph — the node that
-     brings the most new real channels into the drawn set wins, while no 20° cell
-     and no region gets crowded. Deterministic for a given channels-geo payload,
-     which is what lets the offline snapshot reproduce the same globe. */
   function pickChannelNodes(g) {
     var order = g.keys.slice().sort(function (a, b) {
       var A = g.by[a], B = g.by[b];
@@ -333,7 +623,7 @@
     var sel = [], inset = {}, cells = {}, regs = {}, dots = {}, relax = 0;
     function fits(n) {
       var c = cellOf(n.lat, n.lon), k = regionOf(n.lat, n.lon);
-      if (dots[clusterKeyOf(n.lat, n.lon)]) return false;   // one dot per place on the globe
+      if (dots[clusterKeyOf(n.lat, n.lon)]) return false;
       return (cells[c] || 0) < CELL_CAP + relax && (regs[k] || 0) < REGION_CAP + relax;
     }
     while (sel.length < MAX_NODES) {
@@ -365,16 +655,8 @@
     return out;
   }
 
-  /* How many channel arcs one dot may carry. Twenty dense nodes joined to each
-     other make a spiderweb, so the globe keeps, per dot, only its strongest real
-     channels — a cap, never an invented edge. */
   var LINK_PER_NODE = 5;
 
-  /* Trim the real channels to LINK_PER_NODE arcs per dot. The dots with the fewest
-     partners choose first, so a small node keeps its one or two real channels
-     instead of being pushed out by a hub; inside a dot the strongest peer (highest
-     real channels-geo degree) wins. Deterministic for a payload: pubkeys compare
-     as plain strings, so the live path and the offline snapshot cut the same set. */
   function capLinks(pairs, g) {
     var peers = {}, order = [], cnt = {}, used = {}, out = [], i, k, q;
     function add(x, y) {
@@ -410,8 +692,6 @@
     return out;
   }
 
-  /* Up to four real peers for the node card: the ones drawn on the globe first,
-     then the node's other channels-geo peers by degree. Aliases as the API has them. */
   function peersOf(g, n, inset) {
     var inside = [], outside = [], p;
     for (p in n.peers) { if (inset[p]) inside.push(p); else outside.push(p); }
@@ -442,7 +722,7 @@
     S.links = links || [];
     S.chanRows = meta.rows || 0;
     S.chanAt = meta.at || 0;
-    Globe.build();
+    if (S.layer === 'ln') Globe.build();
     noteDirty = true;
     schedulePaint();
   }
@@ -540,9 +820,6 @@
           };
         });
 
-        /* the sample was spread using the channels-geo coordinates; once the node
-           detail arrives, two nodes can land in one 4° dot. Keep the stronger one,
-           so every dot on the globe is exactly one node. */
         var seenDot = {}, kept = [];
         nodes.forEach(function (nd) {
           var k = clusterKeyOf(nd.lat, nd.lon);
@@ -577,7 +854,8 @@
   function saveCache() {
     store(LS_CACHE, {
       t: Date.now(), tip: S.tip, blocks: S.blocks, mem: S.mem, recent: S.recent,
-      fees: S.fees, hr: S.hr, diff: S.diff, ln: S.ln, lnAt: S.lnAt, countries: S.countries
+      fees: S.fees, hr: S.hr, diff: S.diff, ln: S.ln, lnAt: S.lnAt, countries: S.countries,
+      mblocks: S.mblocks, mblocksAt: S.mblocksAt, pools: S.pools, poolsAt: S.poolsAt
     });
   }
   function restoreCache() {
@@ -592,15 +870,20 @@
     if (c.diff) S.diff = c.diff;
     if (c.ln) { S.ln = c.ln; S.lnAt = c.lnAt || 0; }
     if (c.countries) { S.countries = c.countries; S.conts = aggregateContinents(S.countries); }
+    if (c.mblocks) { S.mblocks = c.mblocks; S.mblocksAt = c.mblocksAt || 0; }
+    if (c.pools) { S.pools = c.pools; S.poolsAt = c.poolsAt || 0; }
+    if (c.blocks) trackChain(S.blocks);
     return !!(c.tip || c.mem || c.ln);
   }
 
   /* ------------------------------------------------------------ websocket */
   var ws = null, wsTimer = null;
 
+  function wsUrl() { return 'wss://' + WS_HOSTS[S.wsHost % WS_HOSTS.length] + WS_PATH; }
+
   function connectWS() {
     if (!('WebSocket' in window)) { S.ws = 'off'; paintStatus(); return; }
-    try { ws = new WebSocket(WS_URL); } catch (e) { S.ws = 'off'; scheduleWS(); return; }
+    try { ws = new WebSocket(wsUrl()); } catch (e) { S.ws = 'off'; scheduleWS(); return; }
     S.ws = 'connecting';
     paintStatus();
     ws.onopen = function () {
@@ -616,6 +899,7 @@
     ws.onerror = function () { /* close follows */ };
     ws.onclose = function () {
       S.ws = 'closed';
+      S.wsHost = (S.wsHost + 1) % WS_HOSTS.length;   // next mirror answers the retry
       paintStatus();
       scheduleWS();
     };
@@ -627,13 +911,20 @@
     wsTimer = setTimeout(function () { wsTimer = null; connectWS(); }, wait);
   }
 
+  function noteFee(f) {
+    if (!f || !num(f.fastestFee)) return;
+    var now = Date.now();
+    S.feeHist.push({ v: f.fastestFee, t: now });
+    if (S.feeHist.length > 60) S.feeHist.splice(0, S.feeHist.length - 60);
+  }
+
   function handleWS(m) {
     var touched = false;
     if (m.mempoolInfo) {
       S.mem = { count: m.mempoolInfo.size, vsize: m.mempoolInfo.bytes, totalFee: m.mempoolInfo.total_fee };
       touched = true;
     }
-    if (m.fees) { S.fees = m.fees; touched = true; }
+    if (m.fees) { S.fees = m.fees; noteFee(m.fees); touched = true; }
     if (m.da) { S.diff = m.da; touched = true; }
     if (m.blocks && m.blocks.length) {
       var list = m.blocks.slice(0, 8).map(mapBlock);
@@ -642,6 +933,7 @@
       S.tip = Math.max(S.tip || 0, top);
       S.tipSeenAt = Date.now();
       S.blocks = list;
+      trackChain(list);
       touched = true;
     }
     if (m.transactions && m.transactions.length) {
@@ -650,10 +942,92 @@
       });
       var seen = {};
       add.forEach(function (t) { seen[t.txid] = 1; });
-      S.recent = add.concat(S.recent.filter(function (t) { return !seen[t.txid]; })).slice(0, 8);
+      S.recent = add.concat(S.recent.filter(function (t) { return !seen[t.txid]; })).slice(0, 10);
+      touched = true;
+    }
+    /* mempool.space's own projection of the next blocks: each entry is the set of
+       transactions that would fill one block, with its fee range and tx count. */
+    if (m['mempool-blocks'] && m['mempool-blocks'].length) {
+      S.mblocks = m['mempool-blocks'].map(function (b) {
+        var fr = b.feeRange || [];
+        return {
+          nTx: b.nTx, vsize: b.blockVSize, size: b.blockSize, fees: b.totalFees,
+          median: b.medianFee, lo: fr.length ? fr[0] : null, hi: fr.length ? fr[fr.length - 1] : null
+        };
+      });
+      S.mblocksAt = Date.now();
       touched = true;
     }
     if (touched) { ok(); schedulePaint(); }
+  }
+
+  /* ------------------------------------------------------------- watchdog */
+  /* Every alert below is computed from a value an API reported; nothing is
+     inferred about the network beyond the documented thresholds. */
+  function evalWatch() {
+    var list = [], alerts = [], now = Date.now();
+    var fresh = !stale();          // our own feed answered recently
+    var b = S.blocks && S.blocks.length ? S.blocks[0] : null;
+    var gap = b && num(b.time) ? now / 1000 - b.time : null;
+
+    if (gap === null || !fresh) {
+      list.push({ tag: 'BLOCK', alert: false, text: L('wNoData') });
+    } else if (gap > WD_BLOCK_SEC) {
+      list.push({ tag: 'BLOCK', alert: true, text: L('wGap') + ' · ' + durSec(gap) + ' · #' + fmtInt(b.height) });
+      alerts.push({ k: 'gap', text: L('wGap') + ' ' + durSec(gap) });
+    } else {
+      list.push({ tag: 'BLOCK', alert: false, text: L('wOkGap') + ' ' + durSec(gap) + ' · #' + fmtInt(b.height) });
+    }
+
+    var ff = S.fees && num(S.fees.fastestFee) ? S.fees.fastestFee : null;
+    if (ff === null || !fresh) {
+      list.push({ tag: 'FEE', alert: false, text: L('wNoData') });
+    } else {
+      var base = null;
+      for (var i = 0; i < S.feeHist.length; i++) {
+        var h = S.feeHist[i];
+        if (now - h.t <= 10 * 60 * 1000 && h.v > 0) base = base === null ? h.v : Math.min(base, h.v);
+      }
+      var spike = ff >= WD_FEE_SPIKE;
+      var jump = base !== null && ff >= base * 3 && ff >= 5;
+      if (spike || jump) {
+        var why = spike ? '≥ ' + WD_FEE_SPIKE : '×' + (ff / base).toFixed(1);
+        list.push({ tag: 'FEE', alert: true, text: L('wFee') + ' · ' + fmtFixed(ff, 1) + ' sat/vB (' + why + ')' });
+        alerts.push({ k: 'fee', text: L('wFee') + ' ' + fmtFixed(ff, 1) + ' sat/vB' });
+      } else {
+        list.push({ tag: 'FEE', alert: false, text: L('wOkFee') + ' · ' + fmtFixed(ff, 1) + ' sat/vB' });
+      }
+    }
+
+    var p = S.pools;
+    if (p && p.pools && p.pools.length && num(p.blockCount) && p.blockCount > 0) {
+      var top1 = p.pools[0];
+      var share = top1.blockCount / p.blockCount;
+      var txtPool = (top1.name || '—') + ' ' + (share * 100).toFixed(1) + '%';
+      if (share > WD_POOL_SHARE) {
+        list.push({ tag: 'POOL', alert: true, text: L('wPool') + ' · ' + txtPool + ' (1주 ' + fmtInt(p.blockCount) + ' 블록)' });
+        alerts.push({ k: 'pool', text: L('wPool') + ' ' + (share * 100).toFixed(1) + '%' });
+      } else {
+        list.push({ tag: 'POOL', alert: false, text: L('wOkPool') + ' · ' + txtPool });
+      }
+    } else {
+      list.push({ tag: 'POOL', alert: false, text: L('wNoData') });
+    }
+
+    if (S.reorgAt && now - S.reorgAt < WD_REORG_MS) {
+      list.push({ tag: 'CHAIN', alert: true, text: L('wReorg') + ' · #' + fmtInt(S.reorgAtHeight) });
+      alerts.push({ k: 'reorg', text: L('wReorg') + ' #' + fmtInt(S.reorgAtHeight) });
+    } else {
+      list.push({ tag: 'CHAIN', alert: false, text: L('wOkChain') + (b ? ' · #' + fmtInt(b.height) : '') });
+    }
+
+    S.wd = { list: list, alerts: alerts, at: now, gapSec: gap };
+    var sig = alerts.map(function (a) { return a.k; }).sort().join('|');
+    if (sig !== S.alertSig) {
+      S.alertSig = sig;
+      if (alerts.length) toast('⚠ ' + alerts.map(function (a) { return a.text; }).slice(0, 2).join(' · '), 5200);
+    }
+    return alerts;
   }
 
   /* ------------------------------------------------------------- painting */
@@ -675,6 +1049,7 @@
 
   var lastHudH = 0;
   function paint() {
+    evalWatch();
     paintStatus();
     paintMetrics();
     if (S.panelOpen) paintPanel();
@@ -698,43 +1073,62 @@
     mark(wsPill, 'warn', false);
     var sync = $('syncTxt');
     if (sync) {
-      sync.textContent = bad ? '연결 재시도 중' : (S.ws === 'open' ? '실시간 동기화' : '폴링 갱신');
+      sync.textContent = bad ? L('retry') : (S.ws === 'open' ? L('syncing') : L('polling'));
       mark($('syncWrap'), 'warn', bad);
     }
+    paintWatchPill();
+  }
+
+  function paintWatchPill() {
+    var alerts = (S.wd && S.wd.list ? S.wd.list.filter(function (x) { return x.alert; }) : []);
+    var pill = $('watchPill');
+    if (!pill) return;
+    txt('watchTxt', 'WDG ' + (alerts.length ? String(alerts.length) : '0'));
+    mark(pill, 'warn', alerts.length > 0);
+    mark(pill, 'off', alerts.length === 0);
   }
 
   function paintMetrics() {
-    var nodes = S.ln && num(S.ln.node_count) ? S.ln.node_count : null;
-    var h = hashParts(S.hr && S.hr.currentHashrate);
-
-    txt('vNodes', nodes === null ? '—' : fmtInt(nodes));
+    var l1 = S.l1;
+    /* --- L1 HUD: height · mempool · fastest fee --- */
     txt('vHeight', S.tip === null ? '—' : fmtInt(S.tip));
-    var hEl = $('vHash');
-    if (hEl) {
-      var want = h.u ? h.v : '—';
-      if (hEl.getAttribute('data-v') !== want + h.u) {
-        hEl.setAttribute('data-v', want + h.u);
-        hEl.innerHTML = esc(want) + (h.u ? '<span class="u">' + esc(h.u) + '</span>' : '');
+    var memEl = $('vMem');
+    if (memEl) {
+      var mb = S.mem && num(S.mem.vsize) ? (S.mem.vsize / 1e6).toFixed(1) : null;
+      var tx = S.mem && num(S.mem.count) ? fmtInt(S.mem.count) : null;
+      var want = (mb === null ? '—' : mb) + '|' + (tx === null ? '—' : tx);
+      if (memEl.getAttribute('data-v') !== want) {
+        memEl.setAttribute('data-v', want);
+        memEl.innerHTML = mb === null ? '—'
+          : esc(mb) + '<span class="u">MB</span><span class="tx">' + esc(tx) + ' TX</span>';
       }
     }
-    [['mNodes', nodes], ['mHeight', S.tip], ['mHash', h.u ? 1 : null]].forEach(function (p) {
+    txt('vFee', S.fees && num(S.fees.fastestFee) ? String(Math.round(S.fees.fastestFee * 10) / 10) : '—');
+
+    /* --- Lightning HUD: nodes · channels · capacity --- */
+    txt('vNodes', S.ln && num(S.ln.node_count) ? fmtInt(S.ln.node_count) : '—');
+    txt('vChans', S.ln && num(S.ln.channel_count) ? fmtInt(S.ln.channel_count) : '—');
+    txt('vCap', S.ln && num(S.ln.total_capacity) ? fmtBtcCap(S.ln.total_capacity) : '—');
+
+    [['mHeight', S.tip], ['mMem', S.mem], ['mFee', S.fees], ['mNodes', S.ln], ['mChans', S.ln], ['mCap', S.ln]].forEach(function (p) {
       var el = $(p[0]);
       if (!el) return;
-      mark(el, 'pending', p[1] === null);
-      mark(el, 'stale', p[1] !== null && stale());
+      mark(el, 'pending', p[1] === null || p[1] === undefined);
+      mark(el, 'stale', !!p[1] && stale());
     });
 
-    // mempool strip
-    var sMem = $('sMem'), sFee = $('sFee');
+    var sMem = $('sMem'), sFee = $('sFee'), sNext = $('sNext');
     var memTxt = '—';
     if (S.mem && num(S.mem.vsize)) {
       memTxt = (S.mem.vsize / 1e6).toFixed(1) + ' MB · ' + fmtInt(S.mem.count) + ' TX';
     }
     if (sMem) sMem.textContent = memTxt;
     if (sFee) sFee.textContent = S.fees && num(S.fees.fastestFee) ? (Math.round(S.fees.fastestFee * 10) / 10) + ' sat/vB' : '—';
+    if (sNext) sNext.textContent = S.mblocks.length ? L('nextBlock') + ' ' + fmtFixed(S.mblocks[0].median, 1) + ' sat/vB' : '—';
   }
 
   function paintPanel() {
+    evalWatch();
     txt('pHeight', S.tip === null ? '—' : fmtInt(S.tip));
     var hrAvg = null;
     if (S.hr && S.hr.hashrates && S.hr.hashrates.length) {
@@ -746,7 +1140,7 @@
     var avg = hashParts(hrAvg);
     var ph = $('pHash');
     if (ph) ph.innerHTML = esc(cur.v) + '<span class="u">' + esc(cur.u || '') + '</span>' +
-      (avg.u ? '<small>1주 평균 ' + esc(avg.v) + ' ' + esc(avg.u) + '</small>' : '');
+      (avg.u ? '<small>' + (S.lang === 'en' ? '1w avg ' : '1주 평균 ') + esc(avg.v) + ' ' + esc(avg.u) + '</small>' : '');
 
     var pm = $('pMem');
     if (pm) {
@@ -757,7 +1151,7 @@
     var pf = $('pFee');
     if (pf) {
       pf.innerHTML = S.fees && num(S.fees.fastestFee)
-        ? esc(String(Math.round(S.fees.fastestFee * 10) / 10)) + '<span class="u">sat/vB</span><small>30분 ' + esc(String(Math.round(S.fees.halfHourFee * 10) / 10)) + ' · 1시간 ' + esc(String(Math.round(S.fees.hourFee * 10) / 10)) + '</small>'
+        ? esc(String(Math.round(S.fees.fastestFee * 10) / 10)) + '<span class="u">sat/vB</span><small>30m ' + esc(String(Math.round(S.fees.halfHourFee * 10) / 10)) + ' · 1h ' + esc(String(Math.round(S.fees.hourFee * 10) / 10)) + '</small>'
         : '—';
     }
     var pd = $('pDiff');
@@ -765,13 +1159,35 @@
       if (S.diff && num(S.diff.difficultyChange)) {
         var sign = S.diff.difficultyChange >= 0 ? '+' : '';
         pd.innerHTML = esc(sign + S.diff.difficultyChange.toFixed(2)) + '<span class="u">%</span><small>' +
-          fmtInt(S.diff.remainingBlocks) + ' 블록 남음 · ' + dateOf(S.diff.estimatedRetargetDate).slice(0, 10) + '</small>';
+          fmtInt(S.diff.remainingBlocks) + (S.lang === 'en' ? ' blocks left · ' : ' 블록 남음 · ') + dateOf(S.diff.estimatedRetargetDate).slice(0, 10) + '</small>';
       } else pd.textContent = '—';
     }
+
+    /* L1 block */
+    var l1 = S.l1;
+    var pl1 = $('pL1');
+    if (pl1) {
+      pl1.innerHTML = l1 && num(l1.total)
+        ? fmtInt(l1.total) + '<small>' + (l1.src === 'live' ? L('live') : l1.src === 'cache' ? L('cache') : L('snap')) +
+          (l1.reachable && l1.reachable !== l1.total ? ' · metadata ' + fmtInt(l1.reachable) : '') + '</small>'
+        : '—';
+    }
+    var pp = $('pPlat');
+    if (pp) {
+      var pf2 = l1 ? l1Platforms(l1) : null;
+      pp.innerHTML = pf2
+        ? fmtInt(pf2.clearnet) + '<small>TOR ' + fmtInt(pf2.tor) + ' · I2P ' + fmtInt(pf2.i2p) + '</small>'
+        : '—';
+    }
+    txt('pL1H', l1 && num(l1.height) ? fmtInt(l1.height) : '—');
+    txt('pL1At', l1 && l1.at ? dateOf(l1.at) : '—');
+    txt('l1Tag', l1 ? (l1.src === 'live' ? 'LIVE' : l1.src === 'cache' ? 'CACHE' : 'SNAPSHOT') : 'BITNODES');
+
+    /* Lightning block */
     var pl = $('pLN');
     if (pl) {
       pl.innerHTML = S.ln && num(S.ln.node_count)
-        ? fmtInt(S.ln.node_count) + '<small>기준 ' + dateOf(S.ln.added).slice(0, 10) + ' · mempool.space</small>'
+        ? fmtInt(S.ln.node_count) + '<small>' + (S.lang === 'en' ? 'as of ' : '기준 ') + dateOf(S.ln.added).slice(0, 10) + ' · mempool.space</small>'
         : '—';
     }
     var pl2 = $('pLNCap');
@@ -782,78 +1198,159 @@
     }
 
     paintDist();
+    paintVersions();
+    paintNext();
+    paintWatch();
     if (noteDirty) { paintNote(); noteDirty = false; }
-    if (S.tab === 'blocks') paintBlocks(); else paintTxs();
+    paintBlocks();
+    paintTxs();
   }
 
   function paintDist() {
     var box = $('dist');
     if (!box) return;
-    if (!S.conts) { setHTML('dist', '<div class="dist"><div class="dist-top"><span class="k">집계 중…</span></div></div>'); txt('distTotal', ''); return; }
-    var arr = CONT_ORDER.map(function (k) { return { k: k, n: S.conts.count[k] || 0, cap: S.conts.capacity[k] || 0 }; })
+    var agg = S.layer === 'l1' ? aggregateL1Countries() : S.conts;
+    if (!agg) {
+      setHTML('dist', '<div class="dist"><div class="dist-top"><span class="k">' + esc(L('loading')) + '</span></div></div>');
+      txt('distTotal', '');
+      return;
+    }
+    var arr = CONT_ORDER.map(function (k) { return { k: k, n: agg.count[k] || 0 }; })
       .filter(function (d) { return d.n > 0 || d.k !== 'OT'; });
-    var max = 0, total = S.conts.total;
+    var max = 0, total = agg.total;
     arr.forEach(function (d) { if (d.n > max) max = d.n; });
     var out = '';
     arr.forEach(function (d) {
       var pct = total ? (d.n / total * 100) : 0;
       var w = max ? (d.n / max * 100) : 0;
-      out += '<div class="dist"><div class="dist-top"><span class="k">' + esc(CONT_KO[d.k]) + '</span>' +
+      out += '<div class="dist"><div class="dist-top"><span class="k">' + esc(contName(d.k)) + '</span>' +
         '<span class="v"><b>' + fmtInt(d.n) + '</b><span>' + pct.toFixed(1) + '%</span></span></div>' +
         '<div class="bar"><i style="width:' + Math.max(1.5, w).toFixed(1) + '%"></i></div></div>';
     });
     setHTML('dist', out);
-    txt('distTotal', fmtInt(total) + ' · ' + S.countries.length + '개국');
+    if (S.layer === 'l1') {
+      var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
+      txt('distTotal', fmtInt(total) + ' · ' + (agg.countries || 0) + (S.lang === 'en' ? ' countries' : '개국') +
+        (s && s.capturedAt ? ' · ' + dateOf(s.capturedAt * 1000).slice(0, 10) : ''));
+    } else {
+      txt('distTotal', fmtInt(total) + ' · ' + S.countries.length + (S.lang === 'en' ? ' countries' : '개국'));
+    }
   }
 
-  function fmtBtcCap(sats) {
-    if (!num(sats)) return '—';
-    var b = sats / 1e8;
-    var s = (b >= 100 ? b.toFixed(1) : b >= 1 ? b.toFixed(2) : b.toFixed(4));
-    var parts = s.split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    return parts.join('.');
+  function paintVersions() {
+    var box = $('verList');
+    if (!box) return;
+    var vers = (S.l1 && S.l1.vers) ? S.l1.vers : [];
+    if (!vers.length) { setHTML('verList', '<div class="ver"><div class="ver-top"><span class="p">' + esc(L('loading')) + '</span></div></div>'); return; }
+    var max = 0;
+    vers.forEach(function (v) { if (num(v.pct) && v.pct > max) max = v.pct; });
+    var out = '';
+    vers.slice(0, 5).forEach(function (v) {
+      var pct = num(v.pct) ? v.pct : 0;
+      var name = v.name.length > 30 ? v.name.slice(0, 29) + '…' : v.name;
+      out += '<div class="ver"><div class="ver-top"><span class="n">' + esc(name) + '</span>' +
+        '<span class="p">' + pct.toFixed(2) + '%</span></div>' +
+        '<div class="bar"><i style="width:' + Math.max(1, max ? pct / max * 100 : 0).toFixed(1) + '%"></i></div></div>';
+    });
+    setHTML('verList', out);
+    txt('verSrc', S.l1 && S.l1.src === 'live' ? 'LIVE' : S.l1 && S.l1.src === 'cache' ? 'CACHE' : 'SNAPSHOT');
+  }
+
+  function paintNext() {
+    var box = $('nextBlocks');
+    if (!box) return;
+    if (!S.mblocks.length) {
+      setHTML('nextBlocks', '<div class="nb"><div class="empty">' + esc(L('nextNone')) + '</div></div>');
+      txt('nextTotal', '');
+      return;
+    }
+    var out = '<div class="nb">';
+    S.mblocks.slice(0, 3).forEach(function (b, i) {
+      out += '<div class="b"><div class="h"><span>#' + (i + 1) + '</span><span>' + fmtFixed((b.vsize || 0) / 1e6, 2) + 'M</span></div>' +
+        '<div class="f">' + fmtFixed(b.median, b.median != null && b.median < 10 ? 1 : 0) + '<span class="u">sat/vB</span></div>' +
+        '<div class="s">' + fmtFixed(b.lo, 1) + '–' + fmtFixed(b.hi, b.hi != null && b.hi >= 100 ? 0 : 1) + '</div>' +
+        '<div class="s">' + fmtInt(b.nTx) + ' tx</div></div>';
+    });
+    out += '</div>';
+    setHTML('nextBlocks', out);
+    txt('nextTotal', S.mblocks.length + ' ' + (S.lang === 'en' ? 'blocks queued' : '블록 대기'));
+  }
+
+  function paintWatch() {
+    var box = $('watch');
+    if (!box) return;
+    var list = S.wd ? S.wd.list : [];
+    if (!list.length) { setHTML('watch', '<div class="wd-list"><div class="wd-item">' + esc(L('wNoData')) + '</div></div>'); return; }
+    var out = '<div class="wd-list">';
+    list.forEach(function (w) {
+      out += '<div class="wd-item ' + (w.alert ? 'alert' : 'ok') + '"><span class="tag">' + esc(w.tag) + '</span><span class="m">' + esc(w.text) + '</span></div>';
+    });
+    out += '</div>';
+    setHTML('watch', out);
+    txt('watchSrc', S.poolsAt ? ago(S.poolsAt) : '');
+  }
+
+  function noteSrcText() {
+    if (!S.l1) return L('none');
+    return S.l1.src === 'live' ? L('live') : S.l1.src === 'cache' ? L('cache') : L('snap');
   }
 
   function paintNote() {
-    var src = S.nodeSrc === 'live' ? '실시간 조회' : S.nodeSrc === 'cache' ? '저장된 목록' : S.nodeSrc === 'seed' ? '내장 스냅샷(오프라인)' : '—';
-    var arcs = Globe.state.links.length;
     var e = $('note');
     if (!e) return;
+    var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
+    var l1 = S.l1;
+    var snapAt = s && s.capturedAt ? dateOf(s.capturedAt * 1000).slice(0, 16) : '—';
+    if (S.lang === 'en') {
+      e.innerHTML =
+        '<b>DATA</b> Bitcoin mainnet values are mempool.space REST + WebSocket responses; L1 full-node values are the Bitnodes crawler export (bitnodes.io/api/v1).<br>' +
+        '· <b>Bitnodes is the primary L1 source</b>: the reachable node count, the clear-net/Tor/I2P split, the client versions and the unique coordinates on the globe are read from <code>snapshots/latest/?field=coordinates</code> and <code>?field=top</code>' +
+        (l1 && l1.src === 'live' ? ' (live now)' : ' — currently the built-in snapshot ' + snapAt + ', because the live request did not answer') + '.<br>' +
+        '· The country split (' + (s ? s.countries.length : 0) + ' countries) is the Bitnodes snapshot captured ' + snapAt + ' with ' + fmtInt(s ? s.totalNodes : null) +
+        ' nodes; Bitnodes exposes per-node country only through its paginated node list, which is too heavy to pull on a phone, so this panel names that snapshot instead of hiding it.<br>' +
+        '· Globe points: ' + (l1 ? fmtInt(l1.coords.length) : '0') + ' unique coordinates Bitnodes geolocated (' + (l1 && l1.src === 'live' ? 'live' : 'snapshot') + '). Tor and I2P nodes carry no coordinates, so they are not placed, and no link is drawn between nodes: Bitnodes publishes no peer graph.<br>' +
+        '· Values the crawler cannot know (per-node latency, uptime, disk size, per-node height) are never shown or guessed.<br>' +
+        '· Next blocks are mempool.space\'s own projection of the transactions that would fill each of the coming blocks, with the reported fee range and tx count.<br>' +
+        '· Watchdog thresholds: no block for ' + (WD_BLOCK_SEC / 60) + ' min, fastest fee ≥ ' + WD_FEE_SPIKE + ' sat/vB or 3× the 10-minute minimum, one pool above ' + Math.round(WD_POOL_SHARE * 100) + '% of the week\'s blocks, or a block hash change at an already-seen height.<br>' +
+        '· Lightning layer: the node sample is picked from the <code>lightning/channels-geo</code> graph (' + fmtInt(S.chanRows) + ' real open channels) completed with <code>nodes/{pubkey}</code>, and every arc is one of those rows; no proximity link exists.';
+      return;
+    }
     e.innerHTML =
-      '<b>DATA</b> 블록·멤풀·수수료·해시레이트·난이도·라이트닝 통계는 mempool.space REST + WebSocket 응답값입니다.<br>' +
-      '· 지구본 노드 ' + (S.nodes.length || 0) + '개 · ' + esc(src) + ' — <code>lightning/channels-geo</code>의 실제 채널 그래프에서 연결이 많은 순으로, 같은 좌표 격자와 권역이 겹치지 않게 고른 표본입니다. 좌표·국가·별칭은 각 노드의 <code>nodes/{pubkey}</code> 응답값입니다.<br>' +
-      '· 노드 사이의 호 ' + arcs + '개는 <b>모두 실제 공개 라이트닝 채널</b>입니다 — <code>lightning/channels-geo</code>(' + fmtInt(S.chanRows) + '개 채널' + (S.chanAt ? ' · ' + dateOf(S.chanAt).slice(0, 16) + ' 조회' : '') + ')에 실린 채널 중 두 끝점이 모두 지구본에 있는 것만 그렸고, 근접·임의로 이은 선은 없습니다.' +
-      (S.nodeSrc === 'seed' ? ' 지금은 내장 스냅샷(2026-11-16 캡처)의 실제 채널 ' + arcs + '개를 쓰는 오프라인 상태입니다.' : '') + '<br>' +
-      '· channels-geo는 두 끝점의 위치를 아는 채널만 담으므로, 노드 카드의 전체 채널 수보다 지구본에 그려지는 호가 적습니다.<br>' +
-      '· 대륙 분포는 <code>lightning/nodes/countries</code>의 국가별 실측값을 대륙으로 묶은 값입니다.<br>' +
-      '· <b>Bitnodes</b>(bitnodes.io → btcnodes.io) 스냅샷은 2026-11-16 확인 결과 <code>Access-Control-Allow-Origin</code> 헤더가 없어 브라우저에서 직접 호출할 수 없었습니다(CORS 미허용). 따라서 풀노드 수·대륙 분포는 Bitnodes 값이 아니라 Mempool.space 라이트닝 데이터이며, Bitnodes를 출처로 표기하지 않습니다.<br>' +
-      '· API가 주지 않는 지연시간·가동시간·디스크 용량·개별 노드 체인 높이는 표시하지 않습니다.';
+      '<b>DATA</b> 비트코인 메인넷 값은 mempool.space REST + WebSocket 응답값이고, L1 풀노드 값은 Bitnodes 크롤러 export(bitnodes.io/api/v1)입니다.<br>' +
+      '· <b>L1의 1차 출처는 Bitnodes</b>입니다: 도달 가능 노드 수, 클리어넷/Tor/I2P 비중, 클라이언트 버전, 지구본 좌표는 <code>snapshots/latest/?field=coordinates</code>와 <code>?field=top</code>' +
+      (l1 && l1.src === 'live' ? '에서 지금 실시간으로 읽었습니다' : '에서 읽으며, 지금은 실시간 요청이 답하지 않아 내장 스냅샷(' + snapAt + ')을 표시 중입니다') + '.<br>' +
+      '· 국가 분포(' + (s ? s.countries.length : 0) + '개국)는 ' + snapAt + ' Bitnodes 스냅샷(' + fmtInt(s ? s.totalNodes : null) + ' 노드) 값입니다. Bitnodes는 노드별 국가를 페이지 목록으로만 공개해 휴대폰에서 전부 받아오기엔 무겁기 때문에, 이 항목만 스냅샷 기준임을 숨기지 않고 적습니다.<br>' +
+      '· 지구본 지점 ' + (l1 ? fmtInt(l1.coords.length) : '0') + '곳은 Bitnodes가 좌표를 확인한 서로 다른 위치입니다(' + (l1 && l1.src === 'live' ? '실시간' : '스냅샷') + '). Tor·I2P 노드는 좌표가 없어 배치하지 않고, 노드 사이에 선은 그리지 않습니다 — Bitnodes는 노드별 연결 그래프를 공개하지 않습니다.<br>' +
+      '· 크롤러가 알 수 없는 값(노드별 지연시간·가동시간·디스크 용량·개별 높이)은 표시하지도 추정하지도 않습니다.<br>' +
+      '· 다음 블록은 mempool.space가 계산한 예측으로, 앞으로의 블록을 채울 트랜잭션 묶음의 수수료 범위와 트랜잭션 수입니다.<br>' +
+      '· 감시 기준: ' + (WD_BLOCK_SEC / 60) + '분 이상 새 블록 없음, 최속 수수료 ' + WD_FEE_SPIKE + ' sat/vB 이상 또는 10분 최저의 3배, 한 채굴 풀이 주간 블록의 ' + Math.round(WD_POOL_SHARE * 100) + '% 초과, 이미 본 높이의 블록 해시 변경(리오그).<br>' +
+      '· 라이트닝 레이어: 노드 표본은 <code>lightning/channels-geo</code>가 보고한 실제 공개 채널 ' + fmtInt(S.chanRows) + '개 그래프에서 뽑고 <code>nodes/{pubkey}</code>로 보완했으며, 모든 호가 그 채널 행 중 하나입니다 — 근접·임의로 이은 선은 없습니다.';
   }
 
   function paintBlocks() {
     var box = $('listBlocks');
-    if (!box || !S.blocks.length) { if (box) box.innerHTML = '<div class="item"><div class="l2">불러오는 중…</div></div>'; return; }
+    if (!box || !S.blocks.length) { if (box) box.innerHTML = '<div class="item"><div class="l2">' + esc(L('loading')) + '</div></div>'; return; }
     var out = '';
     S.blocks.forEach(function (b) {
       var elapsed = b.time ? durSec(Date.now() / 1000 - b.time) : '—';
-      out += '<div class="item"><div class="l1"><span>#' + fmtInt(b.height) + '</span><span class="r">' + fmtInt(b.txs) + ' tx</span></div>' +
-        '<div class="l2"><span>' + fmtFixed(b.size / 1e6, 2) + ' MB · ' + esc(elapsed) + ' 전' + (b.pool ? ' · ' + esc(b.pool) : '') + '</span>' +
-        '<span>' + (b.medianFee != null ? fmtFixed(b.medianFee, 2) + ' sat/vB' : '') + '</span></div>' +
-        '<div class="hash">' + esc(shortHash(b.id, 22, 6)) + '</div></div>';
+      out += '<div class="item"><div class="l1"><span>#' + fmtInt(b.height) + '</span><span class="r">' + fmtInt(b.txs) + '</span></div>' +
+        '<div class="l2"><span>' + fmtFixed(b.size / 1e6, 2) + 'M · ' + esc(elapsed) + (S.lang === 'en' ? '' : ' 전') + '</span>' +
+        '<span>' + (b.medianFee != null ? fmtFixed(b.medianFee, 1) : '') + '</span></div>' +
+        '<div class="hash">' + esc(shortHash(b.id, 18, 6)) + (b.pool ? ' · ' + esc(b.pool) : '') + '</div></div>';
     });
     setHTML('listBlocks', out);
   }
 
   function paintTxs() {
     var box = $('listTxs');
-    if (!box || !S.recent.length) { if (box) box.innerHTML = '<div class="item"><div class="l2">불러오는 중…</div></div>'; return; }
+    if (!box || !S.recent.length) { if (box) box.innerHTML = '<div class="item"><div class="l2">' + esc(L('loading')) + '</div></div>'; return; }
     var out = '';
-    S.recent.forEach(function (t) {
+    S.recent.slice(0, 8).forEach(function (t) {
       var rate = num(t.rate) ? t.rate : (t.vsize ? t.fee / t.vsize : null);
-      out += '<div class="item"><div class="l1"><span>' + fmtBtc(t.value) + ' <span style="color:#5d84bd">BTC</span></span>' +
-        '<span class="r">' + (rate != null ? fmtFixed(rate, rate < 10 ? 2 : 1) : '—') + ' sat/vB</span></div>' +
-        '<div class="l2"><span>' + fmtFixed(t.vsize, 0) + ' vB · ' + fmtInt(t.fee) + ' sats</span><span>' + esc(shortHash(t.txid, 8, 4)) + '</span></div></div>';
+      out += '<div class="item"><div class="l1"><span>' + fmtBtc(t.value) + '</span>' +
+        '<span class="r">' + (rate != null ? fmtFixed(rate, rate < 10 ? 1 : 0) : '—') + '</span></div>' +
+        '<div class="l2"><span>' + fmtFixed(t.vsize, 0) + ' vB</span><span class="sat">sat/vB</span></div>' +
+        '<div class="hash">' + esc(shortHash(t.txid, 8, 4)) + ' · ' + fmtInt(t.fee) + ' sat</div></div>';
     });
     setHTML('listTxs', out);
   }
@@ -873,11 +1370,47 @@
     Globe.pulse();
     var bump = $('mHeight');
     if (bump) { bump.classList.remove('bump'); void bump.offsetWidth; bump.classList.add('bump'); }
-    var m = 'NEW BLOCK · ' + fmtInt(height) + (block && num(block.txs) ? ' · ' + fmtInt(block.txs) + ' tx' : '');
-    toast(m);
+    toast(L('tNewBlock') + ' · ' + fmtInt(height) + (block && num(block.txs) ? ' · ' + fmtInt(block.txs) + ' tx' : ''));
+  }
+
+  function reorgEvent(prevHeight, newHeight, block) {
+    S.reorgAt = Date.now();
+    S.reorgAtHeight = num(newHeight) ? newHeight : (num(block && block.height) ? block.height : prevHeight);
+    toast('⚠ ' + L('tReorg') + ' · #' + fmtInt(S.reorgAtHeight), 6000);
+    schedulePaint();
   }
 
   /* ---------------------------------------------------------------- globe */
+  /* Two palettes, one renderer. The L1 identity is Bitcoin orange; Lightning
+     keeps the cyan it had. Every colour the globe draws comes from here. */
+  var THEME = {
+    ln: {
+      body: [[0, 'rgba(20,46,96,0.52)'], [0.30, 'rgba(10,26,58,0.66)'], [0.66, 'rgba(6,16,38,0.82)'], [0.90, 'rgba(3,9,22,0.92)'], [1, 'rgba(2,6,16,0.96)']],
+      rim: [[0, 'rgba(4,10,22,0)'], [0.70, 'rgba(3,9,22,0.14)'], [0.92, 'rgba(6,22,48,0.30)'], [0.978, 'rgba(38,140,225,0.20)'], [1, 'rgba(125,211,252,0.12)']],
+      at1: [[0, 'rgba(150,215,255,0.40)'], [0.35, 'rgba(56,170,255,0.13)'], [1, 'rgba(56,150,255,0)']],
+      at2: [[0, 'rgba(56,145,255,0.10)'], [0.45, 'rgba(40,110,220,0.04)'], [1, 'rgba(40,110,220,0)']],
+      hi: 'rgba(150,210,255,0.055)',
+      rimLine: 'rgba(140,214,255,0.44)', rimLine2: 'rgba(56,189,248,0.12)',
+      land: 'rgba(37,99,235,0.14)', coast: 'rgba(150,214,255,0.5)', coastGlow: 'rgba(56,160,250,0.18)',
+      grid: 'rgba(76,140,225,0.09)', gridBack: 'rgba(56,110,190,0.032)', equator: 'rgba(90,164,244,0.15)',
+      dot: '226,246,255', halo: '120,205,255', arc: '110,190,255', packet: '80,165,255',
+      glow: ['rgba(226,246,255,0.95)', 'rgba(140,215,255,0.60)', 'rgba(56,165,255,0.20)', 'rgba(56,150,255,0.055)', 'rgba(56,150,255,0)']
+    },
+    l1: {
+      body: [[0, 'rgba(74,40,12,0.50)'], [0.30, 'rgba(44,25,9,0.68)'], [0.66, 'rgba(26,16,8,0.84)'], [0.90, 'rgba(15,10,6,0.93)'], [1, 'rgba(8,6,5,0.97)']],
+      rim: [[0, 'rgba(4,6,12,0)'], [0.70, 'rgba(14,9,5,0.14)'], [0.92, 'rgba(58,32,10,0.30)'], [0.978, 'rgba(247,147,26,0.22)'], [1, 'rgba(255,196,120,0.14)']],
+      at1: [[0, 'rgba(255,196,110,0.34)'], [0.35, 'rgba(247,147,26,0.13)'], [1, 'rgba(247,147,26,0)']],
+      at2: [[0, 'rgba(247,147,26,0.10)'], [0.45, 'rgba(200,110,20,0.04)'], [1, 'rgba(200,110,20,0)']],
+      hi: 'rgba(255,205,150,0.05)',
+      rimLine: 'rgba(255,190,130,0.44)', rimLine2: 'rgba(247,147,26,0.14)',
+      land: 'rgba(247,147,26,0.12)', coast: 'rgba(255,208,160,0.46)', coastGlow: 'rgba(247,147,26,0.16)',
+      grid: 'rgba(200,140,70,0.085)', gridBack: 'rgba(150,100,50,0.030)', equator: 'rgba(230,160,80,0.14)',
+      dot: '255,222,180', halo: '247,147,26', arc: '247,147,26', packet: '247,147,26',
+      glow: ['rgba(255,238,220,0.95)', 'rgba(255,190,110,0.60)', 'rgba(247,147,26,0.22)', 'rgba(247,147,26,0.06)', 'rgba(247,147,26,0)']
+    }
+  };
+  function TH() { return THEME[S.layer] || THEME.l1; }
+
   var Globe = (function () {
     var G = {
       cv: null, ctx: null, w: 0, h: 0, dpr: 1, cx: 0, cy: 0, R: 0,
@@ -885,11 +1418,9 @@
       spin: 0.045, spinEase: 1, hold: false,
       dragging: false, lastTouch: 0, clusters: [], links: [], arcs: [], flash: 0, ripples: [],
       rings: [], grats: [], raf: 0, lastTs: 0, hit: null,
-      /* caches: static layers are drawn once per resize, never per frame */
       bg: null, ball: null, ballSize: 0, glow: null,
       slow: false, ft: 0.016, miss: 0, age: 0, goodMs: 0, stepAt: 0, prevScale: 1, lockScale: 0,
       hide: {}, adaptive: true, resScale: 1, forceFull: false,
-      /* per-frame scratch, reused so a frame allocates nothing */
       xs: [], ys: [], zs: []
     };
     var P = { x: 0, y: 0, z: 0 };
@@ -930,7 +1461,7 @@
 
     function resize() {
       var w = window.innerWidth, h = window.innerHeight;
-      G.dpr = Math.min(2, window.devicePixelRatio || 1);   // cap at 2x: 3x phones were the bottleneck
+      G.dpr = Math.min(2, window.devicePixelRatio || 1);
       G.w = w; G.h = h;
       if (!G.cv) G.cv = $('globe');
       if (!G.cv) return;
@@ -940,8 +1471,6 @@
       buildBall();
     }
 
-    /* Backing-store size = css size x dpr x resScale. Lowering resScale is the
-       cheapest way to buy frames on a weak device: same drawing code, fewer pixels. */
     function applyRes() {
       var s = G.dpr * G.resScale;
       var cv = G.cv;
@@ -962,9 +1491,10 @@
     function layout() {
       var w = G.w, h = G.h;
       var head = document.querySelector('.topbar .head');
+      var layers = document.querySelector('.layers');
       var sub = document.querySelector('.subrow');
       var hud = document.querySelector('.hud');
-      var topH = (head ? head.offsetHeight : 56) + (sub ? sub.offsetHeight : 18) + 16;
+      var topH = (head ? head.offsetHeight : 56) + (layers ? layers.offsetHeight : 28) + (sub ? sub.offsetHeight : 18) + 16;
       var hudH = (hud ? hud.offsetHeight : 150) - 16;
       var avail = Math.max(200, h - hudH - topH);
       G.cx = w / 2;
@@ -978,8 +1508,6 @@
       }
     }
 
-    /* Stars and the space wash never move: paint them once per resize into an
-       offscreen canvas and blit it each frame (one drawImage instead of ~200 fills). */
     function buildBackground() {
       var cv = document.createElement('canvas');
       cv.width = Math.round(G.w * G.dpr);
@@ -992,7 +1520,7 @@
         var big = Math.random() > 0.88;
         var r = big ? 1.2 + Math.random() * 0.8 : 0.45 + Math.random() * 0.6;
         c.globalAlpha = 0.18 + Math.random() * 0.5;
-        c.fillStyle = i % 11 === 0 ? '#9fd0ff' : '#cfe4ff';
+        c.fillStyle = i % 11 === 0 ? '#9fd0ff' : (S.layer === 'l1' ? '#ffe3c4' : '#cfe4ff');
         if (big) { c.beginPath(); c.arc(x, y, r * 0.7, 0, TAU); c.fill(); }
         else c.fillRect(x, y, r, r);
       }
@@ -1001,26 +1529,24 @@
       buildGlow();
     }
 
-    /* A single soft dot, reused for every node halo and every channel packet. */
     function buildGlow() {
-      var size = 64;
+      var th = TH(), g = th.glow, size = 64;
       var cv = document.createElement('canvas');
       cv.width = cv.height = size;
       var c = cv.getContext('2d');
       var grd = c.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-      grd.addColorStop(0, 'rgba(226,246,255,0.95)');
-      grd.addColorStop(0.16, 'rgba(140,215,255,0.60)');
-      grd.addColorStop(0.42, 'rgba(56,165,255,0.20)');
-      grd.addColorStop(0.70, 'rgba(56,150,255,0.055)');
-      grd.addColorStop(1, 'rgba(56,150,255,0)');
+      grd.addColorStop(0, g[0]);
+      grd.addColorStop(0.16, g[1]);
+      grd.addColorStop(0.42, g[2]);
+      grd.addColorStop(0.70, g[3]);
+      grd.addColorStop(1, g[4]);
       c.fillStyle = grd;
       c.fillRect(0, 0, size, size);
       G.glow = cv;
     }
 
-    /* The globe body, its shading, fresnel rim and atmosphere are static apart
-       from the radius, so they are baked once and blitted (scaled) each frame. */
     function buildBall() {
+      var th = TH();
       var R = Math.max(40, G.R);
       var pad = 1.30, s = Math.ceil(R * 2 * pad);
       var cv = document.createElement('canvas');
@@ -1031,61 +1557,44 @@
       var cx = s / 2, cy = s / 2;
 
       var body = c.createRadialGradient(cx - R * 0.40, cy - R * 0.46, R * 0.04, cx, cy, R * 1.04);
-      body.addColorStop(0, 'rgba(20,46,96,0.52)');
-      body.addColorStop(0.30, 'rgba(10,26,58,0.66)');
-      body.addColorStop(0.66, 'rgba(6,16,38,0.82)');
-      body.addColorStop(0.90, 'rgba(3,9,22,0.92)');
-      body.addColorStop(1, 'rgba(2,6,16,0.96)');
+      th.body.forEach(function (st) { body.addColorStop(st[0], st[1]); });
       c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.fillStyle = body; c.fill();
 
       var rim = c.createRadialGradient(cx, cy, R * 0.52, cx, cy, R);
-      rim.addColorStop(0, 'rgba(4,10,22,0)');
-      rim.addColorStop(0.70, 'rgba(3,9,22,0.14)');
-      rim.addColorStop(0.92, 'rgba(6,22,48,0.30)');
-      rim.addColorStop(0.978, 'rgba(38,140,225,0.20)');
-      rim.addColorStop(1, 'rgba(125,211,252,0.12)');
+      th.rim.forEach(function (st) { rim.addColorStop(st[0], st[1]); });
       c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.fillStyle = rim; c.fill();
 
-      /* The atmosphere is a ring, not a disc: a radial gradient filled over a whole
-         circle repeats its inner stop across the globe and washes the sphere out. */
       c.globalCompositeOperation = 'lighter';
       var at1 = c.createRadialGradient(cx, cy, R * 0.99, cx, cy, R * 1.075);
-      at1.addColorStop(0, 'rgba(150,215,255,0.40)');
-      at1.addColorStop(0.35, 'rgba(56,170,255,0.13)');
-      at1.addColorStop(1, 'rgba(56,150,255,0)');
+      th.at1.forEach(function (st) { at1.addColorStop(st[0], st[1]); });
       c.beginPath();
       c.arc(cx, cy, R * 1.075, 0, TAU);
       c.arc(cx, cy, R * 0.99, 0, TAU, true);
       c.fillStyle = at1; c.fill();
 
       var at2 = c.createRadialGradient(cx, cy, R, cx, cy, R * 1.28);
-      at2.addColorStop(0, 'rgba(56,145,255,0.10)');
-      at2.addColorStop(0.45, 'rgba(40,110,220,0.04)');
-      at2.addColorStop(1, 'rgba(40,110,220,0)');
+      th.at2.forEach(function (st) { at2.addColorStop(st[0], st[1]); });
       c.beginPath();
       c.arc(cx, cy, R * 1.28, 0, TAU);
       c.arc(cx, cy, R, 0, TAU, true);
       c.fillStyle = at2; c.fill();
 
       var hi = c.createRadialGradient(cx - R * 0.42, cy - R * 0.48, 0, cx - R * 0.42, cy - R * 0.48, R * 0.58);
-      hi.addColorStop(0, 'rgba(150,210,255,0.055)');
-      hi.addColorStop(1, 'rgba(160,220,255,0)');
+      hi.addColorStop(0, th.hi);
+      hi.addColorStop(1, 'rgba(255,255,255,0)');
       c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.fillStyle = hi; c.fill();
       c.globalCompositeOperation = 'source-over';
 
       c.beginPath(); c.arc(cx, cy, R, 0, TAU);
-      c.strokeStyle = 'rgba(140,214,255,0.44)'; c.lineWidth = 1.05; c.stroke();
+      c.strokeStyle = th.rimLine; c.lineWidth = 1.05; c.stroke();
       c.beginPath(); c.arc(cx, cy, R - 1.2, 0, TAU);
-      c.strokeStyle = 'rgba(56,189,248,0.12)'; c.lineWidth = 2.4; c.stroke();
+      c.strokeStyle = th.rimLine2; c.lineWidth = 2.4; c.stroke();
 
       G.ball = cv;
       G.ballSize = s;
     }
 
     function project(lat, lon, o) {
-      /* G.yaw is radians, lon is degrees: rotate in radians, once. This is the
-         same rotation projectRing/projectArc apply (x = cl·sin(lo−yaw)), so a
-         node, its continent and its arc endpoints land on one another. */
       var la = lat * DEG, lo = lon * DEG - G.yaw;
       var cl = Math.cos(la), sl = Math.sin(la);
       var x = cl * Math.sin(lo), y = sl, z = cl * Math.cos(lo);
@@ -1106,11 +1615,6 @@
       G.ctx.drawImage(G.ball, G.cx - size / 2, G.cy - size / 2, size, size);
     }
 
-    /* ---- land / graticule ----------------------------------------------------
-       Each ring's trigonometry is baked once (cos/sin of lat and lon), so a frame
-       only multiplies — no trig per point. Every ring is projected exactly once
-       per frame into its own cached arrays, then the layer's subpaths are batched
-       into ONE path, so a whole layer costs a handful of draw calls. */
     function prepRing(ring) {
       var pts = [], brk = [], prev = null;
       for (var i = 0; i < ring.length; i++) {
@@ -1133,7 +1637,6 @@
         var x = cl * (slon * cyw - clon * syw);
         var z0 = cl * (clon * cyw + slon * syw);
         var z1 = sl * sp + z0 * cp;
-        /* camera-space offsets are kept so the fill can clip the ring in true 3D */
         ox[k] = x * R;
         oy[k] = -(sl * cp - z0 * sp) * R;
         xs[k] = cx + ox[k];
@@ -1145,7 +1648,6 @@
       r.max = max; r.min = min;
     }
 
-    /* add one side's runs of a projected ring to the current path */
     function runPath(r, ctx, wantFront, close) {
       var n = r.n, xs = r.xs, ys = r.ys, zs = r.zs, brk = r.b;
       var startIdx = -1, any = false, k;
@@ -1161,23 +1663,18 @@
       if (startIdx >= 0 && n - 1 > startIdx) { emit(startIdx, n - 1, ctx, xs, ys, close); any = true; }
       return any;
     }
-    /* Fill a ring clipped by the limb. Every run of front vertices becomes its own
-       closed shape: the coastline itself, closed back along the limb between the two
-       z = 0 crossings that bound the run. So the land inside the limb is filled and
-       nothing else — a hidden stretch can never be closed by a chord across the disc
-       (which would flood the ocean), and no vertex is ever pulled to the limb (which
-       would let the winding flip). Each piece keeps the ring's own direction. */
+
     function fillRing(r, ctx) {
       var n = r.n, zs = r.zs, ox = r.ox, oy = r.oy, cam = G.cam;
       var cx = cam.cx, cy = cam.cy, k, front = 0, start = -1;
       for (k = 0; k < n; k++) {
         if (zs[k] >= 0) {
           front++;
-          if (start < 0 && zs[(k + n - 1) % n] < 0) start = k;   /* a run begins exactly here */
+          if (start < 0 && zs[(k + n - 1) % n] < 0) start = k;
         }
       }
-      if (!front) return false;                                  /* whole ring behind the globe */
-      if (start < 0) {                                           /* nothing hidden: the ring as it is */
+      if (!front) return false;
+      if (start < 0) {
         ctx.moveTo(cx + ox[0], cy + oy[0]);
         for (k = 1; k < n; k++) ctx.lineTo(cx + ox[k], cy + oy[k]);
         ctx.closePath();
@@ -1185,11 +1682,11 @@
       }
       var t = 0, sx, sy;
       while (t < n) {
-        while (t < n && zs[(start + t) % n] < 0) t++;            /* skip the hidden stretch */
+        while (t < n && zs[(start + t) % n] < 0) t++;
         if (t >= n) break;
         sx = 0; sy = 0;
         var i0 = (start + t) % n;
-        while (t < n && zs[(start + t) % n] >= 0) {              /* one visible run */
+        while (t < n && zs[(start + t) % n] >= 0) {
           var ii = (start + t) % n;
           sx += ox[ii]; sy += oy[ii];
           t++;
@@ -1199,14 +1696,12 @@
       return true;
     }
 
-    /* one visible run: its coastline, then the limb between its exit and its entry
-       crossing, on the side the run's own vertices sit on */
     function fillRun(r, ctx, i0, i1, sx, sy) {
       var n = r.n, ox = r.ox, oy = r.oy, zs = r.zs, cam = G.cam;
       var cx = cam.cx, cy = cam.cy, R = cam.R, i;
       var b = (i0 + n - 1) % n, a = (i1 + 1) % n;
-      var e = crossing(ox[b], oy[b], zs[b], ox[i0], oy[i0], zs[i0]);     /* entry, on the limb */
-      var x = crossing(ox[i1], oy[i1], zs[i1], ox[a], oy[a], zs[a]);     /* exit, on the limb */
+      var e = crossing(ox[b], oy[b], zs[b], ox[i0], oy[i0], zs[i0]);
+      var x = crossing(ox[i1], oy[i1], zs[i1], ox[a], oy[a], zs[a]);
       var aE = Math.atan2(x[1], x[0]), aI = Math.atan2(e[1], e[0]);
       var mean = Math.atan2(sy, sx);
       ctx.moveTo(cx + e[0], cy + e[1]);
@@ -1225,14 +1720,12 @@
       ctx.closePath();
     }
 
-    /* where an edge between two projected vertices passes z = 0 */
     function crossing(x0, y0, z0, x1, y1, z1) {
       var t = z0 / (z0 - z1);
       if (!(t >= 0)) t = 0; else if (t > 1) t = 1;
       return [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t];
     }
 
-    /* smallest angle between two directions */
     function angTo(p, q) { return Math.abs((((p - q) % TAU) + TAU + Math.PI) % TAU - Math.PI); }
 
     function emit(a, b, ctx, xs, ys, close) {
@@ -1242,7 +1735,7 @@
     }
 
     function drawGraticule() {
-      var cam = G.cam, ctx = G.ctx, i, r, list = G.gratsP, anyFront = false, anyBack = false;
+      var th = TH(), cam = G.cam, ctx = G.ctx, i, r, list = G.gratsP, anyFront = false, anyBack = false;
       for (i = 0; i < list.length; i++) projectRing(list[i], cam);
 
       if (!G.slow) {
@@ -1252,7 +1745,7 @@
           if (r.max <= 0) continue;
           if (runPath(r, ctx, false, false)) anyBack = true;
         }
-        if (anyBack) { ctx.strokeStyle = 'rgba(56,110,190,0.032)'; ctx.lineWidth = 0.6; ctx.stroke(); }
+        if (anyBack) { ctx.strokeStyle = th.gridBack; ctx.lineWidth = 0.6; ctx.stroke(); }
       }
 
       ctx.beginPath();
@@ -1261,26 +1754,21 @@
         if (r.max <= 0) continue;
         if (runPath(r, ctx, true, false)) anyFront = true;
       }
-      if (anyFront) { ctx.strokeStyle = 'rgba(76,140,225,0.09)'; ctx.lineWidth = 0.6; ctx.stroke(); }
+      if (anyFront) { ctx.strokeStyle = th.grid; ctx.lineWidth = 0.6; ctx.stroke(); }
 
-      /* the equator reads a touch brighter than the rest of the grid */
       var eq = list[list.length - 3];
       if (eq && eq.max > 0) {
         ctx.beginPath();
         if (runPath(eq, ctx, true, false)) {
-          ctx.strokeStyle = 'rgba(90,164,244,0.15)'; ctx.lineWidth = 0.8; ctx.stroke();
+          ctx.strokeStyle = th.equator; ctx.lineWidth = 0.8; ctx.stroke();
         }
       }
     }
 
     function drawLand() {
-      var cam = G.cam, ctx = G.ctx, i, r, list = G.ringsP, anyFill = false, anyLine = false;
+      var th = TH(), cam = G.cam, ctx = G.ctx, i, r, list = G.ringsP, anyFill = false, anyLine = false;
       for (i = 0; i < list.length; i++) projectRing(list[i], cam);
 
-      /* No far-side coastline pass: a coast on the hidden hemisphere stays hidden,
-         exactly like the channels behind it, so the globe reads as a solid body. */
-
-      /* near side body: all continents in one fill (dropped first when frames run long) */
       if (!G.slow && !G.hide.landFill) {
         ctx.beginPath();
         for (i = 0; i < list.length; i++) {
@@ -1288,10 +1776,9 @@
           if (r.max <= 0) continue;
           if (fillRing(r, ctx)) anyFill = true;
         }
-        if (anyFill) { ctx.fillStyle = 'rgba(37,99,235,0.14)'; ctx.fill(); }
+        if (anyFill) { ctx.fillStyle = th.land; ctx.fill(); }
       }
 
-      /* near side coastline: wide dim stroke + thin bright stroke, same path */
       ctx.beginPath();
       for (i = 0; i < list.length; i++) {
         r = list[i];
@@ -1300,9 +1787,9 @@
       }
       if (anyLine && !G.hide.landStroke) {
         if (!G.slow && !G.hide.landGlow) {
-          ctx.strokeStyle = 'rgba(56,160,250,0.18)'; ctx.lineWidth = 2.2; ctx.stroke();
+          ctx.strokeStyle = th.coastGlow; ctx.lineWidth = 2.2; ctx.stroke();
         }
-        ctx.strokeStyle = 'rgba(150,214,255,0.5)'; ctx.lineWidth = 0.8; ctx.stroke();
+        ctx.strokeStyle = th.coast; ctx.lineWidth = 0.8; ctx.stroke();
       }
     }
 
@@ -1323,15 +1810,11 @@
       return { lat: lat, lon: lon };
     }
 
-    /* Each channel arc is one real channels-geo row, so its great-circle path is
-       fixed at build time (trig baked in) and only re-projected each frame. */
     function buildArcs() {
       var cs = G.clusters, out = [], i;
       for (i = 0; i < G.links.length; i++) {
         var a = cs[G.links[i][0]], b = cs[G.links[i][1]];
         if (!a || !b) continue;
-        /* segments scale with the arc's length: short hub-to-hub links need far
-           fewer samples than a transatlantic one, and stay just as smooth */
         var dist = Math.abs(a.lat - b.lat) + Math.abs(((b.lon - a.lon + 540) % 360) - 180);
         var N = Math.max(12, Math.min(32, Math.round(dist / 2.2)));
         var path = [];
@@ -1368,20 +1851,14 @@
     function smooth(t) { return t * t * (3 - 2 * t); }
 
     function drawArcs(t) {
-      var ctx = G.ctx, cam = G.cam, boost = G.flash, arcs = G.arcs, glow = G.glow;
+      var th = TH(), ctx = G.ctx, cam = G.cam, boost = G.flash, arcs = G.arcs, glow = G.glow;
+      if (!arcs.length) return;
       var frontA = 0.33 + 0.30 * boost;
       var bands = G.slow ? 2 : 3;
       var i, arc, k, n;
 
-      /* project every channel once per frame; nothing is projected twice */
       for (i = 0; i < arcs.length; i++) projectArc(arcs[i], cam);
 
-      /* The far hemisphere is never drawn: a channel behind the globe stays behind
-         it, so the body reads as one solid ball instead of a wire cage. Only
-         segments whose midpoint has z > 0 reach the canvas. */
-
-      /* near side: depth bands batched across every arc — a handful of strokes
-         for the whole network instead of one per channel */
       for (var b = 0; b < bands; b++) {
         var lo = b / bands, hi = (b + 1) / bands, a = smooth((lo + hi) / 2);
         ctx.beginPath();
@@ -1401,12 +1878,11 @@
           }
         }
         if (!any) continue;
-        ctx.strokeStyle = 'rgba(110,190,255,' + (frontA * a).toFixed(3) + ')';
+        ctx.strokeStyle = 'rgba(' + th.arc + ',' + (frontA * a).toFixed(3) + ')';
         ctx.lineWidth = 0.75;
         ctx.stroke();
       }
 
-      /* soft bloom, only on the brightest band, still one stroke for all arcs */
       var topLo = (bands - 1) / bands;
       ctx.beginPath();
       var anyTop = false;
@@ -1425,12 +1901,11 @@
         }
       }
       if (anyTop && !G.slow && !G.hide.bloom) {
-        ctx.strokeStyle = 'rgba(80,165,255,' + (0.035 + 0.05 * boost).toFixed(3) + ')';
+        ctx.strokeStyle = 'rgba(' + th.packet + ',' + (0.035 + 0.05 * boost).toFixed(3) + ')';
         ctx.lineWidth = 2.4;
         ctx.stroke();
       }
 
-      /* light packets: sprite blits, positions from the frame timestamp */
       if (!glow || G.hide.packets) return;
       eachPacket(t, function (x, y, size, alpha) {
         ctx.globalAlpha = alpha;
@@ -1439,12 +1914,9 @@
       ctx.globalAlpha = 1;
     }
 
-    /* Every light packet on the globe at time t: the head and its two tail dots.
-       Each position is interpolated between the two neighbouring arc vertices, so the
-       packet glides at frame rate instead of snapping from vertex to vertex. */
     function eachPacket(t, fn) {
       var arcs = G.arcs, phase = t * 0.085, boost = G.flash, i, q;
-      var skip = G.slow ? 2 : 1;   /* every arc carries a packet; long frames take every other */
+      var skip = G.slow ? 2 : 1;
       for (i = 0; i < arcs.length; i++) {
         var arc = arcs[i];
         if ((i % skip) !== 0 || arc.max <= 0) continue;
@@ -1464,14 +1936,18 @@
     }
 
     function drawNodes(t) {
-      var ctx = G.ctx, glow = G.glow;
+      var th = TH(), ctx = G.ctx, glow = G.glow;
       for (var i = 0; i < G.clusters.length; i++) {
         var c = G.clusters[i];
         project(c.lat, c.lon, P);
         c.sx = P.x; c.sy = P.y; c.on = P.z > 0.02;
         if (!c.on) continue;
         var edge = Math.min(1, P.z * 4);
-        var r = 1.15 + Math.min(0.95, Math.log(1 + c.channels) / 8) + (c.count > 1 ? 0.3 : 0);
+        /* Lightning dot size follows its real channel degree; an L1 dot follows how
+           many distinct geolocated nodes Bitnodes put in this cell. */
+        var r = c.l1
+          ? 0.85 + Math.min(1.15, Math.log(1 + (c.count || 1)) / 2.6)
+          : 1.15 + Math.min(0.95, Math.log(1 + c.channels) / 8) + (c.count > 1 ? 0.3 : 0);
         var pulse = 0.70 + 0.30 * Math.sin(t * 1.5 + i);
 
         if (glow) {
@@ -1482,25 +1958,24 @@
         }
 
         ctx.beginPath(); ctx.arc(P.x, P.y, r, 0, TAU);
-        ctx.fillStyle = 'rgba(226,246,255,' + (0.95 * edge).toFixed(2) + ')';
+        ctx.fillStyle = 'rgba(' + th.dot + ',' + (0.95 * edge).toFixed(2) + ')';
         ctx.fill();
 
         var br = r * (1.9 + 0.30 * Math.sin(t * 1.9 + i));
         ctx.beginPath(); ctx.arc(P.x, P.y, br, 0, TAU);
-        ctx.strokeStyle = 'rgba(120,205,255,' + (0.18 * edge * pulse).toFixed(2) + ')';
+        ctx.strokeStyle = 'rgba(' + th.halo + ',' + (0.18 * edge * pulse).toFixed(2) + ')';
         ctx.lineWidth = 0.6; ctx.stroke();
 
-        if (c.count > 1) {
+        if (!c.l1 && c.count > 1) {
           ctx.beginPath(); ctx.arc(P.x, P.y, r + 2.4, 0, TAU);
-          ctx.strokeStyle = 'rgba(120,200,255,' + (0.24 * edge).toFixed(2) + ')';
+          ctx.strokeStyle = 'rgba(' + th.halo + ',' + (0.24 * edge).toFixed(2) + ')';
           ctx.lineWidth = 0.5; ctx.stroke();
         }
       }
     }
 
     function drawRipples(dt) {
-      /* Expanding wave over the sphere surface: a small circle of growing angular
-         radius around the point the camera looks at. */
+      var th = TH();
       var ctx = G.ctx;
       var cLat = G.pitch * 180 / Math.PI, cLon = G.yaw * 180 / Math.PI;
       var la1 = cLat * DEG, cos1 = Math.cos(la1), sin1 = Math.sin(la1);
@@ -1509,7 +1984,7 @@
         r.t += dt;
         if (r.t > 1.9) { G.ripples.splice(i, 1); continue; }
         var k = r.t / 1.9;
-        var ang = 0.05 + k * 2.5;                       // angular radius in radians
+        var ang = 0.05 + k * 2.5;
         var alpha = (1 - k) * 0.55;
         ctx.beginPath();
         var started = false;
@@ -1524,10 +1999,10 @@
             else ctx.lineTo(P.x, P.y);
           } else started = false;
         }
-        ctx.strokeStyle = 'rgba(130,210,255,' + alpha.toFixed(3) + ')';
+        ctx.strokeStyle = 'rgba(' + th.halo + ',' + alpha.toFixed(3) + ')';
         ctx.lineWidth = 1.5 * (1 - k) + 0.35;
         ctx.stroke();
-        ctx.strokeStyle = 'rgba(80,160,255,' + (alpha * 0.35).toFixed(3) + ')';
+        ctx.strokeStyle = 'rgba(' + th.arc + ',' + (alpha * 0.35).toFixed(3) + ')';
         ctx.lineWidth = 5 * (1 - k) + 0.8;
         ctx.stroke();
       }
@@ -1540,15 +2015,11 @@
       G.lastTs = ts;
       var t = ts / 1000;
 
-      /* Adaptive quality. A missed vsync is exactly what makes the rotation and the
-         light packets look like they jump, so the share of late frames is measured
-         and work is shed in stages — cheaper passes first, then a lower backing-store
-         resolution — until frames are steady again. */
       var r = Math.abs(raw);
       G.age += r;
-      if (G.age > 1.2) {                                      // ignore the first moments of boot
-        G.miss = G.miss * 0.94 + (r > 0.024 ? 1 : 0) * 0.06;  // share of frames missing vsync
-        G.slow = G.forceFull ? false : G.miss > 0.30;         // drop the optional passes
+      if (G.age > 1.2) {
+        G.miss = G.miss * 0.94 + (r > 0.024 ? 1 : 0) * 0.06;
+        G.slow = G.forceFull ? false : G.miss > 0.30;
       }
       if (G.adaptive) {
         if (G.lockScale) {
@@ -1558,7 +2029,6 @@
           else if (G.miss > 0.28 && G.resScale > 0.62) setRes(0.62);
           else if (G.miss > 0.10 && G.resScale > 0.75) setRes(0.75);
           if (G.miss < 0.02 && G.resScale < 1) {
-            /* comfortably fast for a while: try giving the sharpness back */
             G.goodMs += r;
             if (G.goodMs > 6) {
               G.goodMs = 0;
@@ -1568,7 +2038,6 @@
             }
           } else if (G.miss > 0.04) G.goodMs = 0;
           if (G.stepAt && G.age - G.stepAt < 3 && G.miss > 0.12) {
-            /* that step did not hold: settle on the scale that did */
             G.lockScale = G.prevScale;
             G.stepAt = 0;
             setRes(G.prevScale);
@@ -1576,19 +2045,16 @@
         }
       }
 
-      /* slow continuous autorotation: drag or an open node card eases it to a
-         stop, and letting go eases it back in — never a jump */
       var want = (!G.dragging && !pinch && !G.hold) ? 1 : 0;
       G.spinEase += (want - G.spinEase) * Math.min(1, dt * 2.0);
       if (!G.dragging && !pinch) {
-        G.yaw += G.vYaw * (raw / 0.0167);      // inertia in real time, not in frames
+        G.yaw += G.vYaw * (raw / 0.0167);
         G.vYaw *= Math.pow(0.90, raw / 0.0167);
         G.yaw += G.spin * G.spinEase * Math.min(0.25, Math.abs(raw));
       }
       G.zoom += (G.zoomT - G.zoom) * 0.16;
       if (G.flash > 0) G.flash = Math.max(0, G.flash - dt * 0.9);
 
-      /* one camera for the frame; every projection below reuses it */
       G.cam = {
         syw: Math.sin(G.yaw), cyw: Math.cos(G.yaw),
         cp: Math.cos(G.pitch), sp: Math.sin(G.pitch),
@@ -1615,7 +2081,9 @@
       if (G.raf) { cancelAnimationFrame(G.raf); G.raf = 0; }
     }
 
-    function build() {
+    /* Lightning layer: one dot per sampled node, one arc per real channel between
+       two dots. Nothing else is ever added here. */
+    function buildLN() {
       var buckets = {}, order = [], byPk = {};
       S.nodes.forEach(function (n) {
         if (!num(n.lat) || !num(n.lon)) return;
@@ -1636,8 +2104,6 @@
         c.nodes.forEach(function (n) { byPk[n.pk] = i; });
       });
 
-      /* One drawn arc per real channel whose two endpoints are both on the globe.
-         Nothing else is ever added here: no neighbour join, no filler edge. */
       var links = [], used = {}, key, a, b;
       for (var i = 0; i < (S.links || []).length; i++) {
         a = byPk[S.links[i][0]];
@@ -1654,11 +2120,42 @@
       buildArcs();
     }
 
+    /* L1 layer: one dot per bucket of Bitnodes coordinates. A coordinate is a real
+       node location the crawler geolocated; the cell only stops the dots from
+       piling up on top of each other at phone size. No arcs — Bitnodes publishes
+       no peer graph, so there is nothing real to draw between them. */
+    function buildL1() {
+      var coords = (S.l1 && S.l1.coords) ? S.l1.coords : [];
+      var buckets = {}, order = [];
+      for (var i = 0; i < coords.length; i++) {
+        var p = coords[i];
+        if (!p || !num(p[0]) || !num(p[1])) continue;
+        var lat = p[0], lon = p[1];
+        if (Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
+        var key = Math.floor((lat + 90) / L1_CELL_DEG) + ':' + Math.floor((lon + 180) / L1_CELL_DEG);
+        var b = buckets[key];
+        if (!b) { b = buckets[key] = { lat: 0, lon: 0, n: 0, pts: [] }; order.push(key); }
+        b.lat += lat; b.lon += lon; b.n++; b.pts.push([lat, lon]);
+      }
+      G.clusters = order.map(function (k) {
+        var b = buckets[k];
+        return {
+          lat: b.lat / b.n, lon: normLon(b.lon / b.n), count: b.n,
+          channels: 0, capacity: 0, deg: 0, nodes: [], pts: b.pts,
+          l1: true, sx: 0, sy: 0, on: false, arcs: 0,
+          iso: l1CellCountry(b.pts)
+        };
+      });
+      G.links = [];
+      buildArcs();
+    }
+
+    function build() {
+      if (S.layer === 'l1') buildL1(); else buildLN();
+    }
+
     function pulse() { G.flash = 1; G.ripples.push({ t: 0 }); }
 
-    /* Verification-only: at a given camera angle, compare project() (used for
-       nodes/ripples/cards) against the ring and arc projection used for the
-       continents and channels. Any drift here means nodes float off their land. */
     function geoProbe(yaw, pitch) {
       var sYaw = G.yaw, sPitch = G.pitch, sCam = G.cam;
       G.yaw = yaw; G.pitch = pitch;
@@ -1670,7 +2167,6 @@
       var cam = G.cam, o = { x: 0, y: 0, z: 0 }, i, k, e;
       var out = { yaw: yaw, pitch: pitch, ringErr: 0, arcErr: 0, samples: 0, worst: null };
 
-      /* 1. every sampled land/graticule vertex: project() vs projectRing() */
       var all = [G.ringsP, G.gratsP];
       for (var g = 0; g < all.length; g++) {
         var list = all[g];
@@ -1687,7 +2183,6 @@
         }
       }
 
-      /* 2. each drawn arc's two ends vs the two node dots it connects */
       for (i = 0; i < G.arcs.length; i++) {
         var arc = G.arcs[i], lk = G.links[i];
         if (!lk) continue;
@@ -1717,7 +2212,6 @@
       return best;
     }
 
-    /* ------- input ------- */
     function bind() {
       var cv = G.cv;
       if (!cv) return;
@@ -1809,66 +2303,33 @@
         return { x: o.x, y: o.y, z: o.z };
       },
       resize: resize,
-      relayout: function () { layout(); buildBall(); },
+      /* a layer switch changes the palette and the node set: rebuild both caches */
+      relayout: function () { layout(); buildBall(); buildGlow(); },
+      retheme: function () { buildBackground(); buildBall(); buildGlow(); },
       setRes: setRes,
       hold: function (on) { G.hold = !!on; G.lastTouch = Date.now(); },
       state: G
     };
   })();
 
+  /* country of an L1 cell: every coordinate in it that the Bitnodes snapshot
+     geolocated, and only if they agree */
+  function l1CellCountry(pts) {
+    var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
+    if (!s || !s.coordCountry) return '';
+    var seen = {}, any = '';
+    for (var i = 0; i < pts.length; i++) {
+      var iso = s.coordCountry[(pts[i][0]).toFixed(4) + ',' + (pts[i][1]).toFixed(4)];
+      if (iso) { seen[iso] = 1; any = iso; }
+    }
+    var keys = Object.keys(seen);
+    return keys.length === 1 ? any : '';
+  }
+
   /* ------------------------------------------------------------ node card */
   function showNodeCard(cluster) {
-    var n = cluster.nodes[0];
-    var many = cluster.nodes.length > 1;
-    var continent = CONT_KO[contOf(n.iso)] || '기타';
-    var place = [n.city, countryKo(n.iso, n.country)].filter(Boolean).join(' · ');
-    var chainTipHash = null, chainTipHeight = S.tip;
-    if (S.blocks && S.blocks.length) chainTipHash = S.blocks[0].id;
-
-    var card = $('card');
-    if (!card) return;
-    var rows = [
-      ['좌표', num(n.lat) && num(n.lon) ? n.lat.toFixed(4) + '°, ' + n.lon.toFixed(4) + '°' : '—'],
-      ['국가', (countryKo(n.iso, n.country) || '—') + (n.iso ? ' (' + n.iso + ')' : '')],
-      ['채널', num(n.channels) ? fmtInt(n.channels) + ' 개' + (n.channelsSrc === 'node' ? ' · 활성' : '') : '—'],
-      ['용량', num(n.capacity) ? fmtBtcCap(n.capacity) + ' BTC' : '—'],
-      ['지도 채널', num(n.deg) ? fmtInt(n.deg) + ' 개' : '—'],
-      ['AS 조직', n.asOrg || '—'],
-      ['소켓', n.sockets ? n.sockets + '개' + (n.tor ? ' · Tor 포함' : ' · 클리어넷') : '—'],
-      ['최초 관측', dateOf(n.firstSeen)],
-      ['최근 갱신', n.updatedAt ? dateOf(n.updatedAt) : '—']
-    ];
-    if (many) rows.push(['클러스터', cluster.count + '개 노드 · 채널 합계 ' + fmtInt(cluster.channels) + ' 개', true]);
-
-    var htmlRows = rows.map(function (r) {
-      return '<div class="cell' + (r[2] ? ' full' : '') + '"><dt>' + esc(r[0]) + '</dt><dd class="' + (r[1] === '—' ? 'na' : '') + '">' + esc(r[1]) + '</dd></div>';
-    }).join('');
-
-    var aliasList = many ? cluster.nodes.map(function (x) { return esc(x.alias); }).slice(0, 6).join(', ') : '';
-    var peers = n.peers || [];
-    var peerHTML = peers.length
-      ? '<div class="peers"><div class="t">REAL CHANNELS · 실제 채널 상대</div><div class="p">' +
-        peers.map(function (a) { return '<span class="peer">' + esc(a) + '</span>'; }).join('') +
-        '</div><div class="v">이 지점의 실제 채널 ' + fmtInt(cluster.deg) + '개 중 ' + cluster.arcs + '개가 지구본에 그려졌습니다 · channels-geo</div></div>'
-      : '';
-
-    card.innerHTML =
-      '<div class="card-head"><div>' +
-      '<div class="kicker">NODE · ' + esc(continent) + '</div>' +
-      '<h2>' + esc(n.alias) + '</h2>' +
-      '<p class="place">' + esc(place || '위치 정보 없음') + '</p>' +
-      '</div><button class="close" id="cardClose" aria-label="닫기">×</button></div>' +
-      '<dl class="grid">' + htmlRows + '</dl>' +
-      peerHTML +
-      (aliasList ? '<div class="disc" style="margin-top:12px">같은 좌표 격자에 묶인 노드: ' + aliasList + (cluster.nodes.length > 6 ? ' 외 ' + (cluster.nodes.length - 6) + '개' : '') + '</div>' : '') +
-      '<div class="tip"><div class="t">CHAIN TIP · 네트워크 공통 (mempool.space)</div>' +
-      '<div class="h">' + esc(chainTipHash || '—') + '</div>' +
-      '<div class="v">높이 ' + (chainTipHeight === null ? '—' : fmtInt(chainTipHeight)) + ' · ' + esc(S.nodeSrc === 'seed' ? '내장 스냅샷 노드' : ago(S.nodeAt)) + ' 기준 노드 목록</div></div>' +
-      '<p class="disc"><b>표시 값은 mempool.space Lightning API 응답 그대로</b>입니다(별칭·국가·도시·좌표·채널·용량·AS·관측 시각). ' +
-      '지연시간, 가동시간, 디스크 용량, 개별 노드의 동기화 높이처럼 API가 제공하지 않는 항목은 표시하지 않습니다. ' +
-      'CHAIN TIP은 이 노드가 보고한 값이 아니라 네트워크 공통 현재 tip입니다. ' +
-      '노드 사이의 호는 <code>lightning/channels-geo</code>에 실린 <b>실제 공개 채널</b>이며, 근접 추정으로 이은 선은 없습니다.</p>';
-
+    if (S.layer === 'l1') showL1Card(cluster);
+    else showLNCard(cluster);
     $('modal').classList.add('on');
     Globe.hold(true);
     var cb = $('cardClose');
@@ -1878,7 +2339,146 @@
   function closeNodeCard() {
     var m = $('modal');
     if (m) m.classList.remove('on');
-    Globe.hold(false);          // autorotation eases back in
+    Globe.hold(false);
+  }
+
+  function cardRows(rows) {
+    return rows.map(function (r) {
+      return '<div class="cell' + (r[2] ? ' full' : '') + '"><dt>' + esc(r[0]) + '</dt><dd class="' + (r[1] === '—' ? 'na' : '') + '">' + esc(r[1]) + '</dd></div>';
+    }).join('');
+  }
+
+  function showL1Card(cluster) {
+    var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
+    var l1 = S.l1 || {};
+    var pt = cluster.pts && cluster.pts.length ? cluster.pts[0] : [cluster.lat, cluster.lon];
+    var iso = cluster.iso || '';
+    var place = iso ? countryName(iso, '') + (iso ? ' (' + iso + ')' : '') : '—';
+    var card = $('card');
+    if (!card) return;
+    var rows = [
+      [L('cCoord'), pt[0].toFixed(4) + '°, ' + pt[1].toFixed(4) + '°'],
+      [L('cCell'), fmtInt(cluster.count) + ' ' + L('cCells')],
+      [L('cCountry'), place],
+      [L('cSrc'), l1.src === 'live' ? 'Bitnodes ' + L('live') : l1.src === 'cache' ? 'Bitnodes ' + L('cache') : 'Bitnodes ' + L('snap')],
+      [L('cSnapAt'), l1.at ? dateOf(l1.at) : '—'],
+      [L('cHeight'), S.tip === null ? '—' : fmtInt(S.tip)]
+    ];
+    card.innerHTML =
+      '<div class="card-head"><div>' +
+      '<div class="kicker">BITCOIN L1 · FULL NODE</div>' +
+      '<h2>' + esc(pt[0].toFixed(2) + '°, ' + pt[1].toFixed(2) + '°') + '</h2>' +
+      '<p class="place">' + esc(place === '—' ? L('cWhere') + ' ' + (iso || '—') : place) + '</p>' +
+      '</div><button class="close" id="cardClose" aria-label="close">×</button></div>' +
+      '<dl class="grid">' + cardRows(rows) + '</dl>' +
+      (s && s.capturedAt ? '<div class="disc">' + L('cCountry') + ': Bitnodes ' + dateOf(s.capturedAt * 1000).slice(0, 10) + ' · ' + fmtInt(s.totalNodes) + ' nodes</div>' : '') +
+      '<p class="disc"><b>Bitnodes</b> · ' + esc(L('cL1Note')) + '</p>';
+  }
+
+  function showLNCard(cluster) {
+    var n = cluster.nodes[0];
+    var many = cluster.nodes.length > 1;
+    var continent = contName(contOf(n.iso));
+    var place = [n.city, S.lang === 'en' ? n.country : countryName(n.iso, n.country)].filter(Boolean).join(' · ');
+    var chainTipHash = null, chainTipHeight = S.tip;
+    if (S.blocks && S.blocks.length) chainTipHash = S.blocks[0].id;
+
+    var card = $('card');
+    if (!card) return;
+    var rows = [
+      [L('cCoord'), num(n.lat) && num(n.lon) ? n.lat.toFixed(4) + '°, ' + n.lon.toFixed(4) + '°' : '—'],
+      [L('cCountry'), (countryName(n.iso, n.country) || '—') + (n.iso ? ' (' + n.iso + ')' : '')],
+      [L('cCh'), num(n.channels) ? fmtInt(n.channels) : '—'],
+      [L('cCap'), num(n.capacity) ? fmtBtcCap(n.capacity) + ' BTC' : '—'],
+      [L('cMapCh'), num(n.deg) ? fmtInt(n.deg) : '—'],
+      [L('cAS'), n.asOrg || '—'],
+      [L('cSock'), n.sockets ? n.sockets + '개' + (n.tor ? ' · Tor' : ' · clearnet') : '—'],
+      [L('cFirst'), dateOf(n.firstSeen)],
+      [L('cUpd'), n.updatedAt ? dateOf(n.updatedAt) : '—']
+    ];
+    if (many) rows.push([L('cCluster'), cluster.count + ' nodes · ' + fmtInt(cluster.channels) + ' ch', true]);
+
+    var aliasList = many ? cluster.nodes.map(function (x) { return esc(x.alias); }).slice(0, 6).join(', ') : '';
+    var peers = n.peers || [];
+    var peerHTML = peers.length
+      ? '<div class="peers"><div class="t">' + L('cPeers') + '</div><div class="p">' +
+        peers.map(function (a) { return '<span class="peer">' + esc(a) + '</span>'; }).join('') +
+        '</div><div class="v">' + fmtInt(cluster.deg) + ' / ' + cluster.arcs + ' · channels-geo</div></div>'
+      : '';
+
+    card.innerHTML =
+      '<div class="card-head"><div>' +
+      '<div class="kicker">NODE · ' + esc(continent) + '</div>' +
+      '<h2>' + esc(n.alias) + '</h2>' +
+      '<p class="place">' + esc(place || '—') + '</p>' +
+      '</div><button class="close" id="cardClose" aria-label="close">×</button></div>' +
+      '<dl class="grid">' + cardRows(rows) + '</dl>' +
+      peerHTML +
+      (aliasList ? '<div class="disc" style="margin-top:12px">' + aliasList + (cluster.nodes.length > 6 ? ' +' + (cluster.nodes.length - 6) : '') + '</div>' : '') +
+      '<div class="tip"><div class="t">' + L('cChainTip') + '</div>' +
+      '<div class="h">' + esc(chainTipHash || '—') + '</div>' +
+      '<div class="v">' + L('cHeight') + ' ' + (chainTipHeight === null ? '—' : fmtInt(chainTipHeight)) + ' · ' + esc(S.nodeSrc === 'seed' ? L('snap') : ago(S.nodeAt)) + '</div></div>' +
+      '<p class="disc">' + esc(L('cLNNote')) + '</p>';
+  }
+
+  /* ------------------------------------------------------------- layer/i18n */
+  function setLayer(layer) {
+    if (layer !== 'l1' && layer !== 'ln') return;
+    S.layer = layer;
+    document.body.classList.toggle('l1', layer === 'l1');
+    document.body.classList.toggle('ln', layer === 'ln');
+    mark($('layerL1'), 'on', layer === 'l1');
+    mark($('layerLN'), 'on', layer === 'ln');
+    var b1 = $('layerL1'), b2 = $('layerLN');
+    if (b1) b1.setAttribute('aria-selected', layer === 'l1' ? 'true' : 'false');
+    if (b2) b2.setAttribute('aria-selected', layer === 'ln' ? 'true' : 'false');
+    var cv = $('globe');
+    if (cv) cv.setAttribute('aria-label', layer === 'l1' ? '비트코인 L1 풀노드 지구본' : '라이트닝 채널 지구본');
+    show('secL1Wrap', layer === 'l1');
+    show('secVerWrap', layer === 'l1');
+    show('secLNWrap', layer === 'ln');
+    txt('subrow', layer === 'l1' ? L('subL1') : L('subLN'));
+    txt('distTitle', layer === 'l1' ? L('secDistL1') : L('secDistLN'));
+    $('legend').innerHTML = layer === 'l1'
+      ? '<span class="l"><span class="dot"></span>' + esc(L('legL1dot')) + '</span><span class="l">' + esc(L('legL1note')) + '</span>'
+      : '<span class="l"><span class="dot"></span>' + esc(L('legLNdot')) + '</span><span class="l"><span class="line"></span>' + esc(L('legLNline')) + '</span>';
+    Globe.build();
+    Globe.retheme();
+    noteDirty = true;
+    storePref();
+    schedulePaint();
+  }
+
+  function applyLang() {
+    document.body.classList.toggle('en', S.lang === 'en');
+    if (document.documentElement && document.documentElement.setAttribute) {
+      document.documentElement.setAttribute('lang', S.lang === 'en' ? 'en' : 'ko');
+    }
+    var nodes = document.querySelectorAll ? document.querySelectorAll('[data-i18n]') : [];
+    for (var i = 0; i < nodes.length; i++) {
+      var k = nodes[i].getAttribute('data-i18n');
+      if (k) nodes[i].textContent = L(k);
+    }
+    txt('langBtn', S.lang === 'en' ? 'KO' : 'EN');
+    txt('subrow', S.layer === 'l1' ? L('subL1') : L('subLN'));
+    txt('distTitle', S.layer === 'l1' ? L('secDistL1') : L('secDistLN'));
+    txt('hint', L('hint'));
+    $('legend').innerHTML = S.layer === 'l1'
+      ? '<span class="l"><span class="dot"></span>' + esc(L('legL1dot')) + '</span><span class="l">' + esc(L('legL1note')) + '</span>'
+      : '<span class="l"><span class="dot"></span>' + esc(L('legLNdot')) + '</span><span class="l"><span class="line"></span>' + esc(L('legLNline')) + '</span>';
+    var tg = $('toggle');
+    if (tg) tg.setAttribute('aria-label', S.panelOpen ? L('pClose') : L('pOpen'));
+    noteDirty = true;
+    storePref();
+    schedulePaint();
+  }
+
+  function storePref() { store(LS_PREF, { layer: S.layer, lang: S.lang }); }
+  function loadPref() {
+    var p = recall(LS_PREF);
+    if (!p) return;
+    if (p.lang === 'en' || p.lang === 'ko') S.lang = p.lang;
+    if (p.layer === 'l1' || p.layer === 'ln') S.layer = p.layer;
   }
 
   /* ------------------------------------------------------------------ boot */
@@ -1886,7 +2486,7 @@
     Promise.all([
       loadTip().catch(noop), loadBlocks().catch(noop), loadMem().catch(noop),
       loadRecentTxs().catch(noop), loadFees().catch(noop), loadHashrate().catch(noop),
-      loadDiff().catch(noop)
+      loadDiff().catch(noop), loadPools().catch(noop)
     ]).then(function () { schedulePaint(); });
   }
 
@@ -1905,33 +2505,27 @@
       if (btn) {
         btn.textContent = open ? '−' : '+';
         btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-        btn.setAttribute('aria-label', open ? '실시간 네트워크 패널 닫기' : '실시간 네트워크 패널 열기');
+        btn.setAttribute('aria-label', open ? L('pClose') : L('pOpen'));
       }
       if (open) paintPanel();
     }
     if (btn) btn.addEventListener('click', function () { setPanel(!S.panelOpen); });
     var strip = $('strip');
     if (strip) strip.addEventListener('click', function () { setPanel(true); if (panel) panel.scrollTop = 0; });
-    ['mNodes', 'mHeight', 'mHash'].forEach(function (id) {
+    ['mHeight', 'mMem', 'mFee', 'mNodes', 'mChans', 'mCap'].forEach(function (id) {
       var el = $(id);
       if (el) el.addEventListener('click', function () { setPanel(true); });
     });
-    var tabB = $('tabBlocks'), tabT = $('tabTxs');
-    if (tabB) tabB.addEventListener('click', function () { setTab('blocks'); });
-    if (tabT) tabT.addEventListener('click', function () { setTab('txs'); });
+    var b1 = $('layerL1'), b2 = $('layerLN');
+    if (b1) b1.addEventListener('click', function () { setLayer('l1'); });
+    if (b2) b2.addEventListener('click', function () { setLayer('ln'); });
+    var lb = $('langBtn');
+    if (lb) lb.addEventListener('click', function () { S.lang = S.lang === 'en' ? 'ko' : 'en'; applyLang(); });
+    var wp = $('watchPill');
+    if (wp) wp.addEventListener('click', function () { setPanel(true); var w = $('watch'); if (w && w.scrollIntoView) w.scrollIntoView({ block: 'center' }); });
     var modal = $('modal');
     if (modal) modal.addEventListener('click', function (e) { if (e.target === modal) closeNodeCard(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeNodeCard(); });
-  }
-
-  function setTab(t) {
-    S.tab = t;
-    var on = t === 'blocks';
-    mark($('tabBlocks'), 'on', on);
-    mark($('tabTxs'), 'on', !on);
-    mark($('listBlocks'), 'on', on);
-    mark($('listTxs'), 'on', !on);
-    if (on) paintBlocks(); else paintTxs();
   }
 
   function tickClock() {
@@ -1942,29 +2536,43 @@
   }
 
   function boot() {
+    loadPref();
+    BR.init();
     var hadCache = restoreCache();
     Globe.init();
     bindUI();
-    applySeed();                 // immediate, clearly-labelled fallback; replaced by live data
+    document.body.classList.toggle('l1', S.layer === 'l1');
+    document.body.classList.toggle('ln', S.layer === 'ln');
+
+    /* every layer gets a truthful first paint from real bundled data before the
+       network answers: the Bitnodes snapshot for L1, the channel snapshot for LN */
+    applySnapshotL1('boot');
+    applySeed();
+    applyLang();
+    setLayer(S.layer);
     tickClock();
     setInterval(tickClock, 1000);
     paint();
-    if (hadCache) toast('저장된 마지막 데이터 표시 중 · 갱신 중');
+    if (hadCache) toast(L('tCached'));
 
     refreshCore();
     refreshSlow();
+    loadL1();
     refreshNodes(false);
     connectWS();
 
-    // polling (always on; faster when the socket is not open)
-    setInterval(function () { if (S.ws !== 'open') refreshCore(); }, 20000);
+    setInterval(function () {
+      if (S.ws !== 'open') refreshCore();
+    }, 20000);
     setInterval(function () { if (S.ws === 'open') { loadTip().catch(noop); loadMem().catch(noop); } }, 90000);
     setInterval(function () { loadBlocks().catch(noop); loadRecentTxs().catch(noop); }, 60000);
     setInterval(function () { loadHashrate().catch(noop); loadDiff().catch(noop); }, 300000);
+    setInterval(function () { loadPools().catch(noop); }, POOL_TTL);
+    setInterval(function () { if (Date.now() - S.l1Tried > L1_TTL) loadL1(); }, 60000);
     setInterval(refreshSlow, 1800000);
     setInterval(function () { refreshNodes(false); }, 6 * 3600 * 1000);
     setInterval(function () { if (stale()) { refreshCore(); if (S.ws !== 'open') connectWS(); } }, 45000);
-    setInterval(function () { paintStatus(); if (S.panelOpen) { paintBlocks(); paintTxs(); } }, 15000);
+    setInterval(function () { paintStatus(); if (S.panelOpen) paintPanel(); }, 15000);
 
     var hint = $('hint');
     if (hint) {
@@ -1987,7 +2595,15 @@
       geoProbe: Globe.geoProbe,
       packets: Globe.packets,
       openNode: function (i) { var c = Globe.state.clusters[i]; if (c) showNodeCard(c); },
-      conts: aggregateContinents
+      conts: aggregateContinents,
+      layer: function (l) { if (l) setLayer(l); return S.layer; },
+      lang: function (l) { if (l) { S.lang = l; applyLang(); } return S.lang; },
+      loadL1: loadL1,
+      bridge: function () { return BR.on; },
+      wsUrl: wsUrl,
+      mblocks: function () { return S.mblocks; },
+      watch: function () { evalWatch(); return { list: S.wd ? S.wd.list : [], alerts: (S.wd ? S.wd.alerts : []) || [], sig: S.alertSig }; },
+      reorg: reorgEvent
     };
   }
 

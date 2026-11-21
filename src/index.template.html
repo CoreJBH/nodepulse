@@ -5,65 +5,102 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#040914">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="NODEPULSE — 비트코인 메인넷 실시간 네트워크 감시. 블록·멤풀·해시레이트·라이트닝 노드를 실제 mempool.space API로 표시합니다.">
-<title>NODEPULSE · 비트코인 메인넷 네트워크 감시</title>
+<meta name="description" content="NodePulse — 비트코인 L1 메인넷 실시간 감시. Bitnodes 풀노드 분포와 mempool.space 블록·멤풀·수수료를 실제 데이터로만 표시합니다.">
+<title>NodePulse · 비트코인 L1 메인넷 네트워크 감시</title>
 <link rel="icon" type="image/png" sizes="64x64" href="data:image/png;base64,__ICON_FAVICON__">
 <link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,__ICON_TOUCH__">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="NODEPULSE">
+<meta name="apple-mobile-web-app-title" content="NodePulse">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
 /*__CSS__*/
 </style>
 </head>
-<body>
-<div id="stage"><canvas id="globe" aria-label="비트코인 네트워크 지구본"></canvas></div>
+<body class="l1">
+<div id="stage"><canvas id="globe" aria-label="비트코인 L1 풀노드 지구본"></canvas></div>
 
 <header class="topbar" id="topbar">
   <div class="head">
     <div class="mark" aria-hidden="true">₿</div>
     <div class="titles">
-      <div class="brand"><b>NODEPULSE</b></div>
+      <div class="brand"><b>NodePulse</b></div>
     </div>
     <div class="pills">
       <span class="pill pulse" id="livePill"><i></i><span id="liveTxt">WAIT</span></span>
       <span class="pill off" id="wsPill"><i></i><span id="wsTxt">POLL</span></span>
+      <span class="pill off wd" id="watchPill" role="button" tabindex="0"><i></i><span id="watchTxt">WDG 0</span></span>
     </div>
     <button class="toggle" id="toggle" aria-expanded="false" aria-controls="panel" aria-label="실시간 네트워크 패널 열기">+</button>
   </div>
-  <div class="subrow">BITCOIN MAINNET · LIGHTNING NODE · GLOBAL NETWORK</div>
+
+  <div class="layers">
+    <div class="seg" role="tablist" aria-label="레이어 선택">
+      <button class="lay on" id="layerL1" role="tab" aria-selected="true" data-layer="l1">BITCOIN L1</button>
+      <button class="lay" id="layerLN" role="tab" aria-selected="false" data-layer="ln">LIGHTNING</button>
+    </div>
+    <button class="lng" id="langBtn" aria-label="언어 전환 / switch language">EN</button>
+  </div>
+  <div class="subrow" id="subrow">FULL NODE NETWORK · BITNODES</div>
 
   <div class="panel" id="panel">
     <div class="panel-in">
       <div class="clockrow">
         <div>
-          <div class="lbl">현재 시각 (UTC)</div>
+          <div class="lbl" data-i18n="utc">현재 시각 (UTC)</div>
           <div class="clock"><span id="clock">--:--:--</span><small id="clockKst"></small></div>
         </div>
-        <div class="sync" id="syncWrap"><span>상태</span><b id="syncTxt">연결 중</b></div>
+        <div class="sync" id="syncWrap"><span data-i18n="state">상태</span><b id="syncTxt">연결 중</b></div>
       </div>
 
-      <div class="sec"><span>NETWORK · 실시간</span><span id="srcTag">MEMPOOL.SPACE</span></div>
-      <div class="row"><div class="k">블록 높이<em>BLOCK HEIGHT</em></div><div class="v" id="pHeight">—</div></div>
-      <div class="row"><div class="k">해시레이트<em>HASHRATE</em></div><div class="v" id="pHash">—</div></div>
-      <div class="row"><div class="k">멤풀<em>MEMPOOL</em></div><div class="v" id="pMem">—</div></div>
-      <div class="row"><div class="k">권장 수수료<em>RECOMMENDED FEE</em></div><div class="v" id="pFee">—</div></div>
-      <div class="row"><div class="k">다음 난이도 조정<em>DIFFICULTY</em></div><div class="v" id="pDiff">—</div></div>
-      <div class="row"><div class="k">라이트닝 노드<em>LIGHTNING NODES</em></div><div class="v" id="pLN">—</div></div>
-      <div class="row"><div class="k">라이트닝 채널 · 용량<em>CHANNELS · CAPACITY</em></div><div class="v" id="pLNCap">—</div></div>
+      <div class="sec"><span data-i18n="secNet">BITCOIN MAINNET · LIVE</span><span id="srcTag">MEMPOOL.SPACE</span></div>
+      <div class="row"><div class="k"><span data-i18n="kHeight">블록 높이</span><em>BLOCK HEIGHT</em></div><div class="v" id="pHeight">—</div></div>
+      <div class="row"><div class="k"><span data-i18n="kMem">멤풀</span><em>MEMPOOL</em></div><div class="v" id="pMem">—</div></div>
+      <div class="row"><div class="k"><span data-i18n="kFee">최속 수수료</span><em>FASTEST FEE</em></div><div class="v" id="pFee">—</div></div>
+      <div class="row"><div class="k"><span data-i18n="kHash">해시레이트</span><em>HASHRATE</em></div><div class="v" id="pHash">—</div></div>
+      <div class="row"><div class="k"><span data-i18n="kDiff">다음 난이도 조정</span><em>DIFFICULTY</em></div><div class="v" id="pDiff">—</div></div>
 
-      <div class="sec"><span>대륙별 노드 분포</span><span id="distTotal"></span></div>
+      <div id="secL1Wrap">
+        <div class="sec"><span data-i18n="secL1">BITCOIN L1 · FULL NODES</span><span id="l1Tag">BITNODES</span></div>
+        <div class="row"><div class="k"><span data-i18n="kL1">도달 가능 풀노드</span><em>REACHABLE L1 NODES</em></div><div class="v" id="pL1">—</div></div>
+        <div class="row"><div class="k"><span data-i18n="kPlat">접속망</span><em>CLEARNET · TOR · I2P</em></div><div class="v" id="pPlat">—</div></div>
+        <div class="row"><div class="k"><span data-i18n="kL1H">크롤러 기준 높이</span><em>BITNODES HEIGHT</em></div><div class="v" id="pL1H">—</div></div>
+        <div class="row"><div class="k"><span data-i18n="kL1At">측정 시각</span><em>SNAPSHOT</em></div><div class="v" id="pL1At">—</div></div>
+      </div>
+
+      <div id="secLNWrap">
+        <div class="sec"><span data-i18n="secLN">LIGHTNING · MEMPOOL.SPACE</span><span id="lnTag">LN</span></div>
+        <div class="row"><div class="k"><span data-i18n="kLN">라이트닝 노드</span><em>LIGHTNING NODES</em></div><div class="v" id="pLN">—</div></div>
+        <div class="row"><div class="k"><span data-i18n="kLNCap">채널 · 용량</span><em>CHANNELS · CAPACITY</em></div><div class="v" id="pLNCap">—</div></div>
+      </div>
+
+      <div class="sec"><span id="distTitle" data-i18n="secDistL1">대륙별 L1 노드 분포</span><span id="distTotal"></span></div>
       <div id="dist"></div>
 
-      <div class="tabs">
-        <button class="tab on" id="tabBlocks" data-tab="blocks">최근 블록</button>
-        <button class="tab" id="tabTxs" data-tab="txs">최근 트랜잭션</button>
+      <div id="secVerWrap">
+        <div class="sec"><span data-i18n="secVer">클라이언트 버전</span><span id="verSrc">LIVE</span></div>
+        <div id="verList"></div>
       </div>
-      <div class="list on" id="listBlocks"><div class="item"><div class="l2">불러오는 중…</div></div></div>
-      <div class="list" id="listTxs"><div class="item"><div class="l2">불러오는 중…</div></div></div>
 
-      <p class="note" id="note"><b>DATA</b> mempool.space REST · WebSocket.</p>
+      <div class="sec"><span data-i18n="secNext">다음 블록 · NEXT BLOCKS</span><span id="nextTotal"></span></div>
+      <div id="nextBlocks"></div>
+
+      <div class="sec"><span data-i18n="secWatch">네트워크 감시 · WATCHDOG</span><span id="watchSrc"></span></div>
+      <div id="watch"></div>
+
+      <div class="sec"><span data-i18n="secLedger">최근 블록 · 최근 트랜잭션</span><span></span></div>
+      <div class="duo">
+        <div class="col">
+          <div class="dh" data-i18n="hBlocks">최근 블록</div>
+          <div class="list on" id="listBlocks"><div class="item"><div class="l2">불러오는 중…</div></div></div>
+        </div>
+        <div class="col">
+          <div class="dh" data-i18n="hTxs">최근 트랜잭션</div>
+          <div class="list on" id="listTxs"><div class="item"><div class="l2">불러오는 중…</div></div></div>
+        </div>
+      </div>
+
+      <p class="note" id="note"><b>DATA</b> mempool.space REST · WebSocket · Bitnodes.</p>
     </div>
   </div>
 </header>
@@ -74,18 +111,23 @@
   <button class="strip" id="strip" aria-label="실시간 네트워크 패널 열기">
     <span class="lb">MEMPOOL</span><span class="sep lb">·</span><b id="sMem">—</b>
     <span class="sep">·</span><b id="sFee">—</b>
+    <span class="sep">·</span><b id="sNext">—</b>
     <span class="chev">▾</span>
   </button>
-  <div class="legend">
-    <span class="l"><span class="dot"></span>LIGHTNING NODE</span>
-    <span class="l"><span class="line"></span>LIGHTNING CHANNEL (실측)</span>
-  </div>
-  <div class="metrics">
-    <button class="metric" id="mNodes"><div class="val" id="vNodes">—</div><div class="lbl">LIGHTNING<br>NODES</div></button>
-    <div class="vr" aria-hidden="true"></div>
+  <div class="legend" id="legend"></div>
+  <div class="metrics" id="metricsL1">
     <button class="metric" id="mHeight"><div class="val" id="vHeight">—</div><div class="lbl">BLOCK<br>HEIGHT</div></button>
     <div class="vr" aria-hidden="true"></div>
-    <button class="metric" id="mHash"><div class="val" id="vHash">—</div><div class="lbl">NETWORK<br>HASHRATE</div></button>
+    <button class="metric" id="mMem"><div class="val" id="vMem">—</div><div class="lbl">MEMPOOL<br>MB · TX</div></button>
+    <div class="vr" aria-hidden="true"></div>
+    <button class="metric" id="mFee"><div class="val" id="vFee">—</div><div class="lbl">FASTEST<br>sat/vB</div></button>
+  </div>
+  <div class="metrics" id="metricsLN">
+    <button class="metric" id="mNodes"><div class="val" id="vNodes">—</div><div class="lbl">LIGHTNING<br>NODES</div></button>
+    <div class="vr" aria-hidden="true"></div>
+    <button class="metric" id="mChans"><div class="val" id="vChans">—</div><div class="lbl">CHANNELS</div></button>
+    <div class="vr" aria-hidden="true"></div>
+    <button class="metric" id="mCap"><div class="val" id="vCap">—</div><div class="lbl">CAPACITY<span class="u">BTC</span></div></button>
   </div>
 </div>
 
@@ -94,12 +136,13 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<noscript><p style="position:fixed;inset:auto 0 40% 0;text-align:center;color:#8fb8ee;font-family:monospace">NODEPULSE는 JavaScript가 필요합니다.</p></noscript>
+<noscript><p style="position:fixed;inset:auto 0 40% 0;text-align:center;color:#8fb8ee;font-family:monospace">NodePulse는 JavaScript가 필요합니다.</p></noscript>
 
 <script>/*__WORLD__*/</script>
 <script>/*__COUNTRY__*/</script>
 <script>/*__SEED__*/</script>
 <script>/*__CHANNELS__*/</script>
+<script>/*__L1__*/</script>
 <script>/*__APP__*/</script>
 </body>
 </html>

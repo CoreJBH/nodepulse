@@ -1,28 +1,47 @@
 <div align="center">
 
-<img src="assets/icon-192.png" width="132" height="132" alt="NODEPULSE">
+<img src="assets/icon-192.png" width="132" height="132" alt="NodePulse">
 
-# NODEPULSE
+# NodePulse
 
-**Real-time Bitcoin mainnet and Lightning Network topology, rendered as an interactive 3D globe.**
+**Bitcoin L1 mainnet full-node map and real-time network monitor, with the Lightning channel graph one tap away.**
 
 ![zero dependencies](https://img.shields.io/badge/dependencies-0-0b1220?style=flat-square)
 ![single file](https://img.shields.io/badge/build-single%20file%20HTML-0b1220?style=flat-square)
 ![canvas 2d](https://img.shields.io/badge/render-Canvas%202D-38bdf8?style=flat-square)
-![tests](https://img.shields.io/badge/assertions-104%20passing-2ea043?style=flat-square)
-![data](https://img.shields.io/badge/data-mempool.space-f7931a?style=flat-square)
+![tests](https://img.shields.io/badge/assertions-166%20passing-2ea043?style=flat-square)
+![data](https://img.shields.io/badge/L1-bitnodes-f7931a?style=flat-square)
+![data](https://img.shields.io/badge/mainnet-mempool.space-orange?style=flat-square)
 
 </div>
 
-NODEPULSE visualises the live state of the Bitcoin network — chain tip, hashrate, mempool
-pressure, fee market, and the real Lightning channel graph — on a rotating globe that fits in
-one HTML file. It runs with **zero dependencies**: no framework, no bundler, no package
-manager, no CDN, no external image or font request; the entire application is a single
-self-contained document that draws every frame with the Canvas 2D API.
+NodePulse watches Bitcoin **L1 mainnet** first: the reachable full-node network as the
+Bitnodes crawler sees it — node count, clear-net/Tor/I2P split, country and continent spread,
+client versions — plus the chain tip, mempool pressure, fee market and the next-block fee
+projection. The Lightning channel graph is still there as a second layer, one tap away.
+
+It runs with **zero dependencies**: no framework, no bundler, no package manager, no CDN, no
+external image or font request; the entire application is a single self-contained document
+that draws every frame with the Canvas 2D API.
+
+## Two layers
+
+| Layer | What the globe shows | Primary data |
+| --- | --- | --- |
+| **Bitcoin L1** (default) | every unique coordinate the Bitnodes crawler geolocated, one dot per 3° cell | `bitnodes.io/api/v1/snapshots/latest/?field=coordinates` |
+| **Lightning** | up to 22 nodes sampled from the real channel graph, one arc per open channel between drawn dots | `mempool.space/api/v1/lightning/channels-geo` |
+
+The switcher sits under the title (`BITCOIN L1 | LIGHTNING`); the `EN / KO` button next to it
+switches language, and both choices are remembered.
+
+The L1 layer draws **no links at all**. Bitnodes publishes no per-node peer graph, so the only
+honest options are to draw nothing or to invent a mesh — it draws nothing. Tor and I2P nodes
+(15,577 of 21,826 in the bundled snapshot) carry no coordinates, so they are counted in the
+totals and the transport split but not placed on the globe.
 
 <div align="center">
-<img src="assets/screenshot-mobile.jpg" width="47%" alt="NODEPULSE on a phone">
-<img src="assets/screenshot-desktop.jpg" width="50%" alt="NODEPULSE on a desktop browser">
+<img src="assets/screenshot-mobile.jpg" width="47%" alt="NodePulse on a phone">
+<img src="assets/screenshot-desktop.jpg" width="50%" alt="NodePulse on a desktop browser">
 </div>
 
 ---
@@ -41,7 +60,15 @@ is generated, interpolated from a model, or placed for visual balance.
 | Node distribution by country | `/api/v1/lightning/nodes/countries` | REST |
 | Globe node positions, aliases, capacities, degrees | `/api/v1/lightning/channels-geo`, `/api/v1/lightning/nodes/{pubkey}`, `nodes/rankings/{connectivity,liquidity}` | REST |
 | Inter-node arcs | `channels-geo` — one arc per **real open channel** | REST |
-| Live block / mempool / fee pushes | `wss://mempool.space/api/v1/ws` | WebSocket |
+| L1 reachable node count, crawler height | `bitnodes.io/api/v1/snapshots/latest/?field=coordinates` | REST (native bridge on Android) |
+| L1 unique node coordinates (the globe dots) | same `?field=coordinates` payload | REST (native bridge on Android) |
+| L1 clear-net / Tor / I2P split | `?field=top` → `top_asns` (`TOR`, `I2P`, `AS…`) | REST (native bridge on Android) |
+| L1 client versions (`/Satoshi:x.y.z/`) | `?field=top` → `top_user_agents` | REST (native bridge on Android) |
+| L1 countries / continents | `bitnodes.io/api/v1/nodes/` (all pages) folded into the bundled snapshot by `fetch_l1.py` | build time |
+| Next-block fee projection | `mempool-blocks` stream | WebSocket |
+| Mining pool share of the last week | `/api/v1/mining/pools/1w` | REST |
+| Live block / mempool / fee pushes | `wss://mempool.space/api/v1/ws`, with `mempool.emzy.de` and `mempool.ninja` as mirror fallbacks | WebSocket |
+| Watchdog alerts | derived from the values above: last block age, fee spike, pool share, a hash change at a seen height | local |
 
 * **The arcs are channels, not decoration.** A line is drawn only when both endpoints are
   among the nodes on screen *and* the pair exists as an open channel in `channels-geo`.
@@ -55,8 +82,16 @@ is generated, interpolated from a model, or placed for visual balance.
   snapshot off as live: the status pill and the data row report the state, the source, and
   the timestamp of what is being shown.
 * **Rate limits are surfaced, not hidden.** Requests rotate across
-  `mempool.space`, `mempool.emzy.de`, and `mempool.ninja`; when all of them fail the app
-  degrades to the snapshot and says so instead of substituting values.
+  `mempool.space`, `mempool.emzy.de`, and `mempool.ninja`, and the WebSocket rotates through
+  the same three mirrors; when all of them fail the app degrades to the snapshot and says so
+  instead of substituting values.
+* **Country counts say which snapshot they are.** Bitnodes exposes per-node country only
+  through a paginated 21,826-row list (~20 MB). The app fetches it at build time
+  (`fetch_l1.py`) and stamps that block with the capture date instead of pretending it is
+  live; the live number, height, transport split, client versions and globe dots come from
+  the two light endpoints above.
+* **Nothing the crawler cannot know is invented.** No per-node latency, uptime, disk size or
+  per-node height; no guessed P2P connection between L1 nodes.
 
 ---
 
@@ -111,12 +146,12 @@ visible, at under 1 % of the raw edge count.
 
 ### 5. Zero-dependency build and an automated verification suite
 `build.py` inlines CSS, geometry, snapshots, application code, and the base64 app icon into
-one document — about 186 KB — with tokens that fail the build if any substitution is missed,
+one document — about 354 KB — with tokens that fail the build if any substitution is missed,
 and it refuses to emit a file that could break out of its own `<script>` block.
 
 | Harness | What it proves | Result |
 | --- | --- | --- |
-| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads | **104 / 104 assertions pass** |
+| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge, snapshots, mempool-blocks, all four watchdog alerts, mirror fallback, EN/KO | **166 / 166 assertions pass** |
 | `test/fill-truth.js` | Rendered continent fill compared with the land polygons over 50 camera angles, 743 k sampled pixels | ≈ 0.4 % false-positive / 0.26 % false-negative, all on sub-pixel Antarctic coastline edges |
 | `test/perf.js` | Frame cadence at a 390×844 phone viewport, DPR clamped to 2, then with 4× CPU throttling | p50 16.7 ms (60 fps), p95 33.4 ms under throttle |
 | `test/offline.js` | Boot with every network route aborted: snapshot geometry, status disclosure, no JS errors | pass |
@@ -145,7 +180,7 @@ node --check src/app.js   # syntax gate
 **Test it.**
 
 ```bash
-node test/headless.js               # 104 assertions, no browser required
+node test/headless.js               # 166 assertions, no browser required
 python3 build.py && node test/fill-truth.js   # browser harness, needs Playwright
 node test/perf.js                   # frame-time probe
 ```
@@ -158,7 +193,8 @@ the default module path.
 live API data; after refreshing, rebuild:
 
 ```bash
-python3 fetch_channels.py   # REST + channels-geo + node details -> src/data/*.js, fixtures/
+python3 fetch_channels.py   # mempool REST + channels-geo + node details -> src/data/*.js, fixtures/
+python3 fetch_l1.py         # bitnodes crawler export -> src/data/l1-data.js, fixtures/l1-snapshot.json
 python3 build.py
 ```
 
@@ -169,11 +205,21 @@ python3 build.py
 The same single file ships as a native Android app: a minimal `WebView` shell
 (`android/`) that loads `file:///android_asset/index.html`, with JavaScript and DOM storage
 enabled, universal access from file URLs so the live `fetch`/WebSocket calls work without a
-local server, an edge-to-edge `#040914` dark system bar treatment, and the NODEPULSE icon as
+local server, an edge-to-edge `#040914` dark system bar treatment, and the NodePulse icon as
 `ic_launcher` / `ic_launcher_round` (legacy mipmaps plus an adaptive icon).
 
 * **Package:** `com.jbitmstr.nodepulse`
 * **Min / target SDK:** 24 / 34
+* **Version:** 1.1.0 (`versionCode` 2)
+
+**Native HTTP bridge.** `bitnodes.io` answers without an `Access-Control-Allow-Origin`
+header, so a WebView `fetch` would be blocked by CORS — and the L1 layer is the primary
+dataset. `MainActivity.HttpBridge` exposes `NPBridge.fetch(id, url)`, performs the GET on a
+small thread pool (`HttpURLConnection`, gzip, 12 s connect / 25 s read) and calls
+`window.NPBridgeOnData(id, ok, body)` with the body unchanged. Hosts are whitelisted
+(`bitnodes.io`, `btcnodes.io`, `mempool.space`, `mempool.emzy.de`, `mempool.ninja`), so the
+interface cannot be used as an open proxy. When the bridge is absent — the plain web build —
+the page tries `fetch` and falls back to the bundled Bitnodes snapshot, labelled by date.
 
 **Build it automatically.** `.github/workflows/build-apk.yml` runs on every push to `main`
 and on demand:
@@ -207,14 +253,15 @@ gradle assembleDebug     # -> app/build/outputs/apk/debug/app-debug.apk
 
 ```
 src/
-  index.template.html      document shell: head, metadata, inline icon slots, markup
+  index.template.html      document shell: head, metadata, inline icon slots, both layers
   app.css                  layout, panels, typography
   app.js                   projection, fill, graph, packets, data layer, UI (~2 000 lines)
-  data/                    world geometry, country table, real node + channel snapshots
+  data/                    world geometry, country table, real node + channel + L1 snapshots
 assets/                    app icon (64/180/192/512), README screenshots
 build.py                   single-file assembly (inlines CSS/JS/data/base64 icon)
 dist/nodepulse.html        build output, ready to open
 fixtures/                  recorded API payloads the headless test replays
+fetch_l1.py                Bitnodes crawler export -> src/data/l1-data.js (L1 snapshot)
 test/                      headless contract, fill truth, perf, offline, screenshot harnesses
 fetch_channels.py          snapshot capture from the live API into src/data/ + fixtures/
 fetch_nodes.py             node-detail capture helper
@@ -228,10 +275,12 @@ android/                   WebView wrapper: Gradle project, manifest, launcher i
 
 ## Data sources and attribution
 
-Network data comes from [mempool.space](https://mempool.space) (REST + WebSocket), with
-`mempool.emzy.de` and `mempool.ninja` as fallbacks. NODEPULSE is an independent visualiser
-and is not affiliated with or endorsed by mempool.space. Public API endpoints are rate
-limited; the app is designed to disclose throttling and outages rather than to hide them.
+Bitcoin mainnet values come from [mempool.space](https://mempool.space) (REST + WebSocket),
+with `mempool.emzy.de` and `mempool.ninja` as fallbacks. L1 full-node values come from
+[Bitnodes](https://bitnodes.io) (`/api/v1/snapshots/latest/`), the independent crawler of the
+Bitcoin P2P network. NodePulse is an independent visualiser and is not affiliated with or
+endorsed by either project. Public API endpoints are rate limited; the app is designed to
+disclose throttling and outages rather than to hide them.
 
 ---
 

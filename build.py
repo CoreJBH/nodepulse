@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assemble the single-file NODEPULSE app from src/ into ../../bitcoin-network-monitor.html
+"""Assemble the single-file NodePulse app from src/ into ../../bitcoin-network-monitor.html
 
 Also writes a clean copy for distribution / the repository at dist/nodepulse.html.
 The app icon (assets/icon-64.png for the tab, assets/icon-180.png for the
@@ -34,9 +34,10 @@ def main():
     country = read(SRC, 'data', 'countries-data.js').strip()
     seed = read(SRC, 'data', 'seed-nodes.js').strip()
     chan = read(SRC, 'data', 'channels-data.js').strip()
+    l1 = read(SRC, 'data', 'l1-data.js').strip()
     app = read(SRC, 'app.js').strip()
 
-    for name, blob in (('world', world), ('country', country), ('seed', seed), ('channels', chan), ('app', app)):
+    for name, blob in (('world', world), ('country', country), ('seed', seed), ('channels', chan), ('l1', l1), ('app', app)):
         if '</script' in blob.lower():
             sys.exit('ERROR: %s contains a closing script tag' % name)
 
@@ -45,6 +46,7 @@ def main():
     out = out.replace('/*__COUNTRY__*/', country)
     out = out.replace('/*__SEED__*/', seed)
     out = out.replace('/*__CHANNELS__*/', chan)
+    out = out.replace('/*__L1__*/', l1)
     out = out.replace('/*__APP__*/', app)
     out = out.replace('__ICON_FAVICON__', icon_b64('icon-64.png'))
     out = out.replace('__ICON_TOUCH__', icon_b64('icon-180.png'))
@@ -53,9 +55,12 @@ def main():
         if token in out:
             sys.exit('ERROR: icon token %s was not substituted' % token)
 
-    with open(OUT, 'w', encoding='utf-8') as f:
-        f.write(out)
-    print('wrote %s (%d bytes)' % (OUT, len(out.encode('utf-8'))))
+    try:
+        with open(OUT, 'w', encoding='utf-8') as f:
+            f.write(out)
+        print('wrote %s (%d bytes)' % (OUT, len(out.encode('utf-8'))))
+    except OSError as e:
+        print('skipped the workspace copy at %s (%s)' % (OUT, e))
 
     os.makedirs(os.path.dirname(DIST), exist_ok=True)
     with open(DIST, 'w', encoding='utf-8') as f:
