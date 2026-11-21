@@ -57,6 +57,13 @@ fs.mkdirSync(OUT, { recursive: true });
   await page.evaluate(() => document.getElementById('cardClose').click());
   await page.waitForTimeout(300);
 
+  // 5b the Lightning layer, same phone
+  await page.click('#layerLN');
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: path.join(OUT, 'p5b-lightning.png') });
+  await page.click('#layerL1');
+  await page.waitForTimeout(600);
+
   // 6 panel
   await page.click('#toggle');
   await page.waitForTimeout(1200);
