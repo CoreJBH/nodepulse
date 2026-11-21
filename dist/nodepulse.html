@@ -361,6 +361,9 @@ body.l1 .toast{background:rgba(30,17,6,.94)}
   .metrics{padding-top:9px}
   .metrics .vr{height:30px}
 }
+@media (max-width:430px){
+  .strip .lb{display:none}
+}
 @media (max-width:380px){
   .brand{letter-spacing:.02em;font-size:12.5px}
   .pills{gap:4px}
@@ -2044,7 +2047,7 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       var avail = Math.max(200, h - hudH - topH);
       G.cx = w / 2;
       G.cy = topH + avail * 0.50;
-      G.R = Math.min(w * 0.40, avail * 0.44);
+      G.R = Math.min(w * 0.44, avail * 0.46);
       if (h > w * 1.6) G.cy = topH + avail * 0.52;
       var hint = document.getElementById('hint');
       if (hint) {

@@ -1504,7 +1504,7 @@
       var avail = Math.max(200, h - hudH - topH);
       G.cx = w / 2;
       G.cy = topH + avail * 0.50;
-      G.R = Math.min(w * 0.40, avail * 0.44);
+      G.R = Math.min(w * 0.44, avail * 0.46);
       if (h > w * 1.6) G.cy = topH + avail * 0.52;
       var hint = document.getElementById('hint');
       if (hint) {
