@@ -15,9 +15,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <style>
 /* NodePulse — single file, no external assets.
-   Two identities share one stylesheet: Bitcoin L1 (orange, --ac 247,147,26) and
-   Lightning (cyan, --ac 56,189,248). Every accent colour below is written as
-   rgba(var(--ac), a) so switching the layer switches the whole palette. */
+   Two identities share one stylesheet: Bitcoin L1 (the original cyan / deep blue,
+   --ac 56,189,248) and Lightning (electric violet, --ac 167,139,250). Every accent
+   colour below is written as rgba(var(--ac), a) so switching the layer switches
+   the whole palette. */
 :root{
   --ac:56,189,248;
   --ac2:96,165,250;
@@ -34,15 +35,15 @@
   --sans:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,sans-serif;
   --pad:14px;
 }
-body.l1{
-  --ac:247,147,26;
-  --ac2:255,183,77;
-  --ink:#ffeee0;
-  --ink-soft:#f0c9a2;
-  --dim:#a9743c;
-  --dim2:#6d4a22;
-  --val:#ffd6a0;
-  --strong:#fff4e8;
+body.ln{
+  --ac:167,139,250;
+  --ac2:196,181,253;
+  --ink:#e6e1ff;
+  --ink-soft:#b6ace8;
+  --dim:#6a6494;
+  --dim2:#443f6b;
+  --val:#cfc6ff;
+  --strong:#f4f1ff;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0}
@@ -58,17 +59,17 @@ body{
   text-rendering:optimizeLegibility;
   transition:background-color .5s ease;
 }
-body.l1{
+body.ln{
   background:
-    radial-gradient(120% 78% at 50% -8%, #2a1503 0%, #1c0f04 26%, #0f0a06 52%, #060505 78%),
-    radial-gradient(60% 40% at 92% 108%, rgba(var(--ac),.18), rgba(6,5,5,0) 70%),
-    #050404;
+    radial-gradient(120% 78% at 50% -8%, #1c1748 0%, #151037 26%, #0b0824 52%, #050414 78%),
+    radial-gradient(60% 40% at 92% 108%, rgba(var(--ac),.18), rgba(5,4,20,0) 70%),
+    #050414;
 }
 body::after{ /* faint vignette so the globe sits in a dark well */
   content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
   background:radial-gradient(80% 60% at 50% 46%, rgba(4,9,20,0) 40%, rgba(4,9,20,.58) 100%);
 }
-body.l1::after{background:radial-gradient(80% 60% at 50% 46%, rgba(6,5,5,0) 40%, rgba(6,5,5,.58) 100%)}
+body.ln::after{background:radial-gradient(80% 60% at 50% 46%, rgba(5,4,20,0) 40%, rgba(5,4,20,.58) 100%)}
 #stage{position:fixed;inset:0;z-index:0}
 #globe{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 
@@ -85,7 +86,7 @@ body.l1::after{background:radial-gradient(80% 60% at 50% 46%, rgba(6,5,5,0) 40%,
   overflow:hidden;
   transition:box-shadow .35s ease, border-color .35s ease, background .5s ease;
 }
-body.l1 .topbar{background:linear-gradient(180deg, rgba(34,20,8,.97), rgba(16,11,6,.985))}
+body.ln .topbar{background:linear-gradient(180deg, rgba(22,18,54,.97), rgba(11,9,30,.985))}
 .topbar.open{border-color:rgba(var(--ac),.36);box-shadow:0 18px 44px rgba(1,6,18,.6), 0 0 30px rgba(var(--ac),.24), inset 0 1px 0 rgba(255,255,255,.07)}
 .head{display:flex;align-items:center;gap:11px;padding:11px 12px 6px 13px}
 .mark{
@@ -132,8 +133,8 @@ body.l1 .topbar{background:linear-gradient(180deg, rgba(34,20,8,.97), rgba(16,11
   font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--dim);
   background:none;white-space:nowrap;transition:color .2s,background .2s,border-color .2s;
 }
-.lay.on{color:#fff6ea;background:rgba(var(--ac),.24);border-color:rgba(var(--ac),.5);box-shadow:0 0 14px rgba(var(--ac),.22)}
-body.ln .lay.on{color:#eaf7ff}
+.lay.on{color:#eaf7ff;background:rgba(var(--ac),.24);border-color:rgba(var(--ac),.5);box-shadow:0 0 14px rgba(var(--ac),.22)}
+body.ln .lay.on{color:#f3eeff}
 .lng{
   flex:0 0 auto;cursor:pointer;border-radius:8px;padding:5px 9px;
   border:1px solid rgba(var(--ac),.28);background:rgba(var(--ac),.05);
@@ -237,7 +238,7 @@ body.en .row .k em{display:none}
   background:linear-gradient(180deg, rgba(4,9,20,0) 0%, rgba(4,9,20,.72) 42%, rgba(4,9,20,.94) 100%);
   pointer-events:none;
 }
-body.l1 .hud{background:linear-gradient(180deg, rgba(6,5,5,0) 0%, rgba(6,5,5,.72) 42%, rgba(6,5,5,.94) 100%)}
+body.ln .hud{background:linear-gradient(180deg, rgba(5,4,20,0) 0%, rgba(5,4,20,.72) 42%, rgba(5,4,20,.94) 100%)}
 .hud > *{pointer-events:auto}
 .strip{
   display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;
@@ -291,7 +292,7 @@ body.ln  #metricsLN{display:grid}
   padding:16px 17px 18px;
   animation:cardin .28s cubic-bezier(.2,.8,.3,1);
 }
-body.l1 .card{background:linear-gradient(180deg, rgba(34,20,8,.98), rgba(14,10,6,.99))}
+body.ln .card{background:linear-gradient(180deg, rgba(23,19,56,.98), rgba(11,9,30,.99))}
 @keyframes cardin{from{opacity:0;transform:translateY(10px) scale(.99)}to{opacity:1;transform:none}}
 .card::-webkit-scrollbar{width:3px}
 .card::-webkit-scrollbar-thumb{background:rgba(var(--ac),.28);border-radius:3px}
@@ -342,7 +343,7 @@ body.l1 .card{background:linear-gradient(180deg, rgba(34,20,8,.98), rgba(14,10,6
   transition:opacity .3s ease, transform .3s ease, visibility .3s ease;
   white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis;
 }
-body.l1 .toast{background:rgba(30,17,6,.94)}
+body.ln .toast{background:rgba(18,14,44,.94)}
 .toast.on{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
 
 .hint{
@@ -1932,10 +1933,10 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
   }
 
   /* ---------------------------------------------------------------- globe */
-  /* Two palettes, one renderer. The L1 identity is Bitcoin orange; Lightning
-     keeps the cyan it had. Every colour the globe draws comes from here. */
+  /* Two palettes, one renderer. The L1 identity is the original cyan / deep blue;
+     Lightning is electric violet. Every colour the globe draws comes from here. */
   var THEME = {
-    ln: {
+    l1: {
       body: [[0, 'rgba(20,46,96,0.52)'], [0.30, 'rgba(10,26,58,0.66)'], [0.66, 'rgba(6,16,38,0.82)'], [0.90, 'rgba(3,9,22,0.92)'], [1, 'rgba(2,6,16,0.96)']],
       rim: [[0, 'rgba(4,10,22,0)'], [0.70, 'rgba(3,9,22,0.14)'], [0.92, 'rgba(6,22,48,0.30)'], [0.978, 'rgba(38,140,225,0.20)'], [1, 'rgba(125,211,252,0.12)']],
       at1: [[0, 'rgba(150,215,255,0.40)'], [0.35, 'rgba(56,170,255,0.13)'], [1, 'rgba(56,150,255,0)']],
@@ -1947,17 +1948,17 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       dot: '226,246,255', halo: '120,205,255', arc: '110,190,255', packet: '80,165,255',
       glow: ['rgba(226,246,255,0.95)', 'rgba(140,215,255,0.60)', 'rgba(56,165,255,0.20)', 'rgba(56,150,255,0.055)', 'rgba(56,150,255,0)']
     },
-    l1: {
-      body: [[0, 'rgba(74,40,12,0.50)'], [0.30, 'rgba(44,25,9,0.68)'], [0.66, 'rgba(26,16,8,0.84)'], [0.90, 'rgba(15,10,6,0.93)'], [1, 'rgba(8,6,5,0.97)']],
-      rim: [[0, 'rgba(4,6,12,0)'], [0.70, 'rgba(14,9,5,0.14)'], [0.92, 'rgba(58,32,10,0.30)'], [0.978, 'rgba(247,147,26,0.22)'], [1, 'rgba(255,196,120,0.14)']],
-      at1: [[0, 'rgba(255,196,110,0.34)'], [0.35, 'rgba(247,147,26,0.13)'], [1, 'rgba(247,147,26,0)']],
-      at2: [[0, 'rgba(247,147,26,0.10)'], [0.45, 'rgba(200,110,20,0.04)'], [1, 'rgba(200,110,20,0)']],
-      hi: 'rgba(255,205,150,0.05)',
-      rimLine: 'rgba(255,190,130,0.44)', rimLine2: 'rgba(247,147,26,0.14)',
-      land: 'rgba(247,147,26,0.16)', coast: 'rgba(255,214,170,0.5)', coastGlow: 'rgba(247,147,26,0.18)',
-      grid: 'rgba(200,140,70,0.085)', gridBack: 'rgba(150,100,50,0.030)', equator: 'rgba(230,160,80,0.14)',
-      dot: '255,222,180', halo: '247,147,26', arc: '247,147,26', packet: '247,147,26',
-      glow: ['rgba(255,238,220,0.95)', 'rgba(255,190,110,0.60)', 'rgba(247,147,26,0.22)', 'rgba(247,147,26,0.06)', 'rgba(247,147,26,0)']
+    ln: {
+      body: [[0, 'rgba(48,38,98,0.52)'], [0.30, 'rgba(26,21,60,0.66)'], [0.66, 'rgba(15,12,40,0.82)'], [0.90, 'rgba(8,6,24,0.92)'], [1, 'rgba(4,3,14,0.96)']],
+      rim: [[0, 'rgba(8,6,20,0)'], [0.70, 'rgba(6,5,18,0.14)'], [0.92, 'rgba(22,16,56,0.30)'], [0.978, 'rgba(139,92,246,0.20)'], [1, 'rgba(196,181,253,0.12)']],
+      at1: [[0, 'rgba(208,196,255,0.34)'], [0.35, 'rgba(139,92,246,0.13)'], [1, 'rgba(139,92,246,0)']],
+      at2: [[0, 'rgba(139,92,246,0.10)'], [0.45, 'rgba(110,70,220,0.04)'], [1, 'rgba(110,70,220,0)']],
+      hi: 'rgba(196,181,253,0.05)',
+      rimLine: 'rgba(200,186,255,0.42)', rimLine2: 'rgba(167,139,250,0.12)',
+      land: 'rgba(124,92,246,0.15)', coast: 'rgba(206,200,255,0.5)', coastGlow: 'rgba(139,120,250,0.18)',
+      grid: 'rgba(140,120,235,0.085)', gridBack: 'rgba(100,85,190,0.030)', equator: 'rgba(160,140,250,0.14)',
+      dot: '232,226,255', halo: '170,145,255', arc: '172,150,255', packet: '150,120,255',
+      glow: ['rgba(240,236,255,0.95)', 'rgba(198,184,255,0.60)', 'rgba(139,92,246,0.20)', 'rgba(139,92,246,0.055)', 'rgba(139,92,246,0)']
     }
   };
   function TH() { return THEME[S.layer] || THEME.l1; }
@@ -2071,7 +2072,7 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
         var big = Math.random() > 0.88;
         var r = big ? 1.2 + Math.random() * 0.8 : 0.45 + Math.random() * 0.6;
         c.globalAlpha = 0.18 + Math.random() * 0.5;
-        c.fillStyle = i % 11 === 0 ? '#9fd0ff' : (S.layer === 'l1' ? '#ffe3c4' : '#cfe4ff');
+        c.fillStyle = i % 11 === 0 ? (S.layer === 'l1' ? '#9fd0ff' : '#c9b6ff') : (S.layer === 'l1' ? '#cfe4ff' : '#e4deff');
         if (big) { c.beginPath(); c.arc(x, y, r * 0.7, 0, TAU); c.fill(); }
         else c.fillRect(x, y, r, r);
       }

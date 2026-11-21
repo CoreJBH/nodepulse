@@ -615,7 +615,8 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   stale[0].timestamp = Math.floor(Date.now() / 1000) - 2400;
   wsInstance.deliver({ blocks: stale });
   runFrames(rafQueue, 2);
-  await sleep(80);
+  /* the badge is written by paint(), which the app throttles to one every 320 ms */
+  await sleep(420);
   let w1 = NP.watch();
   check('block delay above 30 min raises an alert', w1.alerts.some(a => a.k === 'gap'),
     w1.alerts.map(a => a.text).join(' | '));

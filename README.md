@@ -10,7 +10,7 @@
 ![single file](https://img.shields.io/badge/build-single%20file%20HTML-0b1220?style=flat-square)
 ![canvas 2d](https://img.shields.io/badge/render-Canvas%202D-38bdf8?style=flat-square)
 ![tests](https://img.shields.io/badge/assertions-169%20passing-2ea043?style=flat-square)
-![data](https://img.shields.io/badge/L1-bitnodes-f7931a?style=flat-square)
+![data](https://img.shields.io/badge/L1-bitnodes-38bdf8?style=flat-square)
 ![data](https://img.shields.io/badge/mainnet-mempool.space-orange?style=flat-square)
 
 </div>
@@ -34,13 +34,18 @@ that draws every frame with the Canvas 2D API.
 The switcher sits under the title (`BITCOIN L1 | LIGHTNING`); the `EN / KO` button next to it
 switches language, and both choices are remembered.
 
+Each layer carries its own palette, so the globe you are looking at is readable at a glance:
+**Bitcoin L1** keeps the original cyan / deep-blue identity (`#38bdf8` on `#040914`), and
+**Lightning** has a distinct electric violet one. Neither layer borrows the other's signal
+colour.
+
 The L1 layer draws **no links at all**. Bitnodes publishes no per-node peer graph, so the only
 honest options are to draw nothing or to invent a mesh — it draws nothing. Tor and I2P nodes
 (15,577 of 21,826 in the bundled snapshot) carry no coordinates, so they are counted in the
 totals and the transport split but not placed on the globe.
 
 <div align="center">
-<img src="assets/screenshot-mobile.jpg" width="46%" alt="NodePulse on a phone: Bitcoin L1 full-node globe, orange identity">
+<img src="assets/screenshot-mobile.jpg" width="46%" alt="NodePulse on a phone: Bitcoin L1 full-node globe, cyan / deep-blue identity">
 <img src="assets/screenshot-desktop.jpg" width="52%" alt="NodePulse on a desktop browser">
 </div>
 
