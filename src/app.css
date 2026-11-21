@@ -322,18 +322,20 @@ body.l1 .card{background:linear-gradient(180deg, rgba(34,20,8,.98), rgba(14,10,6
   padding:9px 14px;border-radius:999px;border:1px solid rgba(var(--ac),.34);
   background:rgba(8,20,42,.94);color:var(--ink);font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
   box-shadow:0 8px 26px rgba(0,0,0,.5),0 0 22px rgba(var(--ac),.18);
-  opacity:0;pointer-events:none;transition:opacity .3s ease, transform .3s ease;
+  opacity:0;pointer-events:none;visibility:hidden;
+  transition:opacity .3s ease, transform .3s ease, visibility .3s ease;
   white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis;
 }
 body.l1 .toast{background:rgba(30,17,6,.94)}
-.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.on{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
 
 .hint{
   position:fixed;z-index:9;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 196px);
   font-family:var(--mono);font-size:8.5px;letter-spacing:.18em;color:var(--dim2);
-  opacity:0;transition:opacity .8s ease;pointer-events:none;text-align:center;white-space:nowrap;
+  opacity:0;visibility:hidden;transition:opacity .8s ease, visibility .8s ease;
+  pointer-events:none;text-align:center;white-space:nowrap;
 }
-.hint.on{opacity:1}
+.hint.on{opacity:1;visibility:visible}
 
 @media (max-height:660px){
   .hint{display:none}
