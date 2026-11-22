@@ -155,12 +155,12 @@ visible, at under 1 % of the raw edge count.
 
 ### 5. Zero-dependency build and an automated verification suite
 `build.py` inlines CSS, geometry, snapshots, application code, and the base64 app icon into
-one document — about 355 KB — with tokens that fail the build if any substitution is missed,
+one document — about 366 KB — with tokens that fail the build if any substitution is missed,
 and it refuses to emit a file that could break out of its own `<script>` block.
 
 | Harness | What it proves | Result |
 | --- | --- | --- |
-| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge, snapshots, mempool-blocks, all four watchdog alerts, mirror fallback, EN/KO | **169 / 169 assertions pass** |
+| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge, snapshots, mempool-blocks, all four watchdog alerts, mirror fallback, EN/KO | **188 / 188 assertions pass** |
 | `test/fill-truth.js` | Rendered continent fill compared with the land polygons over 50 camera angles, 743 k sampled pixels | ≈ 0.4 % false-positive / 0.26 % false-negative, all on sub-pixel Antarctic coastline edges |
 | `test/perf.js` | Frame cadence at a 390×844 phone viewport, DPR clamped to 2, then with 4× CPU throttling | p50 16.7 ms (60 fps), p95 33.4 ms under throttle |
 | `test/offline.js` | Boot with every network route aborted: snapshot geometry, status disclosure, no JS errors | pass |
@@ -189,7 +189,7 @@ node --check src/app.js   # syntax gate
 **Test it.**
 
 ```bash
-node test/headless.js               # 169 assertions, no browser required
+node test/headless.js               # 188 assertions, no browser required
 python3 build.py && node test/fill-truth.js   # browser harness, needs Playwright
 node test/perf.js                   # frame-time probe
 ```
@@ -222,7 +222,9 @@ enabled, an edge-to-edge `#040914` dark system bar treatment, and the NodePulse 
 
 **Locked down shell.** File access, content access, file-URL access and universal access
 from file URLs are all off; the only page the WebView can show is the bundled asset, a
-navigation anywhere else is refused, and a TLS error cancels instead of continuing. The
+navigation anywhere else is refused, a TLS error cancels instead of continuing, and mixed
+content is explicitly set to `MIXED_CONTENT_NEVER_ALLOW` instead of being left to the platform
+default. The
 page carries its own Content-Security-Policy (`default-src 'none'`; every inline script and
 style block named by its SHA-256 hash, so no `'unsafe-inline'` is needed; `data:` icons, and
 only the named https/wss hosts), cleartext HTTP is blocked at the manifest, and the release
@@ -234,7 +236,8 @@ header, so a WebView `fetch` would be blocked by CORS — and the L1 layer is th
 dataset. `MainActivity.HttpBridge` exposes `NPBridge.fetch(id, url)`, performs the GET on a
 small thread pool (`HttpURLConnection`, gzip, 12 s connect / 25 s read, 4 MiB cap) and calls
 `window.NPBridgeOnData(id, ok, body)` with the body unchanged. Hosts are whitelisted
-(`bitnodes.io`, `btcnodes.io`, `mempool.space`, `mempool.emzy.de`, `mempool.ninja`), and
+(`bitnodes.io`, `btcnodes.io`, `mempool.space`, `mempool.emzy.de`, `mempool.ninja`), a URL
+carrying `user:password@` is rejected, and
 redirects are followed by hand so every hop is checked against that same list, so the
 interface cannot be used as an open proxy. The `mempool.space` mirrors answer
 `Access-Control-Allow-Origin: *`, so their JSON is fetched normally; when CORS still refuses
@@ -248,11 +251,11 @@ and on demand:
 2. `node test/headless.js` runs the offline verification harness.
 3. The built HTML is copied to `android/app/src/main/assets/index.html`.
 4. `gradle :app:lintDebug :app:testDebugUnitTest` checks the shell.
-5. `gradle assembleDebug`, then `assembleRelease` when the signing secrets are present; the
-   release one is signed and minified, and the job stops instead of guessing when they are
-   not.
-6. The release APK is uploaded as the workflow artifact **`nodepulse-apk`** (file
-   `nodepulse.apk`), the debug one as **`nodepulse-apk-debug`**.
+5. A push to `main` assembles the debug APK. A `v*` tag assembles **only** the signed,
+   minified release APK and fails before building when the signing secrets are not set, so a
+   tag never publishes a debug-key build.
+6. On a tag the signed APK is uploaded as the workflow artifact **`nodepulse-apk`** (file
+   `nodepulse.apk`); on a branch push the debug one is **`nodepulse-apk-debug`**.
 
 **Get the APK.**
 
@@ -261,7 +264,8 @@ and on demand:
 * from a shell: `gh run download --name nodepulse-apk -R CoreJBH/nodepulse`
 
 Install it on the phone (allow "install unknown apps" for the browser or file manager you
-open it with). A tag push (`v*`) attaches both APKs to that release.
+open it with). A tag push (`v*`) attaches the signed release APK — and nothing else — to that
+release.
 
 **Release signing fails closed.** A release APK is signed with the owner's long-lived key,
 read from `NODEPULSE_KEYSTORE_BASE64` / `NODEPULSE_KEYSTORE_PASSWORD` / `NODEPULSE_KEY_ALIAS`
