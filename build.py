@@ -187,9 +187,16 @@ def main():
     world, country, seed, chan, l1 = (embedded[k] for k in ('world', 'country', 'seed', 'channels', 'l1'))
     app = read(SRC, 'app.js').strip()
 
-    for name, blob in (('world', world), ('country', country), ('seed', seed), ('channels', chan), ('l1', l1), ('app', app)):
-        if '</script' in blob.lower():
+    # The stylesheet is written inside <style>…</style> and every data blob and the app
+    # inside <script>…</script>. A literal closing tag in any of them would end that
+    # element early and let the rest of the text be parsed as markup (the CSP hash would
+    # then name a block that no longer matches what the browser runs), so both are checked.
+    for name, blob in (('css', css), ('world', world), ('country', country), ('seed', seed), ('channels', chan), ('l1', l1), ('app', app)):
+        low = blob.lower()
+        if '</script' in low:
             sys.exit('ERROR: %s contains a closing script tag' % name)
+        if '</style' in low:
+            sys.exit('ERROR: %s contains a closing style tag' % name)
 
     out = tpl.replace('/*__CSS__*/', css)
     out = out.replace('/*__WORLD__*/', world)

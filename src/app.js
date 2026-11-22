@@ -69,7 +69,7 @@
       nextBlock: '다음', nextFee: 'sat/vB',
       wOkChain: '체인 정상', wOkGap: '마지막 블록', wOkFee: '수수료 정상', wOkPool: '채굴 풀 집중도',
       wGap: '블록 지연', wFee: '수수료 급등', wPool: '채굴 풀 집중', wReorg: '리오그 감지',
-      wNoData: '감시 데이터 대기 중',
+      wNoData: '감시 데이터 대기 중', poolSpan: '1주', poolBlocks: '블록',
       tNewBlock: 'NEW BLOCK', tReorg: 'REORG 감지', tSnap: '비트노즈 스냅샷 표시 중 · 갱신 중',
       tCached: '저장된 마지막 데이터 표시 중 · 갱신 중',
       cCoord: '좌표', cCell: '격자 내 위치', cCountry: '국가', cPlace: '지역', cSrc: '출처', cSnapAt: '기준 시각',
@@ -78,6 +78,7 @@
       cLNNote: '표시 값은 mempool.space Lightning API 응답 그대로입니다(별칭·국가·도시·좌표·채널·용량·AS·관측 시각). 지연시간, 가동시간, 디스크 용량, 개별 노드의 동기화 높이처럼 API가 제공하지 않는 항목은 표시하지 않습니다. CHAIN TIP은 이 노드가 보고한 값이 아니라 네트워크 공통 현재 tip입니다. 노드 사이의 호는 lightning/channels-geo에 실린 실제 공개 채널이며, 근접 추정으로 이은 선은 없습니다.',
       cPeers: 'REAL CHANNELS · 실제 채널 상대', cMapCh: '지도 채널', cCh: '채널', cCap: '용량', cAS: 'AS 조직',
       cSock: '소켓', cFirst: '최초 관측', cUpd: '최근 갱신', cCluster: '클러스터', cCells: '곳',
+      sockUnit: '개', unitNodes: '개 노드', unitCh: ' 채널', cClose: '닫기', ariaL1: '비트코인 L1 풀노드 지구본', ariaLN: '라이트닝 채널 지구본',
       noteL1a: 'BITNODES · L1 풀노드', noteL1b: '국가 분포 · 내장 스냅샷', noteL1c: '지구본 지점',
       apl: '접속망', ua: '클라이언트'
     },
@@ -101,7 +102,7 @@
       nextBlock: 'next', nextFee: 'sat/vB',
       wOkChain: 'chain normal', wOkGap: 'last block', wOkFee: 'fees normal', wOkPool: 'mining pool concentration',
       wGap: 'block delay', wFee: 'fee spike', wPool: 'pool concentration', wReorg: 'reorg detected',
-      wNoData: 'waiting for data',
+      wNoData: 'waiting for data', poolSpan: '1w', poolBlocks: 'blocks',
       tNewBlock: 'NEW BLOCK', tReorg: 'REORG DETECTED', tSnap: 'showing the Bitnodes snapshot · refreshing',
       tCached: 'showing cached data · refreshing',
       cCoord: 'Coordinate', cCell: 'Locations in cell', cCountry: 'Country', cPlace: 'Place', cSrc: 'Source', cSnapAt: 'Captured',
@@ -110,6 +111,7 @@
       cLNNote: 'Every value shown is the mempool.space Lightning API response as-is (alias, country, city, coordinates, channels, capacity, AS, observation time). Latency, uptime, disk size and per-node sync height are not shown because the API does not carry them. CHAIN TIP is the network-wide tip, not a value reported by this node. Arcs are real public channels from lightning/channels-geo — never a proximity guess.',
       cPeers: 'REAL CHANNELS', cMapCh: 'Mapped channels', cCh: 'Channels', cCap: 'Capacity', cAS: 'AS org',
       cSock: 'Sockets', cFirst: 'First seen', cUpd: 'Updated', cCluster: 'Cluster', cCells: 'locations',
+      sockUnit: '', unitNodes: ' nodes', unitCh: ' ch', cClose: 'Close', ariaL1: 'Bitcoin L1 full-node globe', ariaLN: 'Lightning channel globe',
       noteL1a: 'BITNODES · L1 FULL NODES', noteL1b: 'Country split · built-in snapshot', noteL1c: 'Globe points',
       apl: 'transport', ua: 'clients'
     }
@@ -236,12 +238,16 @@
      window.NPBridgeOnData(id, ok, text). It exists because bitnodes.io sends no
      Access-Control-Allow-Origin, and because the app should not depend on the
      WebView's own network stack for the primary dataset. */
+  var hasOwn = Object.prototype.hasOwnProperty;
   var BR = {
-    on: false, seq: 0, wait: {},
+    /* A null-prototype map: the id is a number the page chose, but a bridge callback is
+       outside input, and on a plain {} an id such as "constructor" or "__proto__" would
+       read back an inherited value instead of "no such request". */
+    on: false, seq: 0, wait: Object.create(null),
     init: function () {
       if (!window.NPBridge || typeof window.NPBridge.fetch !== 'function') return false;
       window.NPBridgeOnData = function (id, ok, text) {
-        var p = BR.wait[id];
+        var p = hasOwn.call(BR.wait, id) ? BR.wait[id] : null;
         if (!p) return;
         delete BR.wait[id];
         if (p.timer) clearTimeout(p.timer);
@@ -254,7 +260,7 @@
       var id = ++BR.seq;
       return new Promise(function (res, rej) {
         var timer = setTimeout(function () {
-          if (BR.wait[id]) { delete BR.wait[id]; rej(new Error('bridge timeout')); }
+          if (hasOwn.call(BR.wait, id)) { delete BR.wait[id]; rej(new Error('bridge timeout')); }
         }, ms || 20000);
         BR.wait[id] = { res: res, rej: rej, timer: timer };
         try { window.NPBridge.fetch(String(id), String(url)); }
@@ -547,7 +553,7 @@
       store(LS_CACHE + '.l1', { t: Date.now(), d: { total: d.total, reachable: d.reachable, height: d.height, at: d.at, coords: d.coords, asns: d.asns, ua: d.ua, platforms: d.platforms } });
     }).catch(function () {
       var cached = recall(LS_CACHE + '.l1');
-      if (cached && cached.d && cached.d.coords && cached.d.coords.length) {
+      if (isObj(cached) && isObj(cached.d) && isArr(cached.d.coords) && cached.d.coords.length) {
         var d = cached.d;
         d.src = 'cache'; d.vers = l1Versions(d);
         if (!d.platforms) d.platforms = l1Platforms(d);
@@ -811,15 +817,24 @@
   }
 
   function refreshNodes(force) {
-    var cache = recall(LS_NODES) || {};
+    /* localStorage is writable by anything that ever ran on this origin and JSON.parse
+       returns whatever the string held, so the snapshot is only used after each field is
+       checked for the shape this code walks. */
+    var stored = recall(LS_NODES);
+    var cache = isObj(stored) ? stored : {};
     var now = Date.now();
-    if (!force && cache.nodes && cache.nodes.length && cache.links && cache.links.length &&
-      (now - (cache.t || 0)) < NODE_TTL) {
-      applyNodes(cache.nodes, cache.links, 'live', cache.t, { rows: cache.rows || 0, at: cache.chanAt || cache.t });
+    var cacheAt = num(cache.t) ? cache.t : 0;
+    var cacheChanAt = num(cache.chanAt) ? cache.chanAt : cacheAt;
+    if (!force && isArr(cache.nodes) && cache.nodes.length && isArr(cache.links) && cache.links.length &&
+      (now - cacheAt) < NODE_TTL) {
+      applyNodes(cache.nodes, cache.links, 'live', cacheAt, { rows: num(cache.rows) ? cache.rows : 0, at: cacheChanAt });
     }
     var geoCache = Object.create(null);
-    if (cache.geo && typeof cache.geo === 'object') {
-      Object.keys(cache.geo).forEach(function (k) { geoCache[k] = cache.geo[k]; });
+    if (isObj(cache.geo)) {
+      Object.keys(cache.geo).forEach(function (k) {
+        var v = cache.geo[k];
+        if (isObj(v) || v === null) geoCache[k] = v;
+      });
     }
 
     return Promise.all([
@@ -911,8 +926,10 @@
       });
     }).catch(function () {
       var cached = recall(LS_NODES);
-      if (cached && cached.nodes && cached.nodes.length) {
-        applyNodes(cached.nodes, cached.links || [], 'cache', cached.t, { rows: cached.rows || 0, at: cached.chanAt || cached.t });
+      if (isObj(cached) && isArr(cached.nodes) && cached.nodes.length) {
+        var at = num(cached.t) ? cached.t : 0;
+        applyNodes(cached.nodes, isArr(cached.links) ? cached.links : [], 'cache', at,
+          { rows: num(cached.rows) ? cached.rows : 0, at: num(cached.chanAt) ? cached.chanAt : at });
       } else if (!S.nodes.length) {
         applySeed();
       }
@@ -929,20 +946,20 @@
   }
   function restoreCache() {
     var c = recall(LS_CACHE);
-    if (!c) return false;
+    if (!isObj(c)) return false;
     if (num(c.tip)) S.tip = c.tip;
-    if (c.blocks) S.blocks = c.blocks;
-    if (c.mem) S.mem = c.mem;
-    if (c.recent) S.recent = c.recent;
-    if (c.fees) S.fees = c.fees;
-    if (c.hr) S.hr = c.hr;
-    if (c.diff) S.diff = c.diff;
-    if (c.ln) { S.ln = c.ln; S.lnAt = c.lnAt || 0; }
-    if (c.countries) { S.countries = c.countries; S.conts = aggregateContinents(S.countries); }
-    if (c.mblocks) { S.mblocks = c.mblocks; S.mblocksAt = c.mblocksAt || 0; }
-    if (c.pools) { S.pools = c.pools; S.poolsAt = c.poolsAt || 0; }
-    if (c.blocks) trackChain(S.blocks);
-    return !!(c.tip || c.mem || c.ln);
+    if (isArr(c.blocks)) S.blocks = c.blocks;
+    if (isObj(c.mem)) S.mem = c.mem;
+    if (isArr(c.recent)) S.recent = c.recent;
+    if (isObj(c.fees)) S.fees = c.fees;
+    if (isObj(c.hr)) S.hr = c.hr;
+    if (isObj(c.diff)) S.diff = c.diff;
+    if (isObj(c.ln)) { S.ln = c.ln; S.lnAt = num(c.lnAt) ? c.lnAt : 0; }
+    if (isArr(c.countries)) { S.countries = c.countries; S.conts = aggregateContinents(S.countries); }
+    if (isArr(c.mblocks)) { S.mblocks = c.mblocks; S.mblocksAt = num(c.mblocksAt) ? c.mblocksAt : 0; }
+    if (isObj(c.pools)) { S.pools = c.pools; S.poolsAt = num(c.poolsAt) ? c.poolsAt : 0; }
+    if (isArr(c.blocks)) trackChain(c.blocks);
+    return !!(num(c.tip) || isObj(c.mem) || isObj(c.ln));
   }
 
   /* ------------------------------------------------------------ websocket */
@@ -1097,7 +1114,7 @@
       var share = top1.blockCount / p.blockCount;
       var txtPool = (top1.name || '—') + ' ' + (share * 100).toFixed(1) + '%';
       if (share > WD_POOL_SHARE) {
-        list.push({ tag: 'POOL', alert: true, text: L('wPool') + ' · ' + txtPool + ' (1주 ' + fmtInt(p.blockCount) + ' 블록)' });
+        list.push({ tag: 'POOL', alert: true, text: L('wPool') + ' · ' + txtPool + ' (' + L('poolSpan') + ' ' + fmtInt(p.blockCount) + ' ' + L('poolBlocks') + ')' });
         alerts.push({ k: 'pool', text: L('wPool') + ' ' + (share * 100).toFixed(1) + '%' });
       } else {
         list.push({ tag: 'POOL', alert: false, text: L('wOkPool') + ' · ' + txtPool });
@@ -2485,11 +2502,11 @@
       [L('cCap'), num(n.capacity) ? fmtBtcCap(n.capacity) + ' BTC' : '—'],
       [L('cMapCh'), num(n.deg) ? fmtInt(n.deg) : '—'],
       [L('cAS'), n.asOrg || '—'],
-      [L('cSock'), n.sockets ? n.sockets + '개' + (n.tor ? ' · Tor' : ' · clearnet') : '—'],
+      [L('cSock'), n.sockets ? n.sockets + L('sockUnit') + (n.tor ? ' · Tor' : ' · clearnet') : '—'],
       [L('cFirst'), dateOf(n.firstSeen)],
       [L('cUpd'), n.updatedAt ? dateOf(n.updatedAt) : '—']
     ];
-    if (many) rows.push([L('cCluster'), cluster.count + ' nodes · ' + fmtInt(cluster.channels) + ' ch', true]);
+    if (many) rows.push([L('cCluster'), cluster.count + L('unitNodes') + ' · ' + fmtInt(cluster.channels) + L('unitCh'), true]);
 
     var aliasList = many ? cluster.nodes.map(function (x) { return esc(x.alias); }).slice(0, 6).join(', ') : '';
     var peers = n.peers || [];
@@ -2504,7 +2521,7 @@
       '<div class="kicker">NODE · ' + esc(continent) + '</div>' +
       '<h2>' + esc(n.alias) + '</h2>' +
       '<p class="place">' + esc(place || '—') + '</p>' +
-      '</div><button class="close" id="cardClose" aria-label="close">×</button></div>' +
+      '</div><button class="close" id="cardClose" aria-label="' + esc(L('cClose')) + '">×</button></div>' +
       '<dl class="grid">' + cardRows(rows) + '</dl>' +
       peerHTML +
       (aliasList ? '<div class="disc tight">' + aliasList + (cluster.nodes.length > 6 ? ' +' + (cluster.nodes.length - 6) : '') + '</div>' : '') +
@@ -2526,7 +2543,7 @@
     if (b1) b1.setAttribute('aria-selected', layer === 'l1' ? 'true' : 'false');
     if (b2) b2.setAttribute('aria-selected', layer === 'ln' ? 'true' : 'false');
     var cv = $('globe');
-    if (cv) cv.setAttribute('aria-label', layer === 'l1' ? '비트코인 L1 풀노드 지구본' : '라이트닝 채널 지구본');
+    if (cv) cv.setAttribute('aria-label', L(layer === 'l1' ? 'ariaL1' : 'ariaLN'));
     show('secL1Wrap', layer === 'l1');
     show('secVerWrap', layer === 'l1');
     show('secLNWrap', layer === 'ln');

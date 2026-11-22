@@ -218,7 +218,7 @@ enabled, an edge-to-edge `#040914` dark system bar treatment, and the NodePulse 
 
 * **Package:** `com.jbitmstr.nodepulse`
 * **Min / target SDK:** 24 / 34
-* **Version:** 1.1.3 (`versionCode` 5)
+* **Version:** 1.1.4 (`versionCode` 6)
 
 **Locked down shell.** File access, content access, file-URL access and universal access
 from file URLs are all off; the only page the WebView can show is the bundled asset, a

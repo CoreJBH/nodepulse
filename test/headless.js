@@ -298,6 +298,17 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   check('native bridge detected', NP.bridge() === true);
   check('bitnodes was read through the bridge, not fetch',
     bridgeCalls.length >= 2 && !fetchLog.some(u => u.indexOf('bitnodes') >= 0), bridgeCalls.length);
+
+  /* ---- the bridge wait map is a null-prototype object, so an id that names an inherited
+     property (constructor, __proto__, toString) cannot resolve or throw ---- */
+  let protoThrew = false;
+  try {
+    window.NPBridgeOnData('constructor', true, '{"n":1}');
+    window.NPBridgeOnData('__proto__', true, '{"n":1}');
+    window.NPBridgeOnData('toString', false, '');
+  } catch (e) { protoThrew = true; }
+  check('a bridge callback for a prototype key is ignored', !protoThrew);
+  check('prototype-key callbacks leave the bridge usable', NP.bridge() === true);
   check('L1 source is live', S.l1 && S.l1.src === 'live', S.l1 && S.l1.src);
   check('L1 reachable node count from Bitnodes', S.l1.total === L1.totalNodes, S.l1.total + ' vs ' + L1.totalNodes);
   check('L1 crawler height from Bitnodes', S.l1.height === L1.height, S.l1.height);
@@ -738,6 +749,45 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   check('English L1 legeind', els.legend.innerHTML.indexOf('FULL NODE LOCATION') > 0, els.legend.innerHTML);
   check('English legend + footnote are both applied', els.note.innerHTML.indexOf('Bitnodes is the primary L1 source') > 0 && els.legend.innerHTML.indexOf('L1 FULL NODE') > 0);
   check('language button offers the other language', els.langBtn.textContent === 'KO', els.langBtn.textContent);
+
+  /* ---- i18n: the node card carries no hardcoded Korean once the language is English ---- */
+  NP.lang('en');
+  await sleep(200);
+  NP.layer('ln');
+  await sleep(60);
+  const manyAt = -1;   /* the captured sample has no multi-node cell; the cluster row is
+                          covered by the source guard below instead */
+  NP.lang('ko');
+  await sleep(120);
+  if (manyAt >= 0) {
+    NP.openNode(manyAt);
+    const koMany = els.card.innerHTML;
+    check('Korean cluster row uses Korean units', koMany.indexOf('개 노드') > 0 && /\d+개/.test(koMany), koMany.slice(0, 120));
+  }
+  NP.lang('en');
+  await sleep(120);
+  NP.openNode(manyAt >= 0 ? manyAt : 0);
+  const enCard = els.card.innerHTML;
+  check('English node card uses English labels', enCard.indexOf('Sockets') > 0 && enCard.indexOf('Channels') > 0, enCard.slice(0, 120));
+  check('English node card has no Korean counter or unit left',
+    !/\d+개|개 노드|채널/.test(enCard), (enCard.match(/[^<>]{0,20}(?:\d+개|개 노드|채널)[^<>]{0,20}/) || [''])[0]);
+  if (manyAt >= 0) check('English cluster row uses English units', enCard.indexOf(' nodes · ') > 0, enCard.slice(0, 120));
+
+  /* ---- i18n: every L() key exists in both dictionaries, and the strings this release
+     moved out of the code are gone from the source ---- */
+  const appSrc = fs.readFileSync(path.join(ROOT, 'src', 'app.js'), 'utf8');
+  const strBlock = appSrc.slice(appSrc.indexOf('var STR = {'), appSrc.indexOf('function L(k)'));
+  const koBlock = strBlock.slice(strBlock.indexOf('ko: {'), strBlock.indexOf('en: {'));
+  const enBlock = strBlock.slice(strBlock.indexOf('en: {'));
+  const keysUsed = [...new Set([...appSrc.matchAll(/\bL\('([A-Za-z0-9_]+)'\)/g)].map(m => m[1]))];
+  const missingKo = keysUsed.filter(k => !new RegExp('(^|[\\s{,])' + k + ':').test(koBlock));
+  const missingEn = keysUsed.filter(k => !new RegExp('(^|[\\s{,])' + k + ':').test(enBlock));
+  check('every L() key is defined in Korean and English', keysUsed.length > 40 &&
+    missingKo.length === 0 && missingEn.length === 0, missingKo.concat(missingEn).join(','));
+  check('no hardcoded Korean pool / cluster / socket unit is left in the source',
+    appSrc.indexOf("' (1주 '") < 0 && appSrc.indexOf("+ '개' +") < 0 && appSrc.indexOf("' nodes · '") < 0,
+    'hardcoded unit found');
+  NP.layer('l1');
   NP.lang('ko');
   await sleep(500);
   check('Korean footnote restored', els.note.innerHTML.indexOf('Bitnodes') > 0 && /[가-힣]/.test(els.note.innerHTML));
@@ -759,6 +809,56 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   check('a stale socket closing late changes nothing',
     S.wsHost === hostAfterRetry, S.wsHost + ' vs ' + hostAfterRetry);
   check('a stale close opens no extra socket', wsList.length === 2, wsList.length);
+
+  /* ---- a poisoned localStorage snapshot is rejected field by field ----
+     JSON.parse happily returns a string, a number or an array, and localStorage is
+     writable by anything that ever ran on this origin, so boot must not walk into it. */
+  ls = new Map([
+    ['nodepulse.cache.v2', JSON.stringify({
+      t: 1, tip: '800000', blocks: 'x', mem: 5, recent: {}, fees: [], hr: [],
+      diff: null, ln: 'y', lnAt: 'z', countries: 3, mblocks: {}, mblocksAt: {}, pools: [], poolsAt: 'q'
+    })],
+    ['nodepulse.cache.v2.l1', JSON.stringify({ t: 1, d: { total: 1, coords: 'oops' } })],
+    ['nodepulse.nodes.v2', JSON.stringify({ t: Date.now(), geo: 7, nodes: 'nope', links: 4, rows: 'x', chanAt: 'y' })]
+  ]);
+  const poisoned = makeSandbox({ bridge: false });
+  const ctx3 = vm.createContext(poisoned.sandbox);
+  const prevMode = fetchMode;
+  fetchMode = 'fail';
+  let poisonedThrew = null;
+  try {
+    for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctx3, { filename: 'poison-' + i + '.js', timeout: 8000 });
+    await sleep(500);
+    runFrames(poisoned.rafQueue, 2);
+  } catch (e) { poisonedThrew = e; }
+  fetchMode = prevMode;
+  check('poisoned localStorage does not throw on boot', !poisonedThrew, poisonedThrew && poisonedThrew.stack);
+  const PS = poisoned.window.NODEPULSE && poisoned.window.NODEPULSE.state;
+  check('poisoned cache fields are not adopted', !!PS && PS.tip === null && PS.mem === null && PS.ln === null &&
+    Array.isArray(PS.blocks) && Array.isArray(PS.countries) && Array.isArray(PS.mblocks), PS && JSON.stringify({ tip: PS.tip, mem: PS.mem, ln: PS.ln }));
+  check('poisoned node snapshot is not adopted', !!PS && Array.isArray(PS.nodes) && PS.nodeSrc === 'seed', PS && PS.nodeSrc);
+
+  /* ---- a well-formed snapshot is still restored (the checks did not close the door) ---- */
+  ls = new Map([
+    ['nodepulse.cache.v2', JSON.stringify({
+      t: Date.now(), tip: 812345, blocks: [], recent: [],
+      mem: { count: 1200, vsize: 500000, totalFee: 300 }, fees: { fastestFee: 7 },
+      hr: { hashrates: [] }, diff: { difficultyChange: 1 }, ln: null, lnAt: 0,
+      countries: [], mblocks: [], mblocksAt: 0, pools: null, poolsAt: 0
+    })]
+  ]);
+  const good = makeSandbox({ bridge: false });
+  const ctx4 = vm.createContext(good.sandbox);
+  fetchMode = 'fail';
+  try {
+    for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctx4, { filename: 'good-' + i + '.js', timeout: 8000 });
+    await sleep(400);
+    runFrames(good.rafQueue, 2);
+  } catch (e) { check('valid cache boots', false, e && e.stack); }
+  fetchMode = prevMode;
+  const GS = good.window.NODEPULSE && good.window.NODEPULSE.state;
+  check('a well-formed cache is still restored', !!GS && GS.tip === 812345 && GS.mem && GS.mem.count === 1200 &&
+    GS.fees && GS.fees.fastestFee === 7, GS && JSON.stringify({ tip: GS.tip, mem: GS.mem }));
 
   /* ---- failure mode: no network at all ----
      without the bridge and with every request failing, both layers still draw the

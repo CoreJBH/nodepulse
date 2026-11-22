@@ -12,7 +12,7 @@ Outputs
   src/data/seed-nodes.js      NODE_SEED   - offline snapshot of the sample
   src/data/channels-data.js   CHANNEL_SEED- offline snapshot of the real links
 """
-import json, urllib.request, time, collections, concurrent.futures as cf, os, math
+import json, re, urllib.request, time, collections, concurrent.futures as cf, os, math
 
 UA = {"User-Agent": "Mozilla/5.0 (compatible; bitcoin-network-monitor/1.0)"}
 BASE = "https://mempool.space"
@@ -24,6 +24,14 @@ CELL_CAP = 2
 REGION_CAP = 5
 PEERS_KEPT = 4
 LINK_PER_NODE = 5  # channel arcs one dot may carry (must match app.js capLinks)
+
+# A Lightning public key is 33 compressed bytes in hex and is the only value from the API
+# that lands in a URL path, so it is checked against that exact shape first.
+PK_RE = re.compile(r"^[0-9a-fA-F]{66}$")
+
+
+def is_pk(v):
+    return isinstance(v, str) and PK_RE.match(v) is not None
 
 
 def get(path):
@@ -205,7 +213,7 @@ def main():
 
     by, keys, links = build_graph(rows)
     print("  nodes with coordinates:", len(keys), " usable channels:", len(links))
-    sel = pick_nodes(by, keys)
+    sel = [pk for pk in pick_nodes(by, keys) if is_pk(pk)]
     inset = set(sel)
     print("  picked", len(sel), "nodes")
 
@@ -220,10 +228,13 @@ def main():
             e["iso"] = e["iso"] or (n.get("iso_code") or "")
 
     def detail(pk):
+        if not is_pk(pk):
+            print("  detail skipped: bad publicKey", repr(pk)[:40])
+            return None
         try:
             return get("/api/v1/lightning/nodes/" + pk)
         except Exception as e:                                  # noqa: BLE001
-            print("  detail failed", pk[:12], e)
+            print("  detail failed", str(pk)[:12], e)
             return None
 
     print("fetching node details ...")

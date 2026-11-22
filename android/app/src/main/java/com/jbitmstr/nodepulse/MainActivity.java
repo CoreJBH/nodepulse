@@ -85,6 +85,9 @@ public class MainActivity extends Activity {
         s.setAllowUniversalAccessFromFileURLs(false);
         s.setJavaScriptCanOpenWindowsAutomatically(false);
         s.setSupportMultipleWindows(false);
+        // Stated rather than left to the platform default: nothing in this app needs an
+        // insecure subresource, so an https page may never pull one in over http.
+        s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
         s.setSupportZoom(false);
@@ -220,6 +223,9 @@ public class MainActivity extends Activity {
             try {
                 URL u = new URL(url);
                 if (!"https".equalsIgnoreCase(u.getProtocol())) return false;
+                // user:password@host is not a shape this app ever builds, and a browser
+                // and URL parser disagree about where the host starts, so reject it.
+                if (u.getUserInfo() != null) return false;
                 if (u.getPort() != -1 && u.getPort() != 443) return false;
                 String host = u.getHost();
                 if (host == null) return false;
