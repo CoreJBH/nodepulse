@@ -48,8 +48,8 @@ android {
         applicationId = "com.jbitmstr.nodepulse"
         minSdk = 24
         targetSdk = 34
-        versionCode = 12
-        versionName = "1.1.10"
+        versionCode = 13
+        versionName = "1.1.11"
         resourceConfigurations += listOf("en")
     }
 
@@ -60,7 +60,11 @@ android {
                 storePassword = releaseStorePassword
                 keyAlias = releaseKeyAlias
                 keyPassword = releaseKeyPassword
-                enableV1Signing = true
+                // v2 (and the v3 signature the platform adds) only: v1 is the JAR
+                // signature, which exists for Android 6 and older, is weaker, and costs
+                // a second signing pass. minSdk is 24, so no device this app installs on
+                // needs it.
+                enableV1Signing = false
                 enableV2Signing = true
             }
         }
@@ -83,9 +87,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
 
-    // No dependencies: the shell is a plain android.webkit.WebView over the
-    // single-file app staged into src/main/assets/index.html by CI.
+// No dependencies in the app itself: the shell is a plain android.webkit.WebView over the
+// single-file app staged into src/main/assets/index.html by CI. JUnit is for the host-side
+// unit tests (HttpBridgeChunkTest), which run on the JVM through :app:testDebugUnitTest.
+dependencies {
+    testImplementation("junit:junit:4.13.2")
 }
 
 tasks.register<Copy>("stageWebApp") {

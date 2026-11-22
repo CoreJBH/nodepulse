@@ -1,18 +1,37 @@
 /* Headless verification harness: boots the built single-file app in a stubbed DOM,
    feeds it the real API payloads captured in fixtures/, runs frames, and checks the
    rendered values, both layers, the watchdog and the globe geometry.
+
+   Two builds are produced before anything is checked, so the assertions always describe
+   the current src/ instead of a stale file: dist/nodepulse.html — the file that ships and
+   the one the APK stages — and dist/nodepulse.test.html, the same build with the
+   window.NODEPULSE hook the checks drive the app through. The shipping file is asserted to
+   carry no hook at all; only the test build is executed here.
    Run: node test/headless.js */
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const crypto = require('crypto');
+const { execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const HTML = [
-  path.resolve(ROOT, '..', '..', 'bitcoin-network-monitor.html'),
-  path.resolve(ROOT, 'dist', 'nodepulse.html')
-].find(p => fs.existsSync(p));
-if (!HTML) throw new Error('built app not found — run python3 build.py first');
+const BUILD = path.join(ROOT, 'build.py');
+const HTML = path.join(ROOT, 'dist', 'nodepulse.html');
+const TEST_HTML = path.join(ROOT, 'dist', 'nodepulse.test.html');
+
+function build(test) {
+  const args = test ? [BUILD, '--test'] : [BUILD];
+  try {
+    execFileSync(process.env.PYTHON || 'python3', args, { cwd: ROOT, stdio: 'pipe' });
+  } catch (e) {
+    console.error('build.py ' + (test ? '--test' : '') + ' failed\n' +
+      String(e.stdout || '') + String(e.stderr || ''));
+    process.exit(1);
+  }
+}
+build(false);
+build(true);
+
 const FIX = JSON.parse(fs.readFileSync(path.join(ROOT, 'fixtures', 'api-snapshot.json'), 'utf8'));
 const CHGEO = JSON.parse(fs.readFileSync(path.join(ROOT, 'fixtures', 'channels-geo.json'), 'utf8'));
 const L1 = JSON.parse(fs.readFileSync(path.join(ROOT, 'fixtures', 'l1-snapshot.json'), 'utf8'));
@@ -82,20 +101,38 @@ function makeDocument() {
   const els = new Proxy(store, {
     get(t, k) { if (typeof k !== 'string') return undefined; return t[k] || (t[k] = makeEl(k)); }
   });
+  /* The real page answers these selectors and the app lays itself out against them: the
+     HUD's height decides how much room the globe gets, and the topbar rows bound it from
+     above. Every one of them answered null before, so Globe.layout() fell back to its
+     defaults in every test and paint() never relaid the globe out. */
+  const sized = (id, h) => { const el = els[id]; el.offsetHeight = h; return el; };
+  /* applyLang() rewrites these nodes in place; without them that loop never ran. */
+  const i18n = {};
+  ['utc', 'kHeight', 'secL1', 'secVer', 'kPlat'].forEach(k => {
+    const el = makeEl('i18n-' + k);
+    el.setAttribute('data-i18n', k);
+    i18n[k] = el;
+  });
   const doc = {
     readyState: 'complete',
     hidden: false,
     documentElement: makeEl('html'),
     getElementById(id) { return els[id] || (els[id] = makeEl(id)); },
-    querySelector() { return null; },
-    querySelectorAll() { return []; },
+    querySelector(sel) {
+      if (sel === '.hud') return sized('hud', 150);
+      if (sel === '.topbar .head') return sized('topbarHead', 56);
+      if (sel === '.layers') return sized('layers', 28);
+      if (sel === '.subrow') return sized('subrow', 18);
+      return null;
+    },
+    querySelectorAll(sel) { return sel === '[data-i18n]' ? Object.keys(i18n).map(k => i18n[k]) : []; },
     listeners: {},
     addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); },
     dispatch(type, ev) { (this.listeners[type] || []).forEach(f => f(ev || { target: this })); },
     createElement(tag) { return makeEl(tag); },
     body: makeEl('body')
   };
-  return { doc, els };
+  return { doc, els, i18n };
 }
 
 /* ------------------------------------------------------------------ fetch */
@@ -279,8 +316,8 @@ function makeWindow(docApi, els) {
   return window;
 }
 
-function makeSandbox({ bridge = true, fetchImpl = fakeFetch } = {}) {
-  const { doc, els } = makeDocument();
+function makeSandbox({ bridge = true, fetchImpl = fakeFetch, online = true } = {}) {
+  const { doc, els, i18n } = makeDocument();
   const window = makeWindow(doc, els);
   if (bridge) window.NPBridge = makeBridge(window);
   const sandbox = {
@@ -291,9 +328,11 @@ function makeSandbox({ bridge = true, fetchImpl = fakeFetch } = {}) {
     JSON, Math, Date, Promise, Object, Array, String, Number, isFinite, parseInt, parseFloat,
     encodeURIComponent, decodeURIComponent, Error, RegExp, Map, Set, TextEncoder
   };
+  /* the platform's own online flag, which the app reads to stop a doomed walk early */
+  if (online !== true) sandbox.navigator = { onLine: online };
   sandbox.globalThis = sandbox;
   sandbox.self = window;
-  return { sandbox, window, els, doc, rafQueue: window._raf };
+  return { sandbox, window, els, doc, i18n, rafQueue: window._raf };
 }
 
 function runFrames(rafQueue, n, step) {
@@ -307,6 +346,12 @@ function runFrames(rafQueue, n, step) {
 
 /* ------------------------------------------------------- extract + run js */
 const html = fs.readFileSync(HTML, 'utf8');
+const testHtml = fs.readFileSync(TEST_HTML, 'utf8');
+check('the shipping build carries no test hook',
+  html.indexOf('window.NODEPULSE = {') < 0 && html.indexOf('__TEST_HOOK') < 0,
+  'the release build still has the NODEPULSE hook');
+check('the test build the harness runs carries the hook',
+  testHtml.indexOf('window.NODEPULSE = {') > 0);
 check('single file has no external src', !/<script[^>]+src=/.test(html), 'script src found');
 check('single file has no external stylesheet/link', !/<link[^>]+href="http/.test(html), 'remote link found');
 
@@ -323,9 +368,22 @@ check('CSP names every inline script/style block by hash',
   blockHashes.length === 7 && blockHashes.every(h => csp.indexOf(h) >= 0),
   blockHashes.length + ' blocks, policy ' + (csp ? 'present' : 'missing'));
 check('CSP allows no unsafe-inline', csp.indexOf("'unsafe-inline'") < 0, csp.slice(0, 80));
-check('CSP names no host outside the five the app reads',
-  (csp.match(/https:\/\/[a-z.]+/g) || []).every(h => /bitnodes\.io|btcnodes\.io|mempool\.space|mempool\.emzy\.de|mempool\.ninja/.test(h)),
-  (csp.match(/https:\/\/[a-z.]+/g) || []).join(','));
+/* Exactly the hosts the app reads: bitnodes.io for the L1 layer and the three mempool.space
+   mirrors, ws for the three mirrors. Two hosts nothing in the app has ever requested
+   (www.bitnodes.io, btcnodes.io) were still named by the policy and whitelisted in the
+   native bridge, which is an allowance no code needs. */
+const CSP_HOSTS = new Set([
+  'https://bitnodes.io', 'https://mempool.space', 'https://mempool.emzy.de', 'https://mempool.ninja',
+  'wss://mempool.space', 'wss://mempool.emzy.de', 'wss://mempool.ninja'
+]);
+const cspHosts = csp.match(/(?:https|wss):\/\/[a-z.]+/g) || [];
+check('CSP names exactly the hosts the app reads',
+  cspHosts.length === CSP_HOSTS.size && cspHosts.every(h => CSP_HOSTS.has(h)), cspHosts.join(','));
+check('CSP names no host the app never reads',
+  csp.indexOf('www.bitnodes.io') < 0 && csp.indexOf('btcnodes.io') < 0, csp.slice(0, 160));
+check('the build never mentions the two dropped hosts',
+  html.indexOf('www.bitnodes.io') < 0 && html.indexOf('btcnodes.io') < 0,
+  (html.match(/[a-z.]*btcnodes\.io|www\.bitnodes\.io/g) || [''])[0]);
 check('build has no inline style attribute', !/\sstyle="/.test(html), (html.match(/\sstyle="[^"]*"/) || [''])[0].slice(0, 60));
 /* the reduced-motion rule used to name `.body`, a class nothing carries, so the body kept
    its transition for a reader who asked for none */
@@ -350,11 +408,43 @@ check('bitnodes endpoints are in the build', /bitnodes\.io/.test(html) && /field
 check('all three websocket mirrors are in the build',
   /mempool\.emzy\.de/.test(html) && /mempool\.ninja/.test(html) && /WS_HOSTS/.test(html));
 
-const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+const scripts = [...testHtml.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
 check('inline script blocks', scripts.length === 6, scripts.length);
 
+/* ---- the Android shell's own contract, read from its source ----
+   The Java side cannot be executed here, so the checks below hold it to the shape the
+   review asked for and the headless build cannot see. The chunk-boundary rule itself is
+   exercised for real by HttpBridgeChunkTest on the JVM (:app:testDebugUnitTest). */
+{
+  const java = fs.readFileSync(path.join(ROOT, 'android', 'app', 'src', 'main', 'java', 'com', 'jbitmstr', 'nodepulse', 'MainActivity.java'), 'utf8');
+  const gradle = fs.readFileSync(path.join(ROOT, 'android', 'app', 'build.gradle.kts'), 'utf8');
+  check('the bridge allowlist is the four hosts the page reads',
+    /"bitnodes\.io"[\s\S]{0,80}"mempool\.space"[\s\S]{0,40}"mempool\.emzy\.de"[\s\S]{0,40}"mempool\.ninja"/.test(java) &&
+    java.indexOf('www.bitnodes.io') < 0 && java.indexOf('btcnodes.io') < 0);
+  check('a chunk boundary never splits a surrogate pair',
+    /Character\.isHighSurrogate\(body\.charAt\(end - 1\)\)/.test(java) &&
+    /int end = chunkEnd\(body, off, MAX_CHUNK_CHARS\)/.test(java));
+  check('the chunk walk continues at the end it used, not at a fixed step',
+    /off = end;/.test(java) && !/off \+= MAX_CHUNK_CHARS/.test(java));
+  check('onSaveInstanceState checks the WebView exists',
+    /onSaveInstanceState[\s\S]{0,300}?if \(web != null\) web\.saveState\(out\)/.test(java));
+  check('onDestroy detaches the WebView before destroying it',
+    /if \(web != null\) \{[\s\S]{0,200}?detach\(web\);\s*\n\s*web\.destroy\(\)/.test(java));
+  check('a dead renderer is handled instead of killing the app',
+    /onRenderProcessGone\(WebView view, RenderProcessGoneDetail detail\)[\s\S]{0,200}?return true;/.test(java));
+  check('the renderer recovery rebuilds the shell',
+    /recoverFromRendererGone\(\)[\s\S]{0,600}?installWebView\(\)/.test(java));
+  check('the release signature is v2 only',
+    /enableV1Signing = false/.test(gradle) && !/enableV1Signing = true/.test(gradle));
+  check('the version bumped to 1.1.11 (versionCode 13)',
+    /versionCode = 13/.test(gradle) && /versionName = "1\.1\.11"/.test(gradle));
+  check('the unit test that walks the chunk boundaries is in the tree',
+    fs.existsSync(path.join(ROOT, 'android', 'app', 'src', 'test', 'java', 'com', 'jbitmstr', 'nodepulse', 'HttpBridgeChunkTest.java')) &&
+    /testImplementation\("junit:junit:4\.13\.2"\)/.test(gradle));
+}
+
 (async function main() {
-  const { sandbox, window, els, rafQueue } = makeSandbox({ bridge: true });
+  const { sandbox, window, els, i18n, rafQueue } = makeSandbox({ bridge: true });
   const ctx = vm.createContext(sandbox);
   for (let i = 0; i < scripts.length; i++) {
     try {
@@ -1693,6 +1783,157 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     bridgeChunked = false;
   }
 
+  /* ================= the 10th-round fixes, checked where they live ========= */
+
+  /* ---- a newer block from /api/v1/blocks raises the tip and rings the event ----
+     /api/blocks/tip/height is the endpoint upstream caches, so the blocks answer regularly
+     carried a height the HUD had not published: the list below showed the newer block
+     while the row above it sat one behind, and nothing raised it until the tip endpoint
+     caught up. */
+  {
+    const real = FIX.blocks[0].height;
+    S.tip = real - 1;
+    els.toast.textContent = '';
+    let r = 'pending';
+    await NP.loadBlocks().then(() => { r = 'ok'; }, () => { r = 'err'; });
+    check('loadBlocks accepts a good blocks answer', r === 'ok', r);
+    check('a newer block from the blocks answer raises the tip', S.tip === real, S.tip + ' vs ' + real);
+    check('that block rings the block event', els.toast.textContent.indexOf('NEW BLOCK') === 0, els.toast.textContent);
+    check('the tip seen time moves with it', S.tipSeenAt > 0 && Date.now() - S.tipSeenAt < 5000, S.tipSeenAt);
+    /* the same block again is not a second event */
+    els.toast.textContent = '';
+    await NP.loadBlocks();
+    check('the same height again is not a new block event', els.toast.textContent === '', els.toast.textContent);
+    check('and the tip is unchanged', S.tip === real, S.tip);
+  }
+
+  /* ---- a reconnect that comes due behind a hidden page is held, not repeated ---- */
+  {
+    ls = new Map();
+    const hidden = makeSandbox({ bridge: true });
+    const ctxHd = vm.createContext(hidden.sandbox);
+    try {
+      for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctxHd, { filename: 'hidden-' + i + '.js', timeout: 8000 });
+      await sleep(300);
+    } catch (e) { check('hidden-page boot does not throw', false, e && e.stack); }
+    const HD = hidden.window.NODEPULSE;
+    const live = wsList[wsList.length - 1];
+    check('the socket of the hidden-page check is open first', !!live && live.readyState === 1, live && live.readyState);
+    const sockets = wsList.length;
+    const tries = HD.state.wsTries;
+    hidden.doc.hidden = true;
+    live.close();                                  // the close handler schedules the retry
+    await sleep(40);
+    check('the close is recorded while the page is hidden', HD.state.ws === 'closed', HD.state.ws);
+    check('no retry timer is armed while the page is hidden', HD.wsTimerPending() === false);
+    check('the held retry does not consume a backoff step', HD.state.wsTries === tries, HD.state.wsTries + ' vs ' + tries);
+    check('the retry is remembered instead of dropped', HD.wsHeld() === true);
+    check('no socket is opened behind the hidden page', wsList.length === sockets, wsList.length - sockets);
+    hidden.doc.hidden = false;
+    hidden.doc.dispatch('visibilitychange');
+    await sleep(30);
+    check('the page coming back starts the held retry at once',
+      wsList.length === sockets + 1 && /^(connecting|open)$/.test(HD.state.ws),
+      (wsList.length - sockets) + ' socket(s), ' + HD.state.ws);
+    check('the held flag is cleared', HD.wsHeld() === false);
+  }
+
+  /* ---- country rows must be summable, in the live answer as in the cache ---- */
+  {
+    const real = S.countries.length;
+    bodyOverride.set('/api/v1/lightning/nodes/countries', [
+      { iso: 'US', count: '4329', capacity: '1' },
+      { iso: 'DE', count: 10, capacity: '2' },
+      { iso: 7, count: 3 },
+      null
+    ]);
+    let r = 'pending';
+    await NP.loadCountries().then(() => { r = 'ok'; }, () => { r = 'err'; });
+    check('a country row with a string count is dropped', r === 'ok' && S.countries.length === 1 && S.countries[0].iso === 'DE',
+      r + ' ' + JSON.stringify(S.countries));
+    check('the continent sums stay numeric, never concatenated strings',
+      Object.keys(S.conts.count).every(k => typeof S.conts.count[k] === 'number') && S.conts.total === 10,
+      JSON.stringify(S.conts.count));
+    bodyOverride.set('/api/v1/lightning/nodes/countries', [{ iso: 'US', count: 'x' }, null]);
+    r = 'pending';
+    await NP.loadCountries().then(() => { r = 'ok'; }, () => { r = 'err'; });
+    check('an answer with no usable country row is rejected', r === 'err', r);
+    check('a rejected country answer leaves the previous rows in place', S.countries.length === 1 && S.countries[0].iso === 'DE',
+      JSON.stringify(S.countries));
+    bodyOverride.delete('/api/v1/lightning/nodes/countries');
+    await NP.loadCountries();
+    check('a good country answer is adopted again', S.countries.length === real, S.countries.length + ' vs ' + real);
+  }
+
+  /* ---- the L1 split and version list are type-checked before they are printed ---- */
+  {
+    check('a split is not derived from a string ASN count',
+      NP.l1Platforms({ total: 100, asns: [['TOR', '20'], ['I2P', 3]] }) === null,
+      JSON.stringify(NP.l1Platforms({ total: 100, asns: [['TOR', '20'], ['I2P', 3]] })));
+    const p = NP.l1Platforms({ total: 100, asns: [['TOR', 20], ['I2P', 3]] });
+    check('a split is derived from numeric ASN rows',
+      !!p && p.tor === 20 && p.i2p === 3 && p.clearnet === 77, JSON.stringify(p));
+    check('a given split with a string figure is not adopted',
+      NP.l1Platforms({ total: 10, platforms: { clearnet: '10', tor: 5, i2p: 5 } }) === null);
+    check('a split whose counts exceed the total is not drawn',
+      NP.l1Platforms({ total: 10, asns: [['TOR', 20]] }) === null);
+    const v = NP.l1Versions({ ua: [[123, 5], ['/Satoshi:27.0.0/', 10], 7, ['x'], ['/Satoshi:26.0.0/', 'y']] });
+    check('version rows that are not [name, count] pairs are dropped',
+      v.length === 2 && v[0].name === '/Satoshi:27.0.0/' && v[0].pct === 10, JSON.stringify(v));
+    check('a version row with a string count has no percentage', v[1] && v[1].pct === null, JSON.stringify(v[1]));
+    const v2 = NP.l1Versions({ versions: [['/A/', '5'], ['/B/', 5], ['/C/', 10]] });
+    check('a version list with a string count never produces NaN',
+      v2.every(x => x.pct === null || isFinite(x.pct)) && Math.abs(v2[2].pct - 200 / 3) < 1e-9, JSON.stringify(v2));
+  }
+
+  /* ---- the page rewriting the visible labels it is told to rewrite ---- */
+  {
+    NP.lang('en');
+    check('applyLang rewrites the data-i18n nodes', i18n.kHeight.textContent === 'Block height', i18n.kHeight.textContent);
+    check('every data-i18n node got the English text',
+      i18n.utc.textContent === 'CURRENT TIME (UTC)' && i18n.secL1.textContent.length > 0, i18n.utc.textContent);
+    NP.lang('ko');
+    check('switching back rewrites them again', i18n.kHeight.textContent === '블록 높이', i18n.kHeight.textContent);
+  }
+
+  /* ---- a dead network: three mirrors, then one bridge attempt, not three ---- */
+  {
+    const mode = fetchMode;
+    fetchMode = 'fail';
+    const bridges = bridgeCalls.length;
+    const fetches = fetchLog.length;
+    let r = 'pending';
+    await NP.loadTip().then(() => { r = 'ok'; }, () => { r = 'err'; });
+    fetchMode = mode;
+    check('all three mirrors are still tried', fetchLog.length - fetches === 3, (fetchLog.length - fetches) + ' fetches');
+    check('the bridge is asked once, not once per mirror', bridgeCalls.length - bridges === 1, (bridgeCalls.length - bridges) + ' bridge calls');
+    check('a failed path is reported as failed', r === 'err', r);
+    check('the whole walk is bounded far below the old 153 s cascade', NP.reqBudgetMs() < 153000, NP.reqBudgetMs() + ' ms');
+  }
+
+  /* ---- a phone that reports itself offline does not walk the mirrors at all ---- */
+  {
+    ls = new Map();
+    const fetches = fetchLog.length;
+    const bridges = bridgeCalls.length;
+    const offl = makeSandbox({ bridge: true, online: false });
+    const ctxOff = vm.createContext(offl.sandbox);
+    try {
+      for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctxOff, { filename: 'offline-' + i + '.js', timeout: 8000 });
+      await sleep(250);
+    } catch (e) { check('offline boot does not throw', false, e && e.stack); }
+    const OF = offl.window.NODEPULSE;
+    check('an offline page asks no host at all',
+      fetchLog.length === fetches && bridgeCalls.length === bridges,
+      (fetchLog.length - fetches) + ' fetch / ' + (bridgeCalls.length - bridges) + ' bridge');
+    let r = 'pending';
+    await OF.loadTip().then(() => { r = 'ok'; }, () => { r = 'err'; });
+    check('an offline request fails at once instead of timing out',
+      r === 'err' && fetchLog.length === fetches, r + ' ' + (fetchLog.length - fetches));
+    check('the offline page still shows the bundled snapshot',
+      !!OF.state.l1 && OF.state.l1.src === 'snapshot', OF.state.l1 && OF.state.l1.src);
+  }
+
   /* ---- failure mode: no network at all ----
      without the bridge and with every request failing, both layers still draw the
      bundled real snapshots and say so. */
@@ -1737,6 +1978,32 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     check('offline boot does not throw', false, e && e.stack);
   }
   fetchMode = prevFetchMode;
+
+  /* ---- one long frame must not fling the globe ----
+     Inertia used the raw frame delta, which is unbounded: after a stall — a GC pause, a
+     tab coming back, the first frame after the globe restarts — a single step moved the
+     globe by hundreds of frames' worth of velocity. dt is clamped to 50 ms, so the same
+     stall coasts at most three frames' worth. */
+  {
+    const g = NP.globe;
+    runFrames(rafQueue, 1);
+    const t0 = 100000;
+    g.lastTs = t0;
+    g.vYaw = 0.6;
+    g.dragging = false;
+    g.hold = false;
+    const yaw0 = g.yaw;
+    const fns = rafQueue.splice(0, rafQueue.length);
+    fns.forEach(fn => fn(t0 + 5000));            // one five-second frame
+    const moved = Math.abs(g.yaw - yaw0);
+    check('a five-second frame coasts a few frames of inertia, not hundreds',
+      moved < 0.6 * 4, moved.toFixed(3) + ' rad');
+    check('the inertia is damped by that frame, not amplified',
+      Math.abs(g.vYaw) < 0.6, g.vYaw);
+    g.vYaw = 0;
+    g.lastTs = 0;                                 // let the next frame re-anchor
+    runFrames(rafQueue, 1);
+  }
 
   /* ---- report ---- */
   const bad = results.filter(r => !r.ok);

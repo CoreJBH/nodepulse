@@ -7,8 +7,11 @@ import android.net.http.SslError;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.Window;
 import android.webkit.JavascriptInterface;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -56,7 +59,6 @@ public class MainActivity extends Activity {
     private WebView web;
     private HttpBridge bridge;
 
-    @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -69,6 +71,19 @@ public class MainActivity extends Activity {
             window.setNavigationBarContrastEnforced(false);
         }
 
+        installWebView();
+        if (!restoreWebViewState(state)) {
+            web.loadUrl(APP_URL);
+        }
+    }
+
+    /**
+     * Creates the WebView, its settings, the bridge and the full-screen content view.
+     * Called from onCreate() and again from the renderer-death recovery, so a WebView the
+     * system has destroyed is never reused: the new one is built exactly like the first.
+     */
+    @SuppressLint("SetJavaScriptEnabled")
+    private void installWebView() {
         web = new WebView(this);
         web.setBackgroundColor(BG);
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -103,8 +118,36 @@ public class MainActivity extends Activity {
         web.addJavascriptInterface(bridge, "NPBridge");
 
         setContentView(web);
-        if (!restoreWebViewState(state)) {
-            web.loadUrl(APP_URL);
+    }
+
+    /**
+     * The renderer runs in its own process, which the system may kill at any time (memory
+     * pressure, a crash inside it). Since Android 8 the default answer to that is to kill
+     * the whole app — which looks like a silent exit — unless the client returns true from
+     * onRenderProcessGone(). This takes the dead WebView and its bridge apart in the
+     * documented order and puts a fresh WebView in the same window, so the app reloads the
+     * bundled asset and comes back instead of vanishing.
+     */
+    private void recoverFromRendererGone() {
+        WebView dead = web;
+        web = null;
+        if (bridge != null) {
+            bridge.shutdown();
+            bridge = null;
+        }
+        if (dead != null) {
+            detach(dead);
+            dead.destroy();
+        }
+        installWebView();
+        if (web != null) web.loadUrl(APP_URL);
+    }
+
+    /** Takes a WebView out of the view hierarchy before it is destroyed. */
+    private static void detach(WebView v) {
+        ViewParent parent = v.getParent();
+        if (parent instanceof ViewGroup) {
+            ((ViewGroup) parent).removeView(v);
         }
     }
 
@@ -127,7 +170,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out);
-        web.saveState(out);
+        /* web is null between a renderer death and its replacement, and saving the state
+           of a WebView that has been destroyed is not defined. */
+        if (web != null) web.saveState(out);
     }
 
     @Override
@@ -162,6 +207,9 @@ public class MainActivity extends Activity {
             bridge = null;
         }
         if (web != null) {
+            /* Out of the hierarchy first: a WebView destroyed while still attached keeps
+               its window and its renderer bound to an Activity that is going away. */
+            detach(web);
             web.destroy();
             web = null;
         }
@@ -179,8 +227,12 @@ public class MainActivity extends Activity {
      * The app never leaves the bundled asset: no link, redirect or injected frame may
      * navigate the WebView to another file, content: or web page. A TLS error is a hard
      * stop, never a "continue anyway".
+     *
+     * <p>Not static: the renderer-death callback below rebuilds the shell through the
+     * Activity it belongs to. One instance lives per WebView, and both are replaced
+     * together, so the reference never outlives the view it was made for.
      */
-    private static final class AppClient extends WebViewClient {
+    private final class AppClient extends WebViewClient {
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -198,6 +250,19 @@ public class MainActivity extends Activity {
         public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
             if (handler != null) handler.cancel();
         }
+
+        /**
+         * Runs on the UI thread when the renderer process is gone (API 26+). Returning
+         * true says the app handled it and keeps the process alive; the WebView that is
+         * handed here is already unusable, whatever the detail says, so it is replaced
+         * rather than reused. On API 24–25 the platform does not call this and the
+         * callback simply never fires.
+         */
+        @Override
+        public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+            recoverFromRendererGone();
+            return true;
+        }
     }
 
     /**
@@ -211,8 +276,6 @@ public class MainActivity extends Activity {
 
         private static final String[] HOSTS = {
                 "bitnodes.io",
-                "www.bitnodes.io",
-                "btcnodes.io",
                 "mempool.space",
                 "mempool.emzy.de",
                 "mempool.ninja"
@@ -420,15 +483,37 @@ public class MainActivity extends Activity {
             }
             int total = body.length();
             int seq = 0;
-            for (int off = 0; off < total; off += MAX_CHUNK_CHARS) {
-                int end = Math.min(total, off + MAX_CHUNK_CHARS);
+            int off = 0;
+            while (off < total) {
+                int end = chunkEnd(body, off, MAX_CHUNK_CHARS);
                 seq++;
                 String js = callScript(id, true, body.substring(off, end),
                         end == total, seq);
                 if (js == null) return;
                 post(w, js);
+                /* Continue where this chunk ended, not at off + MAX_CHUNK_CHARS: when a
+                   surrogate pair straddled the boundary the high half was moved into the
+                   next chunk, so the next chunk starts one character earlier. Stepping by
+                   the full size would skip that character and lose it. */
+                off = end;
             }
             if (seq == 0) post(w, callScript(id, true, "", true, 1));   // empty body
+        }
+
+        /**
+         * The end index of the chunk that starts at {@code off}: up to {@code limit}
+         * characters, minus one when the last of them is the high half of a surrogate
+         * pair. Each chunk is quoted and parsed in the page on its own, so a pair cut in
+         * two would arrive as two replacement characters — an emoji, a flag or any non-BMP
+         * character in an alias or a client version used to be corrupted whenever it fell
+         * on a 32 K boundary. The pair moves whole into the next chunk.
+         */
+        static int chunkEnd(String body, int off, int limit) {
+            int end = Math.min(body.length(), off + limit);
+            if (end < body.length() && end - 1 > off && Character.isHighSurrogate(body.charAt(end - 1))) {
+                end--;
+            }
+            return end;
         }
 
         /** Hands one finished script string to the UI thread, which runs it in the page. */

@@ -9,7 +9,7 @@
 ![zero dependencies](https://img.shields.io/badge/dependencies-0-0b1220?style=flat-square)
 ![single file](https://img.shields.io/badge/build-single%20file%20HTML-0b1220?style=flat-square)
 ![canvas 2d](https://img.shields.io/badge/render-Canvas%202D-38bdf8?style=flat-square)
-![tests](https://img.shields.io/badge/assertions-297%20passing-2ea043?style=flat-square)
+![tests](https://img.shields.io/badge/assertions-349%20passing-2ea043?style=flat-square)
 ![data](https://img.shields.io/badge/L1-bitnodes-38bdf8?style=flat-square)
 ![data](https://img.shields.io/badge/mainnet-mempool.space-orange?style=flat-square)
 
@@ -184,7 +184,8 @@ and it refuses to emit a file that could break out of its own `<script>` block.
 
 | Harness | What it proves | Result |
 | --- | --- | --- |
-| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge (single-piece and chunked delivery, a lost chunk, the timeout floor against the native one), snapshots, the browser-only Bitnodes stop, a cached answer kept out of LIVE, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads, a failed node-detail fetch, a clock running behind the API, a pinch dropped by a lost focus, EN/KO | **297 / 297 assertions pass** |
+| `test/headless.js` | Builds `dist/nodepulse.html` and the `--test` build, then a DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge (single-piece and chunked delivery, a lost chunk, the timeout floor against the native one, one bridge attempt after three failed mirrors), snapshots, the browser-only Bitnodes stop, a cached answer kept out of LIVE, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads (including a string count in the country, transport-split and version rows), a failed node-detail fetch, a clock running behind the API, a pinch dropped by a lost focus, a five-second frame's inertia, a held reconnect behind a hidden page, an offline phone that asks no host, and EN/KO through the real data-i18n nodes | **349 / 349 assertions pass** |
+| `HttpBridgeChunkTest.java` | The 32 K chunk boundaries `HttpBridge` hands a body over with, walked at limits 1–9 over emoji and flag text: no chunk ends in a lone high surrogate or starts with a lone low one, and the parts join back into the body | `:app:testDebugUnitTest`, 7 tests |
 | `test/fill-truth.js` | Rendered continent fill compared with the land polygons over 50 camera angles, 743 k sampled pixels | ≈ 0.4 % false-positive / 0.26 % false-negative, all on sub-pixel Antarctic coastline edges |
 | `test/perf.js` | Frame cadence at a 390×844 phone viewport, DPR clamped to 2, then with 4× CPU throttling | p50 16.7 ms (60 fps), p95 33.4 ms under throttle |
 | `test/offline.js` | Boot with every network route aborted: snapshot geometry, status disclosure, no JS errors | pass |
@@ -213,10 +214,15 @@ node --check src/app.js   # syntax gate
 **Test it.**
 
 ```bash
-node test/headless.js               # 297 assertions, no browser required
+node test/headless.js               # 349 assertions, no browser required
 python3 build.py && node test/fill-truth.js   # browser harness, needs Playwright
 node test/perf.js                   # frame-time probe
 ```
+
+`node test/headless.js` runs `build.py` twice itself — the shipping `dist/nodepulse.html`
+and the `--test` build it drives the app through — so the assertions always describe the
+current `src/` and never a stale copy, and it fails if the shipping file grew the test hook
+back.
 
 The browser harnesses resolve the built file and a Playwright installation through
 `test/env.js`; set `PLAYWRIGHT_PKG` (and `CHROME` for a specific binary) if they are not on
@@ -242,7 +248,7 @@ enabled, an edge-to-edge `#040914` dark system bar treatment, and the NodePulse 
 
 * **Package:** `com.jbitmstr.nodepulse`
 * **Min / target SDK:** 24 / 34
-* **Version:** 1.1.10 (`versionCode` 12)
+* **Version:** 1.1.11 (`versionCode` 13)
 
 **Locked down shell.** File access, content access, file-URL access and universal access
 from file URLs are all off; the only page the WebView can show is the bundled asset, a
@@ -255,11 +261,29 @@ only the named https/wss hosts), cleartext HTTP is blocked at the manifest, and 
 build is minified with R8. `build.py` computes the hashes over the exact bytes it writes and
 fails the build if the policy it emitted does not name every block it produced.
 
+**The test hook is not in the shipped page.** `window.NODEPULSE` — the switch
+`test/headless.js` reads the app's state and drives it through — is delimited in `src/app.js`
+and `build.py` strips the whole block from `dist/nodepulse.html`, the file the APK ships; a
+build that still carries it fails. `build.py --test` writes `dist/nodepulse.test.html` with
+the block kept, and that is the file the harness runs, so the release page has no switch that
+can reach into its state. The policy names only the four hosts the app reads: two hosts
+nothing has ever requested (`www.bitnodes.io`, `btcnodes.io`) were dropped from the CSP and
+from the native bridge's allowlist.
+
 **Never a blank start.** `onCreate` restores the WebView's saved state only when
 `restoreState()` answers with a back/forward list; when the bundle came from a killed
 process, another WebView version or holds nothing usable, the method now loads the bundled
 asset instead of leaving the WebView on an empty page (the old code loaded the app only when
 the bundle was `null`).
+
+**A dead renderer is not a dead app.** The renderer is its own process and the system may
+kill it under memory pressure; since Android 8 the default answer is to kill the whole app,
+which looks like a silent exit. `AppClient.onRenderProcessGone()` returns `true`, takes the
+dead WebView and its bridge apart in the documented order (out of the hierarchy, then
+`destroy()`, then the bridge's pool shut down) and builds a fresh one exactly as `onCreate`
+does, so the app reloads the bundled asset. `onDestroy()` now detaches before destroying for
+the same reason, and `onSaveInstanceState()` skips `saveState()` when there is no WebView to
+save.
 
 **Native HTTP bridge.** `bitnodes.io` answers without an `Access-Control-Allow-Origin`
 header, so a WebView `fetch` would be blocked by CORS — and the L1 layer is the primary
@@ -271,7 +295,7 @@ gzip, 12 s connect / 25 s read and a 3 M-character
 body cap, then calls `window.NPBridgeOnData(id, ok, body)` with the body unchanged. The
 call string is built on the fetching thread, so the UI thread only
 hands the finished string to the WebView. Hosts are whitelisted
-(`bitnodes.io`, `btcnodes.io`, `mempool.space`, `mempool.emzy.de`, `mempool.ninja`), a URL
+(`bitnodes.io`, `mempool.space`, `mempool.emzy.de`, `mempool.ninja`), a URL
 carrying `user:password@` is rejected, and
 redirects are followed by hand so every hop is checked against that same list, so the
 interface cannot be used as an open proxy. The `mempool.space` mirrors answer
@@ -302,6 +326,25 @@ data is on screen. The local cache and the bundled snapshot never take that mark
 answer keeps `CACHE`, does not touch the last-ok time, and a live coordinate read never fills
 its version or transport rows from localStorage.
 
+**Both block feeds raise the tip.** `/api/v1/blocks` and `/api/blocks/tip/height` report the
+same fact, and it is the tip endpoint that upstream caches, so the blocks answer regularly
+carried a height the HUD had not published: the list showed the newer block while the row
+above it sat one behind. A height above the known tip now raises `S.tip` and rings the block
+event whichever feed reported it.
+
+**A hidden page holds its reconnect.** A retry that comes due while the page is hidden (a
+background tab, the screen off) opened a socket nobody was reading; it is held instead and
+opened once the page is visible again, so the retry is neither dropped nor repeated. Every
+repeating timer already skipped its work behind a hidden page, and the globe's animation
+loop already stopped.
+
+**A dead network is reported once.** A path used to walk three mirrors at 9 s each and then
+rotate the same three through the bridge at 42 s each — 153 s before a failure was reported.
+The walk now has one budget (three mirror timeouts plus one bridge attempt), the bridge is
+asked once because the same hosts have just failed over `fetch`, and a phone that reports
+itself offline (`navigator.onLine === false`) fails the request at once instead of waiting
+for three timeouts.
+
 **Bounded delivery.** A large answer is never built into one `evaluateJavascript()` call:
 that needed the body, its quoted copy — one character can grow to six as `\uXXXX` — and the
 finished call on the heap at once, per thread, up to three threads at a time. The bridge
@@ -312,6 +355,15 @@ body size. The page buffers the parts and joins them in sequence order when the 
 arrives; a sequence with a hole fails that request and falls to the next mirror or snapshot
 rather than splicing a body it never saw. A body above the 3 M-character cap is one failure
 call, never a copy.
+
+**A chunk boundary never cuts a character in two.** Each chunk is quoted and parsed on its
+own, so a surrogate pair split across the seam arrived in the page as two replacement
+characters — an emoji, a flag or any non-BMP character in a node alias or a client version
+used to be corrupted whenever it fell on a 32 K boundary. The boundary moves such a pair
+whole into the next chunk, and the walk continues where the chunk actually ended instead of
+at a fixed step, so nothing is skipped. `HttpBridgeChunkTest` walks the same boundaries on
+the JVM over emoji and flag text at limits 1–9 and asserts both, plus that the parts join
+back into the body; `:app:testDebugUnitTest` runs it.
 
 **Build it automatically.** `.github/workflows/build-apk.yml` runs on every push to `main`
 and on demand:
@@ -358,6 +410,8 @@ missing, because an APK signed with the debug key installs but can never update 
 one, and nothing about it says which key signed it. `assembleDebug`, `lintDebug` and the
 unit tests never touch the key. A `v*` tag needs the secrets — that workflow run fails
 rather than publishing a differently signed APK; a branch push builds only the debug APK.
+The release signature is **v2 only**: v1 is the JAR signature that exists for Android 6 and
+older, this build's `minSdk` is 24, and nothing it installs on needs the weaker scheme.
 
 **Build locally.** With JDK 17 and the Android SDK installed:
 

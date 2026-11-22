@@ -48,7 +48,7 @@
   var WD_REORG_MS = 30 * 60 * 1000;      // how long a reorg stays on the badge
   /* A REST answer must be complete, not merely started: the abort timer spans the
      headers AND the body read, so a mirror that stalls mid-body still falls to the next
-     one instead of hanging forever (test hook: window.NODEPULSE.fetchMs). */
+     one instead of hanging forever (the test build's hook can set it: fetchMs). */
   var FETCH_MS = 9000;
   /* The native bridge is bounded on the Java side by CONNECT_MS 12 s + READ_MS 25 s = 37 s
      per hop (HttpBridge in MainActivity.java). A page timer shorter than that abandons a
@@ -56,12 +56,12 @@
      L1 read: the page gave up at 20–22 s, threw the answer away when it arrived, and the
      call was the only one the layer had. Every bridge wait is therefore floored at this
      value, five seconds above the native ceiling for the chunked hand-over
-     (test hook: window.NODEPULSE.bridgeMs). */
+     (the test build's hook can read it: bridgeMs). */
   var BRIDGE_MS = 42000;
   /* A WebSocket that never finishes connecting is closed after this long and the next
      mirror gets the retry, instead of the app sitting without a feed until the browser
-     gives up on its own (test hook: window.NP_WS_CONNECT_MS before boot,
-     window.NODEPULSE.wsConnectMs after). */
+     gives up on its own (window.NP_WS_CONNECT_MS before boot, or the test build's hook:
+     wsConnectMs). */
   var WS_CONNECT_MS = 8000;
   if (typeof window !== 'undefined' && window && num(window.NP_WS_CONNECT_MS)) {
     WS_CONNECT_MS = window.NP_WS_CONNECT_MS;
@@ -346,17 +346,33 @@
     return e;
   }
 
+  /* A phone that has told the page it is offline does not need three 9 s fetch timeouts and
+     a 42 s bridge wait to say so. navigator.onLine is only read where the platform provides
+     it, and it is only ever consulted to give up early — a request is still attempted on
+     every other path, so a wrong answer there costs a retry, not an answer. */
+  function offline() {
+    return typeof navigator !== 'undefined' && navigator ? navigator.onLine === false : false;
+  }
+
+  /* One path's whole walk is bounded by this: three mirrors at FETCH_MS each and then one
+     bridge attempt. The old walk rotated all three mirrors through the bridge as well —
+     three 42 s waits after three 9 s ones, 153 s before a dead network was reported and
+     before the next poll could even start. */
+  var REQ_BUDGET_MS = 3 * FETCH_MS + BRIDGE_MS;
+
   function request(path, kind) {
-    var i = 0, b = 0;
+    var i = 0, bridged = false, deadline = Date.now() + REQ_BUDGET_MS;
     function go() {
-      if (i >= API_HOSTS.length) return null;
+      if (i >= API_HOSTS.length || offline()) return null;
+      var left = deadline - Date.now();
+      if (left <= 0) return null;
       var host = API_HOSTS[i++];
       var opt = { cache: 'no-store', credentials: 'omit', mode: 'cors' };
       var ctrl = null, timer = null;
       if (typeof AbortController !== 'undefined') {
         ctrl = new AbortController();
         opt.signal = ctrl.signal;
-        timer = setTimeout(function () { try { ctrl.abort(); } catch (e) { } }, FETCH_MS);
+        timer = setTimeout(function () { try { ctrl.abort(); } catch (e) { } }, Math.min(FETCH_MS, left));
       }
       /* The timer is cleared only once the BODY has settled, not when the headers
          arrive: clearing it early left a mirror that stalls mid-body hanging forever
@@ -380,20 +396,26 @@
     }
     /* A file:// page is an opaque origin: a host that sends no CORS header refuses the
        fetch even though it answers. The native bridge performs the same GET when it is
-       there (the Android shell), so the mirrors get a second chance through it. */
+       there (the Android shell), so the mirrors get a second chance through it — one
+       attempt, not another three: the same three hosts have just failed over fetch, a
+       host that is down does not answer the bridge either, and the mempool mirrors all
+       send Access-Control-Allow-Origin, so a rotation here only ever repeated a failure
+       after 42 s. */
     function viaBridge() {
-      if (!BR.on) return Promise.reject(new Error('no host answered ' + path));
-      if (b >= API_HOSTS.length) return Promise.reject(new Error('no host answered ' + path));
-      var host = API_HOSTS[b++];
-      return BR.get(host + path).then(function (t) {
+      if (!BR.on || bridged || offline()) {
+        return Promise.reject(new Error(offline() ? 'offline' : 'no host answered ' + path));
+      }
+      bridged = true;
+      return BR.get(API_HOSTS[0] + path).then(function (t) {
         return kind === 'text' ? t : JSON.parse(t);
-      }).catch(function () { return viaBridge(); });
+      }).catch(function () { return Promise.reject(new Error('no host answered ' + path)); });
     }
     return go() || viaBridge();
   }
 
   /* one absolute GET, through the native bridge when it exists */
   function getJSON(url, ms, asText) {
+    if (offline()) return Promise.reject(new Error('offline'));
     if (BR.on) {
       return BR.get(url, ms).then(function (t) { if (asText) return t; try { return JSON.parse(t); } catch (e) { throw new Error('bad json'); } });
     }
@@ -465,7 +487,19 @@
       var list = arr.filter(function (b) { return isObj(b) && num(b.height); });
       if (!list.length) throw new Error('no blocks');
       S.blocks = orderBlocks(list.map(mapBlock)).slice(0, 8);
+      /* /api/v1/blocks is the other half of the same fact /api/blocks/tip/height reports,
+         and it is the tip endpoint that upstream caches: the blocks answer regularly
+         carried a height the tip endpoint had not published yet. Only the tip endpoint
+         could move S.tip, so the HUD sat one block behind while the newer block was
+         already in the list below it. A height above the known tip is a new block from
+         either source, so both of them raise the row and both ring the block event. */
       if (S.tip === null) { S.tip = S.blocks[0].height; S.tipSeenAt = Date.now(); }
+      else if (S.blocks[0].height > S.tip) {
+        var top = S.blocks[0];
+        S.tip = top.height;
+        S.tipSeenAt = Date.now();
+        blockEvent(top.height, top);
+      }
       trackChain(S.blocks);
       ok(); schedulePaint();
     });
@@ -594,7 +628,13 @@
   function loadCountries() {
     return request('/api/v1/lightning/nodes/countries').then(function (arr) {
       if (!isArr(arr)) throw new Error('bad countries');
-      S.countries = arr.filter(function (c) { return isObj(c) && typeof c.iso === 'string'; });
+      /* The rows are summed per continent and counted, so a row without a finite count
+         would turn a sum into a string (“12” + 5 = “125”): the live answer is held to the
+         same shape as a cached one, which has been checked element by element since
+         1.1.7. */
+      var rows = arr.map(countryRow).filter(Boolean);
+      if (!rows.length) throw new Error('no countries');
+      S.countries = rows;
       S.conts = aggregateContinents(S.countries);
       ok(); schedulePaint();
     });
@@ -606,6 +646,14 @@
        ?field=top          top ASNs (TOR/I2P are listed here too) and client versions
      The per-node country counts come from the bundled fetch_l1.py snapshot; the
      panel says so and stamps it with the capture date. */
+  /* A transport split is drawn only when all three figures are finite, non-negative
+     counts: the panel prints them as integers, and a string from a proxy or a rewritten
+     answer would print TOR NaN and a clear-net figure of concatenated digits. */
+  function validSplit(p) {
+    return isObj(p) && num(p.clearnet) && num(p.tor) && num(p.i2p) &&
+      p.clearnet >= 0 && p.tor >= 0 && p.i2p >= 0;
+  }
+
   function applyL1(d) {
     var prev = S.l1;
     S.l1 = {
@@ -614,7 +662,7 @@
       height: num(d.height) ? d.height : null,
       at: num(d.at) ? d.at : 0,
       coords: isArr(d.coords) ? d.coords : [],
-      platforms: isObj(d.platforms) ? d.platforms : null,
+      platforms: validSplit(d.platforms) ? d.platforms : null,
       asns: isArr(d.asns) ? d.asns : null,
       vers: (isArr(d.vers) && d.vers.length) ? d.vers : l1Versions(d),
       /* Only a caller that says so is live. A payload re-served from localStorage or from
@@ -629,30 +677,44 @@
     if (prev && prev.src !== 'live' && S.l1.src === 'live') toast(L('live') + ' · Bitnodes');
   }
 
+  /* The clear-net / Tor / I2P split: the crawler's own figures when it reported all three,
+     otherwise derived from the TOR and I2P rows of the ASN list. Every number is checked
+     before it is used — an ASN row is an arbitrary array from the network, and a string in
+     the count column would have been printed as the split and carried into the clear-net
+     subtraction. */
   function l1Platforms(d) {
-    if (isObj(d.platforms) && num(d.platforms.clearnet)) return d.platforms;
-    var tor = 0, i2p = 0, asns = isArr(d.asns) ? d.asns : [];
+    if (validSplit(d.platforms)) return d.platforms;
+    var tor = 0, i2p = 0, bad = false, asns = isArr(d.asns) ? d.asns : [];
     asns.forEach(function (a) {
       if (!isArr(a) || !a.length) return;
-      if (a[0] === 'TOR') tor = a[1];
-      else if (a[0] === 'I2P') i2p = a[1];
+      if (a[0] !== 'TOR' && a[0] !== 'I2P') return;
+      /* A row that names TOR or I2P without a finite count is a split this app cannot
+         state: drawing the other figures and leaving this one at 0 would claim the
+         transport has no nodes at all. */
+      if (!num(a[1]) || a[1] < 0) { bad = true; return; }
+      if (a[0] === 'TOR') tor = a[1]; else i2p = a[1];
     });
-    if (!num(d.total) || (!tor && !i2p)) return null;
+    if (bad || !num(d.total) || (!tor && !i2p)) return null;
+    if (tor + i2p > d.total) return null;
     return { tor: tor, i2p: i2p, clearnet: d.total - tor - i2p };
   }
 
+  /* Client versions, from the top payload's [user agent, count] rows or from a
+     [version, count] list. Only string names and finite counts survive: the panel prints
+     each name and computes a percentage of the total, so a row that is not a pair of that
+     shape used to produce “undefined” or NaN %. */
   function l1Versions(d) {
-    var total = num(d.total) ? d.total : 0;
+    var pair = function (row) { return isArr(row) && row.length > 1 && typeof row[0] === 'string' && row[0]; };
     if (isArr(d.ua) && d.ua.length) {
-      return d.ua.slice(0, 6).filter(isArr).map(function (r) {
-        return { name: String(r[0]), pct: num(r[1]) ? r[1] : null };
+      return d.ua.slice(0, 6).filter(pair).map(function (r) {
+        return { name: r[0], pct: num(r[1]) ? r[1] : null };
       });
     }
     if (isArr(d.versions) && d.versions.length) {
       var all = 0;
-      d.versions.forEach(function (v) { if (isArr(v)) all += v[1] || 0; });
-      return d.versions.slice(0, 6).filter(isArr).map(function (v) {
-        return { name: String(v[0]), pct: all ? (v[1] / all * 100) : null };
+      d.versions.forEach(function (v) { if (isArr(v) && num(v[1]) && v[1] >= 0) all += v[1]; });
+      return d.versions.slice(0, 6).filter(pair).map(function (v) {
+        return { name: v[0], pct: (all && num(v[1])) ? (v[1] / all * 100) : null };
       });
     }
     return [];
@@ -1221,10 +1283,14 @@
       estimatedRetargetDate: d.estimatedRetargetDate || null
     };
   }
-  function countryFromCache(c) {
-    if (!isObj(c) || typeof c.iso !== 'string' || !num(c.count)) return null;
+  /* One country row, whether it arrived live or was read back from storage: an ISO code
+     to name it and a finite count to sum. capacity is a string of satoshis in the API and
+     is only ever parsed, so it is kept as it came (or 0). */
+  function countryRow(c) {
+    if (!isObj(c) || typeof c.iso !== 'string' || !c.iso || !num(c.count)) return null;
     return { iso: c.iso, count: c.count, capacity: c.capacity !== undefined ? c.capacity : 0 };
   }
+
   function mblockFromCache(b) {
     if (!isObj(b)) return null;
     /* at least one real figure: a garbage object with nothing numeric is dropped */
@@ -1268,7 +1334,7 @@
       }
     }
     if (isArr(c.countries)) {
-      S.countries = c.countries.map(countryFromCache).filter(Boolean);
+      S.countries = c.countries.map(countryRow).filter(Boolean);
       S.conts = aggregateContinents(S.countries);
     }
     if (isArr(c.mblocks)) {
@@ -1280,7 +1346,7 @@
   }
 
   /* ------------------------------------------------------------ websocket */
-  var ws = null, wsTimer = null;
+  var ws = null, wsTimer = null, wsHeld = false;
 
   function wsUrl() { return 'wss://' + WS_HOSTS[S.wsHost % WS_HOSTS.length] + WS_PATH; }
 
@@ -1338,6 +1404,11 @@
   }
   function scheduleWS() {
     if (wsTimer) return;
+    /* A hidden page has nobody watching the feed, and a retry that comes due while it is
+       hidden only wakes the radio: the socket is opened once the page is visible again,
+       through the visibilitychange handler at the bottom of this file. This matters most
+       with the screen off, where every retry was a wake-up with no reader. */
+    if (document.hidden) { wsHeld = true; return; }
     S.wsTries++;
     var wait = Math.min(30000, 1200 * Math.pow(1.7, Math.min(6, S.wsTries)));
     wsTimer = setTimeout(function () { wsTimer = null; connectWS(); }, wait);
@@ -2590,9 +2661,15 @@
       var want = (!G.dragging && !pinch && !G.hold) ? 1 : 0;
       G.spinEase += (want - G.spinEase) * Math.min(1, dt * 2.0);
       if (!G.dragging && !pinch) {
-        G.yaw += G.vYaw * (raw / 0.0167);
-        G.vYaw *= Math.pow(0.90, raw / 0.0167);
-        G.yaw += G.spin * G.spinEase * Math.min(0.25, Math.abs(raw));
+        /* Inertia runs on dt, not on the raw frame delta: raw is unbounded, so one long
+           frame (a first frame after a stall, a GC pause, a tab coming back) moved the
+           globe by hundreds of frames' worth of velocity in a single step and it jumped
+           to a new angle. dt is clamped to 50 ms, so the same stall coasts at most three
+           frames' worth. */
+        var k = Math.max(0, dt) / 0.0167;
+        G.yaw += G.vYaw * k;
+        G.vYaw *= Math.pow(0.90, k);
+        G.yaw += G.spin * G.spinEase * Math.min(0.25, Math.abs(dt));
       }
       G.zoom += (G.zoomT - G.zoom) * 0.16;
       if (G.flash > 0) G.flash = Math.max(0, G.flash - dt * 0.9);
@@ -3129,6 +3206,8 @@
     tickClock();
     paintStatus();
     if (S.panelOpen) paintPanel();
+    /* a reconnect that came due while the page was hidden was held, not dropped */
+    if (wsHeld) { wsHeld = false; connectWS(); }
   });
 
   function boot() {
@@ -3174,7 +3253,10 @@
       setTimeout(function () { hint.classList.remove('on'); }, 7600);
     }
 
-    // test hook (headless verification only)
+    /*__TEST_HOOK__*/
+    /* The test hook: build.py keeps this block only in a --test build and strips it from
+       dist/nodepulse.html, so the page that ships carries no switch that can read or drive
+       its state from outside. test/headless.js runs the test build. */
     window.NODEPULSE = {
       state: S, globe: Globe.state, project: Globe.projectPoint,
       nodes: function () { return Globe.state.clusters; },
@@ -3203,6 +3285,14 @@
       wsConnectMs: function (v) { if (num(v)) WS_CONNECT_MS = v; return WS_CONNECT_MS; },
       fetchMs: function (v) { if (num(v)) FETCH_MS = v; return FETCH_MS; },
       loadTip: loadTip,
+      loadBlocks: loadBlocks,
+      loadCountries: loadCountries,
+      l1Platforms: l1Platforms,
+      l1Versions: l1Versions,
+      offline: function () { return offline(); },
+      reqBudgetMs: function () { return REQ_BUDGET_MS; },
+      wsHeld: function () { return wsHeld; },
+      wsTimerPending: function () { return !!wsTimer; },
       loadHashrate: loadHashrate,
       push: handleWS,
       refreshNodes: refreshNodes,
@@ -3210,6 +3300,7 @@
       watch: function () { evalWatch(); return { list: S.wd ? S.wd.list : [], alerts: (S.wd ? S.wd.alerts : []) || [], sig: S.alertSig }; },
       reorg: reorgEvent
     };
+    /*__TEST_HOOK_END__*/
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

@@ -2,6 +2,8 @@
 """Assemble the single-file NodePulse app from src/ into ../../bitcoin-network-monitor.html
 
 Also writes a clean copy for distribution / the repository at dist/nodepulse.html.
+With --test it writes dist/nodepulse.test.html instead, keeping the window.NODEPULSE hook
+that test/headless.js drives the app through; the release build strips that block.
 The app icon (assets/icon-64.png for the tab, assets/icon-180.png for the
 home-screen icon) is inlined as a base64 data URI so the build stays a single
 self-contained file with no external requests.
@@ -30,6 +32,7 @@ SRC = os.path.join(HERE, 'src')
 ASSETS = os.path.join(HERE, 'assets')
 OUT = os.path.abspath(os.path.join(HERE, '..', '..', 'bitcoin-network-monitor.html'))
 DIST = os.path.join(HERE, 'dist', 'nodepulse.html')
+TEST_DIST = os.path.join(HERE, 'dist', 'nodepulse.test.html')
 
 CSP_SCRIPT = '/*__CSP_SCRIPT__*/'
 CSP_STYLE = '/*__CSP_STYLE__*/'
@@ -40,6 +43,22 @@ HTML_ESCAPES = {'<': '\\u003c', '>': '\\u003e', '&': '\\u0026'}
 def read(*p):
     with open(os.path.join(*p), encoding='utf-8') as f:
         return f.read()
+
+
+# The test hook (window.NODEPULSE) is delimited in src/app.js so that the shipping build
+# does not contain it at all: a page with a switch that can read and drive the app's state
+# is a page where anything running in it can do the same. --test keeps the block for
+# test/headless.js, which cannot check the app without it.
+TEST_HOOK_START = '/*__TEST_HOOK__*/'
+TEST_HOOK_END = '/*__TEST_HOOK_END__*/'
+
+
+def strip_test_hook(app):
+    a = app.find(TEST_HOOK_START)
+    b = app.find(TEST_HOOK_END)
+    if a < 0 or b < a:
+        sys.exit('ERROR: the test-hook markers are missing from src/app.js')
+    return app[:a] + app[b + len(TEST_HOOK_END):]
 
 
 def icon_b64(name):
@@ -165,8 +184,9 @@ def apply_csp(html):
     return html, script_hashes, style_hashes
 
 
-def main():
+def main(argv):
     self_test_escape()
+    test_build = '--test' in argv[1:]
     tpl = read(SRC, 'index.template.html')
     css = read(SRC, 'app.css')
     raw = {
@@ -186,6 +206,8 @@ def main():
             compared += 1
     world, country, seed, chan, l1 = (embedded[k] for k in ('world', 'country', 'seed', 'channels', 'l1'))
     app = read(SRC, 'app.js').strip()
+    if not test_build:
+        app = strip_test_hook(app)
 
     # The stylesheet is written inside <style>…</style> and every data blob and the app
     # inside <script>…</script>. A literal closing tag in any of them would end that
@@ -214,6 +236,22 @@ def main():
 
     out, script_hashes, style_hashes = apply_csp(out)
 
+    # The hook is either there on purpose (--test) or not there at all.
+    if test_build:
+        if 'window.NODEPULSE = {' not in out:
+            sys.exit('ERROR: a test build must carry the NODEPULSE hook')
+        os.makedirs(os.path.dirname(TEST_DIST), exist_ok=True)
+        with open(TEST_DIST, 'w', encoding='utf-8') as f:
+            f.write(out)
+        print('wrote %s (%d bytes, test hook kept)' % (TEST_DIST, len(out.encode('utf-8'))))
+        print('csp: %d script hash(es), %d style hash(es), no unsafe-inline'
+              % (len(script_hashes), len(style_hashes)))
+        print('embedded data: escaped, %d/%d datasets parsed to the same values'
+              % (compared, len(raw)))
+        return
+    if 'window.NODEPULSE = {' in out or TEST_HOOK_START in out:
+        sys.exit('ERROR: a release build still carries the test hook')
+
     try:
         with open(OUT, 'w', encoding='utf-8') as f:
             f.write(out)
@@ -232,4 +270,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
