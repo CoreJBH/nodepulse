@@ -432,6 +432,31 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     S.l1.platforms && S.l1.platforms.tor === l1Before.platforms.tor && S.l1.vers[0].name === l1Before.vers[0].name,
     JSON.stringify(S.l1.platforms));
 
+  /* ---- a live grid read does not adopt the stored cache for the top fields ----
+     The object this load builds is stamped live. With the session's own top fields gone
+     and the top query failing, the old code read them back from localStorage and printed
+     a stored payload under LIVE; now it keeps only this session's answer (here: nothing). */
+  {
+    const keepTop = { asns: S.l1.asns, platforms: S.l1.platforms, vers: S.l1.vers };
+    ls.set('nodepulse.cache.v2.l1', JSON.stringify({
+      t: 1, d: { total: 1, coords: L1.coords.slice(0, 1), asns: [['CACHE-ONLY', 9]], ua: [['/CACHE-ONLY:1/', 1]] }
+    }));
+    S.l1.asns = null; S.l1.platforms = null; S.l1.vers = [];
+    bridgeFailTop = true;
+    await NP.loadL1();
+    await sleep(80);
+    bridgeFailTop = false;
+    const seen = JSON.stringify(S.l1.asns || []) + JSON.stringify(S.l1.vers || []);
+    check('a live grid read never adopts the stored cache for the top fields',
+      seen.indexOf('CACHE-ONLY') < 0, seen.slice(0, 80));
+    check('that live read is still a live answer', S.l1.src === 'live', S.l1.src);
+    ls.delete('nodepulse.cache.v2.l1');
+    S.l1.asns = keepTop.asns; S.l1.platforms = keepTop.platforms; S.l1.vers = keepTop.vers;
+    await NP.loadL1();
+    await sleep(120);
+    runFrames(rafQueue, 2);
+  }
+
   const G = NP.globe;
   check('L1 globe is filled with real coordinates', G.clusters.length > 300 && G.clusters.length < L1.coords.length,
     G.clusters.length + ' cells from ' + L1.coords.length + ' coordinates');
@@ -1456,6 +1481,135 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     tipCalls[tipCalls.length - 1].indexOf('mempool.emzy.de') >= 0,
     tipCalls.join(' | '));
   check('the tip arrived from the fallback mirror', NB.state.tip === FIX.tip, NB.state.tip + ' vs ' + FIX.tip);
+
+  /* ---- browser-only mode: a Bitnodes CORS refusal stops the L1 poll ----
+     bitnodes.io sends no Access-Control-Allow-Origin, so a page without the native bridge
+     can never read it, and the 5-minute timer used to repeat the two doomed requests for
+     as long as the page stayed open. One attempt per page load is allowed; after it fails
+     the poll is off and the bundled snapshot stays on screen. */
+  {
+    ls = new Map();
+    const before = fetchLog.length;
+    const bit = () => fetchLog.slice(before).filter(u => u.indexOf('bitnodes.io') >= 0).length;
+    const browserOnly = makeSandbox({ bridge: false });
+    const ctxO = vm.createContext(browserOnly.sandbox);
+    try {
+      for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctxO, { filename: 'browseronly-' + i + '.js', timeout: 8000 });
+      await sleep(700);
+      runFrames(browserOnly.rafQueue, 2);
+    } catch (e) { check('browser-only boot does not throw', false, e && e.stack); }
+    const BO = browserOnly.window.NODEPULSE;
+    check('browser-only mode tries Bitnodes once per page load', bit() === 2, bit() + ' requests');
+    check('the refused L1 read leaves the bundled snapshot on screen',
+      !!BO.state.l1 && BO.state.l1.src === 'snapshot' && BO.state.l1.coords.length > 0,
+      BO.state.l1 && BO.state.l1.src);
+    check('the refusal switches the browser L1 poll off', BO.state.l1Off === true, BO.state.l1Off);
+    await BO.loadL1();
+    await BO.loadL1();
+    await BO.loadL1();
+    await sleep(60);
+    check('later L1 ticks make no further Bitnodes request', bit() === 2, bit() + ' requests');
+    check('the snapshot is still the L1 source after those ticks', BO.state.l1.src === 'snapshot', BO.state.l1.src);
+  }
+
+  /* ---- a cached Bitnodes answer is never marked live ----
+     The cache is what the layer shows when the live read fails, so it must never look
+     like a fresh answer: src stays 'cache' and it does not touch the session's last-ok. */
+  {
+    ls = new Map();
+    ls.set('nodepulse.cache.v2.l1', JSON.stringify({
+      t: Date.now(),
+      d: {
+        total: L1.totalNodes, reachable: L1.reachableNodes, height: L1.height,
+        at: L1.capturedAt * 1000, coords: L1.coords.slice(0, 40),
+        asns: L1.topAsns, ua: L1.userAgents, platforms: L1.platforms
+      }
+    }));
+    const modeBeforeCache = fetchMode;
+    fetchMode = 'fail';
+    const cachedOnly = makeSandbox({ bridge: false });
+    /* no feed either: an open socket calls ok() by itself, and this test is about an
+       offline session where only the local cache can answer */
+    const OfflineWS = function () { throw new Error('offline'); };
+    cachedOnly.sandbox.WebSocket = OfflineWS;
+    cachedOnly.window.WebSocket = OfflineWS;
+    const ctxK = vm.createContext(cachedOnly.sandbox);
+    try {
+      for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctxK, { filename: 'cachedl1-' + i + '.js', timeout: 8000 });
+      await sleep(600);
+      runFrames(cachedOnly.rafQueue, 2);
+    } catch (e) { check('cached-L1 boot does not throw', false, e && e.stack); }
+    const CK = cachedOnly.window.NODEPULSE;
+    check('an offline boot serves the cached Bitnodes answer',
+      !!CK.state.l1 && CK.state.l1.src === 'cache', CK.state.l1 && CK.state.l1.src);
+    check('the cached answer leaves the session un-live', CK.state.lastOk === 0, CK.state.lastOk);
+    check('the status pill reads WAIT, not LIVE, for a cached answer',
+      cachedOnly.els.liveTxt.textContent === 'WAIT', cachedOnly.els.liveTxt.textContent);
+    fetchMode = modeBeforeCache;
+  }
+
+  /* ---- a working L1 read keeps the status live on its own ----
+     loadL1() used to apply the answer without calling ok(), so a fresh Bitnodes read
+     left the pill on STALE/WAIT while the L1 panel showed live data. */
+  {
+    ls = new Map();
+    const l1Only = makeSandbox({ bridge: true, fetchImpl: () => Promise.reject(new Error('mempool down')) });
+    /* the feed is down as well, so the only ok() this session can earn is the L1 one */
+    const DeadWS = function () { throw new Error('offline'); };
+    l1Only.sandbox.WebSocket = DeadWS;
+    l1Only.window.WebSocket = DeadWS;
+    const ctxL = vm.createContext(l1Only.sandbox);
+    try {
+      for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctxL, { filename: 'l1only-' + i + '.js', timeout: 8000 });
+      await sleep(600);
+      runFrames(l1Only.rafQueue, 2);
+    } catch (e) { check('L1-only boot does not throw', false, e && e.stack); }
+    const LO = l1Only.window.NODEPULSE;
+    check('the Bitnodes answer arrives with no mempool host reachable',
+      !!LO.state.l1 && LO.state.l1.src === 'live', LO.state.l1 && LO.state.l1.src);
+    check('the L1 answer alone marks the session live', LO.state.lastOk > 0, LO.state.lastOk);
+    check('the status pill reads LIVE from the L1 answer',
+      l1Only.els.liveTxt.textContent === 'LIVE', l1Only.els.liveTxt.textContent);
+  }
+
+  /* ---- the page's bridge wait outlasts the native HttpBridge timeouts ----
+     HttpBridge gives up after CONNECT_MS (connect) + READ_MS (read) per hop. A page timer
+     below that cut the request short while Android was still reading, so a slow network
+     never delivered an L1 answer. The JS floor is read from the Java source here, so the
+     two sides cannot drift apart unnoticed. */
+  {
+    const java = fs.readFileSync(path.join(ROOT, 'android', 'app', 'src', 'main', 'java', 'com', 'jbitmstr', 'nodepulse', 'MainActivity.java'), 'utf8');
+    const connect = Number((java.match(/CONNECT_MS\s*=\s*(\d+)/) || [])[1]);
+    const read = Number((java.match(/READ_MS\s*=\s*(\d+)/) || [])[1]);
+    check('the native bridge timeouts are declared', connect > 0 && read > 0, connect + ' + ' + read);
+    check('the JS bridge wait is greater than the native connect + read timeout',
+      NP.bridgeMs() > connect + read, NP.bridgeMs() + ' ms vs ' + (connect + read) + ' ms');
+    check('the JS bridge wait keeps a margin over the native ceiling',
+      NP.bridgeMs() - (connect + read) >= 3000, NP.bridgeMs() - (connect + read) + ' ms');
+
+    /* a caller asking for 1 ms still gets the floor: the answer that arrives 50 ms later
+       is delivered instead of a 'bridge timeout' */
+    ls = new Map();
+    const slow = makeSandbox({ bridge: false });
+    slow.window.NPBridge = {
+      fetch(id) {
+        setTimeout(() => {
+          if (slow.window.NPBridgeOnData) slow.window.NPBridgeOnData(id, true, '"ok"');
+        }, 50);
+      }
+    };
+    const ctxS = vm.createContext(slow.sandbox);
+    try {
+      for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctxS, { filename: 'slowbridge-' + i + '.js', timeout: 8000 });
+      await sleep(120);
+    } catch (e) { check('slow-bridge boot does not throw', false, e && e.stack); }
+    const SB = slow.window.NODEPULSE;
+    let slowGot = null;
+    await SB.bridgeGet('https://bitnodes.io/api/v1/snapshots/latest/?field=top', 1)
+      .then(t => { slowGot = t; }, e => { slowGot = 'err:' + (e && e.message); });
+    check('a 1 ms bridge wait is floored, so the 50 ms answer is still delivered',
+      slowGot === '"ok"', slowGot);
+  }
 
   /* ---- the DATA footnote names the cached answer when the L1 source is cached ----
      The old two-state wording printed "the built-in snapshot" for the cache case too:

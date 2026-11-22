@@ -9,7 +9,7 @@
      computes over the exact bytes it has written, so no 'unsafe-inline' is needed and an
      injected block would have to match a hash that is already in the file. Nothing else
      is allowed: no frames, no forms, no plugins, no workers, no extra hosts. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-vy6I62cyBslfvwe+NkBWz2HlaD6O924N21j144tsZdE=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-tnYAIgQ6s2w8fEQwDKDgvAsqhWpqgLX/NQba1a5VjGY='; style-src 'sha256-STc3RB0tPADLJSrycqu9P407CIiLDvUnbU/wbczthVA='; img-src data:; connect-src https://bitnodes.io https://www.bitnodes.io https://btcnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-vy6I62cyBslfvwe+NkBWz2HlaD6O924N21j144tsZdE=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-hhDxQU1v0vZ86Bu1bwUqB89caciT0tMZhGgTPhC7vig='; style-src 'sha256-STc3RB0tPADLJSrycqu9P407CIiLDvUnbU/wbczthVA='; img-src data:; connect-src https://bitnodes.io https://www.bitnodes.io https://btcnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
 <meta name="theme-color" content="#040914">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="NodePulse — 비트코인 L1 메인넷 실시간 감시. Bitnodes 풀노드 분포와 mempool.space 블록·멤풀·수수료를 실제 데이터로만 표시합니다.">
@@ -711,6 +711,14 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
      headers AND the body read, so a mirror that stalls mid-body still falls to the next
      one instead of hanging forever (test hook: window.NODEPULSE.fetchMs). */
   var FETCH_MS = 9000;
+  /* The native bridge is bounded on the Java side by CONNECT_MS 12 s + READ_MS 25 s = 37 s
+     per hop (HttpBridge in MainActivity.java). A page timer shorter than that abandons a
+     request Android is still completing, so a slow but working network never delivered an
+     L1 read: the page gave up at 20–22 s, threw the answer away when it arrived, and the
+     call was the only one the layer had. Every bridge wait is therefore floored at this
+     value, five seconds above the native ceiling for the chunked hand-over
+     (test hook: window.NODEPULSE.bridgeMs). */
+  var BRIDGE_MS = 42000;
   /* A WebSocket that never finishes connecting is closed after this long and the next
      mirror gets the retry, instead of the app sitting without a feed until the browser
      gives up on its own (test hook: window.NP_WS_CONNECT_MS before boot,
@@ -908,7 +916,7 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     chanRows: 0, chanAt: 0,
     lastOk: 0, ws: 'idle', wsTries: 0, wsHost: 0, fail: 0, panelOpen: false,
     layer: 'l1', lang: 'ko',
-    l1: null, l1Tried: 0,
+    l1: null, l1Tried: 0, l1Off: false,
     mblocks: [], mblocksAt: 0,
     pools: null, poolsAt: 0,
     wd: null, alertSig: '', feeHist: [], chain: Object.create(null), reorgAt: 0, reorgAtHeight: 0
@@ -967,10 +975,13 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     },
     get: function (url, ms) {
       var id = ++BR.seq;
+      /* No caller can ask for less than the native side may take: a shorter page timer
+         only discards an answer the bridge is still fetching (see BRIDGE_MS). */
+      var wait = Math.max(num(ms) ? ms : 0, BRIDGE_MS);
       return new Promise(function (res, rej) {
         var timer = setTimeout(function () {
           if (hasOwn.call(BR.wait, id)) { delete BR.wait[id]; rej(new Error('bridge timeout')); }
-        }, ms || 20000);
+        }, wait);
         BR.wait[id] = { res: res, rej: rej, timer: timer };
         try { window.NPBridge.fetch(String(id), String(url)); }
         catch (e) { delete BR.wait[id]; clearTimeout(timer); rej(e); }
@@ -1035,7 +1046,7 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       if (!BR.on) return Promise.reject(new Error('no host answered ' + path));
       if (b >= API_HOSTS.length) return Promise.reject(new Error('no host answered ' + path));
       var host = API_HOSTS[b++];
-      return BR.get(host + path, 20000).then(function (t) {
+      return BR.get(host + path).then(function (t) {
         return kind === 'text' ? t : JSON.parse(t);
       }).catch(function () { return viaBridge(); });
     }
@@ -1267,7 +1278,10 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       platforms: isObj(d.platforms) ? d.platforms : null,
       asns: isArr(d.asns) ? d.asns : null,
       vers: (isArr(d.vers) && d.vers.length) ? d.vers : l1Versions(d),
-      src: d.src || 'live',
+      /* Only a caller that says so is live. A payload re-served from localStorage or from
+         the bundled snapshot must never inherit the LIVE label from a default: what the
+         panel and the footnote print about the source hangs off this one field. */
+      src: d.src === 'live' ? 'live' : d.src === 'cache' ? 'cache' : 'snapshot',
       loadAt: Date.now()
     };
     if (S.layer === 'l1') Globe.build();
@@ -1321,18 +1335,29 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
   /* Bitnodes answers the coordinate grid and the ASN/client-version breakdown as two
      separate snapshots. The grid is what most of the view needs, so a failure of the
      top query alone must not blank the parts that are already known: the counts, the
-     clearnet/Tor/I2P split and the client versions stay as they were (from this
-     session, or from the last snapshot in the cache) until a later load works. */
+     clearnet/Tor/I2P split and the client versions stay as they were until a later load
+     works. What is reused is this session's own answer — never the copy in localStorage.
+     The object this feeds is stamped live, and a payload read back from storage must not
+     be shown under that stamp; when the grid arrives and the top query does not, the
+     version/split rows keep the last session answer and the footnote still dates the
+     snapshot they may have come from. */
   function l1TopFallback() {
     var prev = isObj(S.l1) ? S.l1 : null;
     if (prev && (isArr(prev.asns) || isObj(prev.platforms) || (isArr(prev.vers) && prev.vers.length))) return prev;
-    var cached = recall(LS_CACHE + '.l1');
-    if (isObj(cached) && isObj(cached.d)) return cached.d;
-    return prev;
+    return null;
   }
 
   function loadL1() {
     S.l1Tried = Date.now();
+    /* A plain browser (no native bridge) can never read bitnodes.io: the host sends no
+       Access-Control-Allow-Origin, so the same-origin policy refuses the answer before
+       this code sees it. That is the host's policy, not a passing network fault, so a
+       retry cannot end differently from the attempt before it — yet the 5-minute timer
+       used to fire two doomed requests forever. One attempt per page load is allowed
+       (a page that can reach the host, such as one with the bridge, still gets its read);
+       after it fails the network poll is switched off for the session and the bundled
+       snapshot, or the last cache, stays on screen. */
+    if (!BR.on && S.l1Off) return Promise.resolve();
     var coords = getJSON(BIT_COORDS, 22000).catch(function () { return null; });
     var top = getJSON(BIT_TOP, 16000).catch(function () { return null; });
     return Promise.all([coords, top]).then(function (res) {
@@ -1353,9 +1378,17 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       d.platforms = l1Platforms(d) || (isObj(prev.platforms) ? prev.platforms : null);
       d.vers = l1Versions(d);
       if (!d.vers.length && isArr(prev.vers) && prev.vers.length) d.vers = prev.vers.slice(0, 6);
+      /* A real Bitnodes answer is a healthy read like any other: without this, a working
+         L1 layer left lastOk untouched, so the pill said STALE (or WAIT) while fresh L1
+         data was on screen. The cache and snapshot paths below deliberately do not. */
+      ok();
       applyL1(d);
       store(LS_CACHE + '.l1', { t: Date.now(), d: { total: d.total, reachable: d.reachable, height: d.height, at: d.at, coords: d.coords, asns: d.asns, ua: d.ua, platforms: d.platforms } });
     }).catch(function () {
+      /* In the browser the refusal is final for this page load, so the timer above will
+         find the poll off rather than repeat it; the Android shell keeps retrying, where
+         a failure is an ordinary network fault that can clear. */
+      if (!BR.on) S.l1Off = true;
       var cached = recall(LS_CACHE + '.l1');
       if (isObj(cached) && isObj(cached.d) && isArr(cached.d.coords) && cached.d.coords.length) {
         var d = cached.d;
@@ -3822,6 +3855,8 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       lang: function (l) { if (l) { S.lang = l; applyLang(); } return S.lang; },
       loadL1: loadL1,
       bridge: function () { return BR.on; },
+      bridgeMs: function () { return BRIDGE_MS; },
+      bridgeGet: function (url, ms) { return BR.get(url, ms); },
       loadLightning: loadLightning,
       timers: function () { return bgTimers.length; },
       wsUrl: wsUrl,

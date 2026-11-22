@@ -9,7 +9,7 @@
 ![zero dependencies](https://img.shields.io/badge/dependencies-0-0b1220?style=flat-square)
 ![single file](https://img.shields.io/badge/build-single%20file%20HTML-0b1220?style=flat-square)
 ![canvas 2d](https://img.shields.io/badge/render-Canvas%202D-38bdf8?style=flat-square)
-![tests](https://img.shields.io/badge/assertions-243%20passing-2ea043?style=flat-square)
+![tests](https://img.shields.io/badge/assertions-297%20passing-2ea043?style=flat-square)
 ![data](https://img.shields.io/badge/L1-bitnodes-38bdf8?style=flat-square)
 ![data](https://img.shields.io/badge/mainnet-mempool.space-orange?style=flat-square)
 
@@ -184,7 +184,7 @@ and it refuses to emit a file that could break out of its own `<script>` block.
 
 | Harness | What it proves | Result |
 | --- | --- | --- |
-| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge (single-piece and chunked delivery, a lost chunk), snapshots, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads, a failed node-detail fetch, a clock running behind the API, a pinch dropped by a lost focus, EN/KO | **280 / 280 assertions pass** |
+| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge (single-piece and chunked delivery, a lost chunk, the timeout floor against the native one), snapshots, the browser-only Bitnodes stop, a cached answer kept out of LIVE, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads, a failed node-detail fetch, a clock running behind the API, a pinch dropped by a lost focus, EN/KO | **297 / 297 assertions pass** |
 | `test/fill-truth.js` | Rendered continent fill compared with the land polygons over 50 camera angles, 743 k sampled pixels | ≈ 0.4 % false-positive / 0.26 % false-negative, all on sub-pixel Antarctic coastline edges |
 | `test/perf.js` | Frame cadence at a 390×844 phone viewport, DPR clamped to 2, then with 4× CPU throttling | p50 16.7 ms (60 fps), p95 33.4 ms under throttle |
 | `test/offline.js` | Boot with every network route aborted: snapshot geometry, status disclosure, no JS errors | pass |
@@ -213,7 +213,7 @@ node --check src/app.js   # syntax gate
 **Test it.**
 
 ```bash
-node test/headless.js               # 280 assertions, no browser required
+node test/headless.js               # 297 assertions, no browser required
 python3 build.py && node test/fill-truth.js   # browser harness, needs Playwright
 node test/perf.js                   # frame-time probe
 ```
@@ -242,7 +242,7 @@ enabled, an edge-to-edge `#040914` dark system bar treatment, and the NodePulse 
 
 * **Package:** `com.jbitmstr.nodepulse`
 * **Min / target SDK:** 24 / 34
-* **Version:** 1.1.9 (`versionCode` 11)
+* **Version:** 1.1.10 (`versionCode` 12)
 
 **Locked down shell.** File access, content access, file-URL access and universal access
 from file URLs are all off; the only page the WebView can show is the bundled asset, a
@@ -278,6 +278,29 @@ interface cannot be used as an open proxy. The `mempool.space` mirrors answer
 `Access-Control-Allow-Origin: *`, so their JSON is fetched normally; when CORS still refuses
 one, the page retries it through the bridge. When the bridge is absent — the plain web build
 — the page tries `fetch` and falls back to the bundled snapshots, labelled by date.
+
+**One Bitnodes attempt in a browser, then the snapshot.** `bitnodes.io` never sends an
+`Access-Control-Allow-Origin` header, so a page without the bridge cannot read it at all —
+the browser refuses the answer whatever the network is doing. That is a property of the host,
+not a passing fault, so the plain web build makes **one** attempt per page load: if it is
+refused, the L1 network poll is switched off for the session and the bundled snapshot (or the
+last cached answer, labelled `CACHE`) stays on screen instead of two doomed requests every
+five minutes. Android keeps its five-minute retry, where a failure is an ordinary network
+fault that can clear.
+
+**The page outlasts the native call.** `HttpBridge` gives up after 12 s to connect plus 25 s
+to read, so every bridge wait on the page is floored at **42 s** — five seconds above the
+native ceiling, covering the chunked hand-over. A shorter page timer used to abandon a
+request Android was still completing, so a slow but working network never delivered an L1
+read and the answer arriving afterwards was thrown away. `test/headless.js` reads
+`CONNECT_MS` and `READ_MS` out of `MainActivity.java` and fails if the page's floor ever
+stops exceeding their sum.
+
+**Live means live.** A Bitnodes answer calls the same health mark as any other working read,
+so the `LIVE` / `STALE` pill follows the L1 layer instead of staying stale while fresh L1
+data is on screen. The local cache and the bundled snapshot never take that mark: a cached
+answer keeps `CACHE`, does not touch the last-ok time, and a live coordinate read never fills
+its version or transport rows from localStorage.
 
 **Bounded delivery.** A large answer is never built into one `evaluateJavascript()` call:
 that needed the body, its quoted copy — one character can grow to six as `\uXXXX` — and the
