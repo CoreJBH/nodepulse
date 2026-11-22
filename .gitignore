@@ -9,6 +9,7 @@ android/build/
 android/app/build/
 android/local.properties
 android/app/src/main/assets/index.html
+android/keystore.properties
 
 # OS noise
 .DS_Store

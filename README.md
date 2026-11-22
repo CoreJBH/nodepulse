@@ -213,47 +213,67 @@ python3 build.py
 
 The same single file ships as a native Android app: a minimal `WebView` shell
 (`android/`) that loads `file:///android_asset/index.html`, with JavaScript and DOM storage
-enabled, universal access from file URLs so the live `fetch`/WebSocket calls work without a
-local server, an edge-to-edge `#040914` dark system bar treatment, and the NodePulse icon as
+enabled, an edge-to-edge `#040914` dark system bar treatment, and the NodePulse icon as
 `ic_launcher` / `ic_launcher_round` (legacy mipmaps plus an adaptive icon).
 
 * **Package:** `com.jbitmstr.nodepulse`
 * **Min / target SDK:** 24 / 34
-* **Version:** 1.1.0 (`versionCode` 2)
+* **Version:** 1.1.2 (`versionCode` 4)
+
+**Locked down shell.** File access, content access, file-URL access and universal access
+from file URLs are all off; the only page the WebView can show is the bundled asset, a
+navigation anywhere else is refused, and a TLS error cancels instead of continuing. The
+page carries its own Content-Security-Policy (`default-src 'none'`; inline script/style,
+`data:` icons, and only the named https/wss hosts), cleartext HTTP is blocked at the
+manifest, and the release build is minified with R8.
 
 **Native HTTP bridge.** `bitnodes.io` answers without an `Access-Control-Allow-Origin`
 header, so a WebView `fetch` would be blocked by CORS — and the L1 layer is the primary
 dataset. `MainActivity.HttpBridge` exposes `NPBridge.fetch(id, url)`, performs the GET on a
-small thread pool (`HttpURLConnection`, gzip, 12 s connect / 25 s read) and calls
+small thread pool (`HttpURLConnection`, gzip, 12 s connect / 25 s read, 4 MiB cap) and calls
 `window.NPBridgeOnData(id, ok, body)` with the body unchanged. Hosts are whitelisted
-(`bitnodes.io`, `btcnodes.io`, `mempool.space`, `mempool.emzy.de`, `mempool.ninja`), so the
-interface cannot be used as an open proxy. When the bridge is absent — the plain web build —
-the page tries `fetch` and falls back to the bundled Bitnodes snapshot, labelled by date.
+(`bitnodes.io`, `btcnodes.io`, `mempool.space`, `mempool.emzy.de`, `mempool.ninja`), and
+redirects are followed by hand so every hop is checked against that same list, so the
+interface cannot be used as an open proxy. The `mempool.space` mirrors answer
+`Access-Control-Allow-Origin: *`, so their JSON is fetched normally; when CORS still refuses
+one, the page retries it through the bridge. When the bridge is absent — the plain web build
+— the page tries `fetch` and falls back to the bundled snapshots, labelled by date.
 
 **Build it automatically.** `.github/workflows/build-apk.yml` runs on every push to `main`
 and on demand:
 
 1. `python3 build.py` builds the single-file app.
-2. The built HTML is copied to `android/app/src/main/assets/index.html`.
-3. `gradle assembleDebug` produces a debug-signed, directly installable APK.
-4. The APK is uploaded as the workflow artifact **`nodepulse-apk`** (file `nodepulse.apk`).
+2. `node test/headless.js` runs the offline verification harness.
+3. The built HTML is copied to `android/app/src/main/assets/index.html`.
+4. `gradle :app:lintDebug :app:testDebugUnitTest` checks the shell.
+5. `gradle assembleDebug assembleRelease` produces both APKs; the release one is signed and
+   minified.
+6. The release APK is uploaded as the workflow artifact **`nodepulse-apk`** (file
+   `nodepulse.apk`), the debug one as **`nodepulse-apk-debug`**.
 
 **Get the APK.**
 
 * GitHub → **Actions** → *Build Android APK* → latest run → **Artifacts** →
   `nodepulse-apk`, or
-* from a shell: `gh run download --name nodepulse-apk -R JBITmstr/nodepulse`
+* from a shell: `gh run download --name nodepulse-apk -R CoreJBH/nodepulse`
 
 Install it on the phone (allow "install unknown apps" for the browser or file manager you
-open it with). Debug signing is deliberate: it keeps the build reproducible in CI without
-shipping a keystore. For a Play-style release, add your own signing config and run
-`gradle assembleRelease`.
+open it with). A tag push (`v*`) attaches both APKs to that release.
+
+**Release signing.** If `NODEPULSE_KEYSTORE_BASE64`, `NODEPULSE_KEYSTORE_PASSWORD`,
+`NODEPULSE_KEY_ALIAS` and `NODEPULSE_KEY_PASSWORD` are set as repository secrets, CI signs
+with that long-lived key, so a new build installs over the previous one. Without them CI
+generates a throwaway key for the run: the APK still installs, but the next build has a
+different signing identity, so it needs an uninstall first. A local build can put the same
+four values in `android/keystore.properties` (git-ignored); with no key at all the release
+task falls back to debug signing.
 
 **Build locally.** With JDK 17 and the Android SDK installed:
 
 ```bash
 cd android
 gradle assembleDebug     # -> app/build/outputs/apk/debug/app-debug.apk
+gradle assembleRelease   # -> app/build/outputs/apk/release/app-release.apk
 ```
 
 ---

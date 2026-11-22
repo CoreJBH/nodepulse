@@ -211,7 +211,7 @@
     l1: null, l1Tried: 0,
     mblocks: [], mblocksAt: 0,
     pools: null, poolsAt: 0,
-    wd: null, alertSig: '', feeHist: [], chain: {}, reorgAt: 0, reorgAtHeight: 0
+    wd: null, alertSig: '', feeHist: [], chain: Object.create(null), reorgAt: 0, reorgAtHeight: 0
   };
 
   /* --------------------------------------------------------- native bridge */
@@ -247,10 +247,27 @@
   };
 
   /* ------------------------------------------------------------------- api */
+  /* A Lightning public key is 33 compressed bytes in hex and is the only API input that
+     lands in a URL path, so it is checked against that exact shape and escaped before it
+     is concatenated. Anything else never reaches the network. */
+  var PK_RE = /^[0-9a-f]{66}$/i;
+  function validPk(v) { return typeof v === 'string' && PK_RE.test(v); }
+  function pkPath(v) { return validPk(v) ? encodeURIComponent(v.toLowerCase()) : null; }
+
+  /* 4xx (except 429, a limit another mirror may not share) is the request's fault, not the
+     mirror's: it stops the rotation immediately instead of asking three hosts. 5xx and
+     transport errors still move to the next mirror. */
+  function httpError(r) {
+    var e = new Error('HTTP ' + r.status);
+    e.status = r.status;
+    if (r.status >= 400 && r.status < 500 && r.status !== 429) e.fatal = true;
+    return e;
+  }
+
   function request(path, kind) {
-    var i = 0;
+    var i = 0, b = 0;
     function go() {
-      if (i >= API_HOSTS.length) return Promise.reject(new Error('no host answered ' + path));
+      if (i >= API_HOSTS.length) return null;
       var host = API_HOSTS[i++];
       var opt = { cache: 'no-store', credentials: 'omit', mode: 'cors' };
       var ctrl = null, timer = null;
@@ -261,14 +278,28 @@
       }
       return fetch(host + path, opt).then(function (r) {
         if (timer) clearTimeout(timer);
-        if (!r.ok) throw new Error('HTTP ' + r.status);
+        if (!r.ok) throw httpError(r);
         return kind === 'text' ? r.text() : r.json();
-      }).catch(function () {
+      }).catch(function (e) {
         if (timer) clearTimeout(timer);
-        return go();
+        if (e && e.fatal) throw e;
+        var next = go();
+        if (next) return next;
+        return viaBridge();
       });
     }
-    return go();
+    /* A file:// page is an opaque origin: a host that sends no CORS header refuses the
+       fetch even though it answers. The native bridge performs the same GET when it is
+       there (the Android shell), so the mirrors get a second chance through it. */
+    function viaBridge() {
+      if (!BR.on) return Promise.reject(new Error('no host answered ' + path));
+      if (b >= API_HOSTS.length) return Promise.reject(new Error('no host answered ' + path));
+      var host = API_HOSTS[b++];
+      return BR.get(host + path, 20000).then(function (t) {
+        return kind === 'text' ? t : JSON.parse(t);
+      }).catch(function () { return viaBridge(); });
+    }
+    return go() || viaBridge();
   }
 
   /* one absolute GET, through the native bridge when it exists */
@@ -285,7 +316,7 @@
     }
     return fetch(url, opt).then(function (r) {
       if (timer) clearTimeout(timer);
-      if (!r.ok) throw new Error('HTTP ' + r.status);
+      if (!r.ok) throw httpError(r);
       return asText ? r.text() : r.json();
     }, function (e) { if (timer) clearTimeout(timer); throw e; });
   }
@@ -550,8 +581,9 @@
   }
 
   function mergeRankings(conn, liq) {
-    var by = {};
+    var by = Object.create(null);
     function put(n) {
+      if (!n || !validPk(n.publicKey)) return;
       var e = by[n.publicKey];
       if (!e) {
         e = by[n.publicKey] = {
@@ -575,11 +607,11 @@
 
   /* ---- real channel graph: mempool.space /api/v1/lightning/channels-geo ------- */
   function graphFrom(rows) {
-    var g = { by: {}, keys: [], links: [] };
+    var g = { by: Object.create(null), keys: [], links: [] };
     function touch(pk, alias, lat, lon) {
       var n = g.by[pk];
       if (!n) {
-        n = g.by[pk] = { pk: pk, alias: alias || pk.slice(0, 10), lat: lat, lon: lon, peers: {}, deg: 0 };
+        n = g.by[pk] = { pk: pk, alias: alias || pk.slice(0, 10), lat: lat, lon: lon, peers: Object.create(null), deg: 0 };
         g.keys.push(pk);
       }
       return n;
@@ -587,7 +619,7 @@
     (rows || []).forEach(function (r) {
       if (!r || typeof r.length !== 'number' || r.length < 8) return;
       var a = String(r[0]), b = String(r[4]);
-      if (!a || !b || a === b) return;
+      if (!validPk(a) || !validPk(b) || a === b) return;
       var la = toNum(r[3]), loa = toNum(r[2]), lb = toNum(r[7]), lob = toNum(r[6]);
       if (la === null || loa === null || lb === null || lob === null) return;
       if (Math.abs(la) > 90 || Math.abs(lb) > 90 || Math.abs(loa) > 180 || Math.abs(lob) > 180) return;
@@ -625,7 +657,7 @@
       if (A.alias !== B.alias) return A.alias < B.alias ? -1 : 1;
       return a < b ? -1 : 1;
     });
-    var sel = [], inset = {}, cells = {}, regs = {}, dots = {}, relax = 0;
+    var sel = [], inset = Object.create(null), cells = Object.create(null), regs = Object.create(null), dots = Object.create(null), relax = 0;
     function fits(n) {
       var c = cellOf(n.lat, n.lon), k = regionOf(n.lat, n.lon);
       if (dots[clusterKeyOf(n.lat, n.lon)]) return false;
@@ -651,7 +683,7 @@
   }
 
   function linksAmong(g, picked) {
-    var inset = {}, out = [];
+    var inset = Object.create(null), out = [];
     picked.forEach(function (n) { inset[n.pk] = 1; });
     for (var i = 0; i < picked.length; i++) {
       var n = picked[i];
@@ -663,11 +695,11 @@
   var LINK_PER_NODE = 5;
 
   function capLinks(pairs, g) {
-    var peers = {}, order = [], cnt = {}, used = {}, out = [], i, k, q;
+    var peers = Object.create(null), order = [], cnt = Object.create(null), used = Object.create(null), out = [], i, k, q;
     function add(x, y) {
       if (!g.by[x] || !g.by[y] || x === y) return;
-      (peers[x] || (peers[x] = {}))[y] = 1;
-      (peers[y] || (peers[y] = {}))[x] = 1;
+      (peers[x] || (peers[x] = Object.create(null)))[y] = 1;
+      (peers[y] || (peers[y] = Object.create(null)))[x] = 1;
     }
     for (i = 0; i < pairs.length; i++) add(pairs[i][0], pairs[i][1]);
     function size(o) { var c = 0; for (var p in o) c++; return c; }
@@ -759,7 +791,10 @@
       (now - (cache.t || 0)) < NODE_TTL) {
       applyNodes(cache.nodes, cache.links, 'live', cache.t, { rows: cache.rows || 0, at: cache.chanAt || cache.t });
     }
-    var geoCache = cache.geo || {};
+    var geoCache = Object.create(null);
+    if (cache.geo && typeof cache.geo === 'object') {
+      Object.keys(cache.geo).forEach(function (k) { geoCache[k] = cache.geo[k]; });
+    }
 
     return Promise.all([
       request(CH_PATH),
@@ -772,17 +807,19 @@
       var picked = pickChannelNodes(g);
       if (!picked.length) throw new Error('no node with channels');
 
-      var inset = {};
+      var inset = Object.create(null);
       picked.forEach(function (n) { inset[n.pk] = 1; });
       var links = linksAmong(g, picked);
-      var rank = {};
+      var rank = Object.create(null);
       mergeRankings(res[1] || [], res[2] || []).forEach(function (r) { rank[r.pk] = r; });
 
       var jobs = picked.map(function (n) {
+        var path = pkPath(n.pk);
+        if (!path) return function () { return Promise.resolve(); };
         var hit = geoCache[n.pk];
         if (hit && num(hit.lat) && (now - (hit.t || 0)) < NODE_TTL) return function () { return Promise.resolve(); };
         return function () {
-          return request('/api/v1/lightning/nodes/' + n.pk).then(function (d) {
+          return request('/api/v1/lightning/nodes/' + path).then(function (d) {
             geoCache[n.pk] = {
               alias: d.alias || '',
               lat: d.latitude, lon: d.longitude,
@@ -825,7 +862,7 @@
           };
         });
 
-        var seenDot = {}, kept = [];
+        var seenDot = Object.create(null), kept = [];
         nodes.forEach(function (nd) {
           var k = clusterKeyOf(nd.lat, nd.lon);
           var prev = seenDot[k];
@@ -835,7 +872,7 @@
         nodes = kept;
         if (!nodes.length) throw new Error('no node');
 
-        inset = {};
+        inset = Object.create(null);
         var keptGraph = nodes.map(function (nd) { inset[nd.pk] = 1; return g.by[nd.pk]; });
         links = capLinks(linksAmong(g, keptGraph), g);
         nodes.forEach(function (nd) {
@@ -945,7 +982,7 @@
       var add = m.transactions.map(function (t) {
         return { txid: t.txid, fee: t.fee, vsize: t.vsize, value: t.value, rate: num(t.rate) ? t.rate : (t.vsize ? t.fee / t.vsize : null) };
       });
-      var seen = {};
+      var seen = Object.create(null);
       add.forEach(function (t) { seen[t.txid] = 1; });
       S.recent = add.concat(S.recent.filter(function (t) { return !seen[t.txid]; })).slice(0, 10);
       touched = true;
@@ -2090,7 +2127,7 @@
     /* Lightning layer: one dot per sampled node, one arc per real channel between
        two dots. Nothing else is ever added here. */
     function buildLN() {
-      var buckets = {}, order = [], byPk = {};
+      var buckets = Object.create(null), order = [], byPk = Object.create(null);
       S.nodes.forEach(function (n) {
         if (!num(n.lat) || !num(n.lon)) return;
         var key = Math.round(n.lat / 4) + ':' + Math.round(n.lon / 4);
@@ -2110,7 +2147,7 @@
         c.nodes.forEach(function (n) { byPk[n.pk] = i; });
       });
 
-      var links = [], used = {}, key, a, b;
+      var links = [], used = Object.create(null), key, a, b;
       for (var i = 0; i < (S.links || []).length; i++) {
         a = byPk[S.links[i][0]];
         b = byPk[S.links[i][1]];
@@ -2132,7 +2169,7 @@
        no peer graph, so there is nothing real to draw between them. */
     function buildL1() {
       var coords = (S.l1 && S.l1.coords) ? S.l1.coords : [];
-      var buckets = {}, order = [];
+      var buckets = Object.create(null), order = [];
       for (var i = 0; i < coords.length; i++) {
         var p = coords[i];
         if (!p || !num(p[0]) || !num(p[1])) continue;
@@ -2160,7 +2197,7 @@
       if (S.layer === 'l1') buildL1(); else buildLN();
     }
 
-    function pulse() { G.flash = 1; G.ripples.push({ t: 0 }); }
+    function pulse() { G.flash = 1; if (!document.hidden) G.ripples.push({ t: 0 }); }
 
     function geoProbe(yaw, pitch) {
       var sYaw = G.yaw, sPitch = G.pitch, sCam = G.cam;
@@ -2323,7 +2360,7 @@
   function l1CellCountry(pts) {
     var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
     if (!s || !s.coordCountry) return '';
-    var seen = {}, any = '';
+    var seen = Object.create(null), any = '';
     for (var i = 0; i < pts.length; i++) {
       var iso = s.coordCountry[(pts[i][0]).toFixed(4) + ',' + (pts[i][1]).toFixed(4)];
       if (iso) { seen[iso] = 1; any = iso; }

@@ -2,12 +2,16 @@ package com.jbitmstr.nodepulse;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.net.Uri;
+import android.net.http.SslError;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
 import android.webkit.JavascriptInterface;
+import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -15,12 +19,16 @@ import android.webkit.WebViewClient;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -30,6 +38,11 @@ import java.util.zip.GZIPInputStream;
  * header, so the page's L1 dataset would be blocked by CORS. {@link HttpBridge} performs
  * that GET natively and hands the body back to the page as text, which is the same data
  * the site itself serves — nothing is added, cached or rewritten.
+ *
+ * Security posture: the WebView may only ever show the bundled asset. File access, file-URL
+ * access and universal access from file URLs are all off; the page reaches its JSON APIs
+ * over https (mempool.space sends Access-Control-Allow-Origin: *) and, where CORS blocks it,
+ * through the bridge, whose host allowlist is checked again on every redirect hop.
  */
 public class MainActivity extends Activity {
 
@@ -55,28 +68,29 @@ public class MainActivity extends Activity {
         web = new WebView(this);
         web.setBackgroundColor(BG);
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        web.setWebViewClient(new WebViewClient());
+        web.setWebViewClient(new AppClient());
         web.setWebChromeClient(new WebChromeClient());
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
-        s.setAllowFileAccess(true);
+        // The page is the one bundled asset. Nothing on disk or in a content provider is
+        // readable from it, and a file:// document gets no access to other origins: the
+        // only network path is https with CORS, or the bridge below.
+        s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
-        // The page is a local file that talks to https APIs: universal access from file
-        // URLs lets fetch/WebSocket reach mempool.space without a local proxy.
-        s.setAllowFileAccessFromFileURLs(true);
-        s.setAllowUniversalAccessFromFileURLs(true);
+        s.setAllowFileAccessFromFileURLs(false);
+        s.setAllowUniversalAccessFromFileURLs(false);
+        s.setJavaScriptCanOpenWindowsAutomatically(false);
+        s.setSupportMultipleWindows(false);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
         s.setSupportZoom(false);
         s.setBuiltInZoomControls(false);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
         s.setMediaPlaybackRequiresUserGesture(false);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            s.setSafeBrowsingEnabled(false);
-        }
+        // Safe Browsing stays at the platform default (on): nothing in the app needs it off.
 
         bridge = new HttpBridge(web);
         web.addJavascriptInterface(bridge, "NPBridge");
@@ -133,11 +147,44 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
+    /** True only for the bundled page itself (fragments and query strings included). */
+    private static boolean isAppUrl(String url) {
+        if (url == null) return false;
+        if (url.equals(APP_URL)) return true;
+        return url.startsWith(APP_URL + "#") || url.startsWith(APP_URL + "?");
+    }
+
+    /**
+     * The app never leaves the bundled asset: no link, redirect or injected frame may
+     * navigate the WebView to another file, content: or web page. A TLS error is a hard
+     * stop, never a "continue anyway".
+     */
+    private static final class AppClient extends WebViewClient {
+
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+            Uri u = request == null ? null : request.getUrl();
+            return u == null || !isAppUrl(u.toString());
+        }
+
+        @Override
+        @SuppressWarnings("deprecation")
+        public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            return !isAppUrl(url);
+        }
+
+        @Override
+        public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+            if (handler != null) handler.cancel();
+        }
+    }
+
     /**
      * fetch(id, url) -> window.NPBridgeOnData(id, ok, body)
      *
      * Only the hosts the app actually reads are allowed, so the interface cannot be used
-     * as an open proxy from the page. The body is passed through unchanged.
+     * as an open proxy from the page. Redirects are followed by hand so every hop is
+     * re-checked against that same allowlist. The body is passed through unchanged.
      */
     static final class HttpBridge {
 
@@ -153,15 +200,18 @@ public class MainActivity extends Activity {
         private static final int CONNECT_MS = 12000;
         private static final int READ_MS = 25000;
         private static final int MAX_BYTES = 4 * 1024 * 1024;
+        private static final int MAX_REDIRECTS = 5;
 
-        private final WebView web;
+        private final WeakReference<WebView> web;
         private final ExecutorService pool = Executors.newFixedThreadPool(3);
+        private volatile boolean destroyed = false;
 
         HttpBridge(WebView web) {
-            this.web = web;
+            this.web = new WeakReference<>(web);
         }
 
         void shutdown() {
+            destroyed = true;
             pool.shutdownNow();
         }
 
@@ -169,6 +219,7 @@ public class MainActivity extends Activity {
             try {
                 URL u = new URL(url);
                 if (!"https".equalsIgnoreCase(u.getProtocol())) return false;
+                if (u.getPort() != -1 && u.getPort() != 443) return false;
                 String host = u.getHost();
                 if (host == null) return false;
                 for (String h : HOSTS) {
@@ -182,66 +233,93 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void fetch(final String id, final String url) {
-            if (id == null || url == null || !allowed(url)) {
+            if (destroyed || id == null || url == null || !allowed(url)) {
                 deliver(id, false, "");
                 return;
             }
-            pool.execute(new Runnable() {
-                @Override
-                public void run() {
-                    String body = null;
-                    HttpURLConnection c = null;
-                    try {
-                        c = (HttpURLConnection) new URL(url).openConnection();
-                        c.setInstanceFollowRedirects(true);
-                        c.setConnectTimeout(CONNECT_MS);
-                        c.setReadTimeout(READ_MS);
-                        c.setRequestMethod("GET");
-                        c.setRequestProperty("User-Agent", UA);
-                        c.setRequestProperty("Accept", "application/json");
-                        c.setRequestProperty("Accept-Encoding", "gzip");
-                        int code = c.getResponseCode();
-                        if (code < 200 || code >= 300) {
-                            deliver(id, false, "");
-                            return;
+            try {
+                pool.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        String body = null;
+                        try {
+                            body = download(url);
+                        } catch (Exception e) {
+                            body = null;
                         }
-                        InputStream in = c.getInputStream();
-                        String enc = c.getContentEncoding();
-                        if (enc != null && enc.toLowerCase().contains("gzip")) {
-                            in = new GZIPInputStream(in);
-                        }
-                        BufferedReader r = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-                        StringBuilder sb = new StringBuilder(65536);
-                        char[] buf = new char[8192];
-                        int n;
-                        while ((n = r.read(buf)) != -1) {
-                            sb.append(buf, 0, n);
-                            if (sb.length() > MAX_BYTES) break;
-                        }
-                        r.close();
-                        body = sb.toString();
-                    } catch (Exception e) {
-                        body = null;
-                    } finally {
-                        if (c != null) c.disconnect();
+                        if (body == null) deliver(id, false, "");
+                        else deliver(id, true, body);
                     }
-                    if (body == null) deliver(id, false, "");
-                    else deliver(id, true, body);
+                });
+            } catch (RejectedExecutionException e) {
+                deliver(id, false, "");
+            }
+        }
+
+        /** One GET, following at most {@link #MAX_REDIRECTS} hops, each re-validated. */
+        private static String download(String raw) throws IOException {
+            String url = raw;
+            for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
+                if (!allowed(url)) throw new IOException("blocked host");
+                HttpURLConnection c = null;
+                try {
+                    c = (HttpURLConnection) new URL(url).openConnection();
+                    c.setInstanceFollowRedirects(false);
+                    c.setConnectTimeout(CONNECT_MS);
+                    c.setReadTimeout(READ_MS);
+                    c.setRequestMethod("GET");
+                    c.setRequestProperty("User-Agent", UA);
+                    c.setRequestProperty("Accept", "application/json");
+                    c.setRequestProperty("Accept-Encoding", "gzip");
+                    int code = c.getResponseCode();
+                    if (code >= 300 && code < 400) {
+                        String loc = c.getHeaderField("Location");
+                        if (loc == null || loc.isEmpty()) throw new IOException("redirect without location");
+                        url = new URL(new URL(url), loc).toString();
+                        continue;
+                    }
+                    if (code < 200 || code >= 300) throw new IOException("HTTP " + code);
+                    return readBody(c);
+                } finally {
+                    if (c != null) c.disconnect();
                 }
-            });
+            }
+            throw new IOException("too many redirects");
+        }
+
+        private static String readBody(HttpURLConnection c) throws IOException {
+            InputStream raw = c.getInputStream();
+            String enc = c.getContentEncoding();
+            InputStream in = (enc != null && enc.toLowerCase().contains("gzip"))
+                    ? new GZIPInputStream(raw) : raw;
+            StringBuilder sb = new StringBuilder(65536);
+            try (BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+                char[] buf = new char[8192];
+                int n;
+                while ((n = r.read(buf)) != -1) {
+                    sb.append(buf, 0, n);
+                    if (sb.length() > MAX_BYTES) throw new IOException("response too large");
+                }
+            }
+            return sb.toString();
         }
 
         private void deliver(final String id, final boolean ok, final String body) {
-            if (web == null) return;
-            web.post(new Runnable() {
+            if (destroyed) return;
+            final WebView w = web.get();
+            if (w == null) return;
+            w.post(new Runnable() {
                 @Override
                 public void run() {
+                    if (destroyed) return;
+                    WebView v = web.get();
+                    if (v == null) return;
                     String js = "window.NPBridgeOnData&&window.NPBridgeOnData("
                             + JSONObject.quote(id == null ? "" : id) + ","
                             + (ok ? "true" : "false") + ","
                             + JSONObject.quote(body == null ? "" : body) + ")";
                     try {
-                        web.evaluateJavascript(js, null);
+                        v.evaluateJavascript(js, null);
                     } catch (Exception ignored) {
                     }
                 }
