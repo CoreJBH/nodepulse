@@ -26,6 +26,7 @@ import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
@@ -290,7 +291,7 @@ public class MainActivity extends Activity {
         private static String readBody(HttpURLConnection c) throws IOException {
             InputStream raw = c.getInputStream();
             String enc = c.getContentEncoding();
-            InputStream in = (enc != null && enc.toLowerCase().contains("gzip"))
+            InputStream in = (enc != null && enc.toLowerCase(Locale.ROOT).contains("gzip"))
                     ? new GZIPInputStream(raw) : raw;
             StringBuilder sb = new StringBuilder(65536);
             try (BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {

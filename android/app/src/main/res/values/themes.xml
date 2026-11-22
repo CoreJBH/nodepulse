@@ -6,7 +6,6 @@
         <item name="android:statusBarColor">@color/np_background</item>
         <item name="android:navigationBarColor">@color/np_background</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:colorAccent">#38bdf8</item>
     </style>
