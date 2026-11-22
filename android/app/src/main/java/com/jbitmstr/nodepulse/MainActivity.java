@@ -222,9 +222,18 @@ public class MainActivity extends Activity {
         private static final int READ_MS = 25000;
         /* The body cap counts characters, and a character costs two bytes in the VM.
            3 M characters (6 MB) is above the largest answer this app reads — channels-geo
-           is about 1.6 MB of JSON today — and small enough that the body, its quoted copy
-           and the script string built from it cannot fill a low-end device's heap. */
+           is about 1.6 MB of JSON today. */
         private static final int MAX_BODY_CHARS = 3 * 1024 * 1024;
+        /* A body is handed to the page in chunks of this size, not built into one
+           evaluateJavascript() call. One script string for a 3 M-char answer needed the
+           body, its quoted copy (one character can grow to six: backslash-uXXXX) and the
+           finished call on the heap at the same time, per thread, up to POOL_MAX threads
+           at once — tens of megabytes on a low-end device, and the OOM the review
+           flagged. A chunk bounds each script string to about 0.4 MB even in the worst
+           quoting case, so POOL_MAX concurrent deliveries stay within a couple of
+           megabytes whatever the body size; the page reassembles the parts by their
+           sequence number. */
+        private static final int MAX_CHUNK_CHARS = 32 * 1024;
         private static final int MAX_REDIRECTS = 5;
         /* Two workers, one spare, 32 waiting. Boot fires about eleven concurrent GETs
            at once (tip, blocks, mempool, recent txs, fees, hashrate, difficulty, pools,
@@ -387,17 +396,44 @@ public class MainActivity extends Activity {
             return quoted;
         }
 
+        /**
+         * Hands the answer to the page. A failure is one call; a body too large to hand
+         * over is a single failure call too; a body is one call per chunk plus a final
+         * call that carries the last chunk and its sequence number, so the page joins the
+         * parts in order however the UI thread interleaved the posts. Every script string
+         * is built on the calling thread — a pool worker, or the WebView's JS thread on
+         * the refusal path — and the UI thread only hands the finished strings over.
+         */
         private void deliver(final String id, final boolean ok, final String body) {
             if (destroyed || id == null) return;
-            // The script string is built on the calling thread — a pool worker, or the
-            // WebView's JS thread on the refusal path — and the UI thread only hands the
-            // finished string over. Quoting a multi-megabyte body there was the ANR.
-            String js = callScript(id, ok, body);
-            if (js == null) js = callScript(id, false, "");   // too large to hand over
-            if (js == null) return;
-            final String script = js;
             final WebView w = web.get();
             if (w == null) return;
+            if (!ok || body == null) {
+                post(w, callScript(id, false, "", true, 0));
+                return;
+            }
+            if (body.length() > MAX_BODY_CHARS) {
+                // Too large to hand over: fail the request so the page falls to the next
+                // mirror or to the bundled snapshot instead of holding the copy.
+                post(w, callScript(id, false, "", true, 0));
+                return;
+            }
+            int total = body.length();
+            int seq = 0;
+            for (int off = 0; off < total; off += MAX_CHUNK_CHARS) {
+                int end = Math.min(total, off + MAX_CHUNK_CHARS);
+                seq++;
+                String js = callScript(id, true, body.substring(off, end),
+                        end == total, seq);
+                if (js == null) return;
+                post(w, js);
+            }
+            if (seq == 0) post(w, callScript(id, true, "", true, 1));   // empty body
+        }
+
+        /** Hands one finished script string to the UI thread, which runs it in the page. */
+        private void post(final WebView w, final String script) {
+            if (script == null) return;
             w.post(new Runnable() {
                 @Override
                 public void run() {
@@ -412,14 +448,21 @@ public class MainActivity extends Activity {
             });
         }
 
-        /** The one-line call into the page, or null when the body cannot be handed over. */
-        private static String callScript(String id, boolean ok, String body) {
+        /**
+         * The one-line call into the page: {@code NPBridgeOnData(id, ok, chunk, fin, seq)}.
+         * The chunk is quoted per call, so the quoted copy and the finished script are
+         * bounded by {@link #MAX_CHUNK_CHARS} whatever the body length.
+         */
+        private static String callScript(String id, boolean ok, String chunk,
+                                         boolean fin, int seq) {
             if (id == null) return null;
-            if (body != null && body.length() > MAX_BODY_CHARS) return null;
+            if (chunk == null) return null;
             return "window.NPBridgeOnData&&window.NPBridgeOnData("
                     + jsStringLiteral(id) + ","
                     + (ok ? "true" : "false") + ","
-                    + jsStringLiteral(body) + ")";
+                    + jsStringLiteral(chunk) + ","
+                    + (fin ? "true" : "false") + ","
+                    + seq + ")";
         }
     }
 }

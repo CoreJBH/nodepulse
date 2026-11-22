@@ -208,6 +208,11 @@ const localStorage = {
 let bridgeCalls = [];
 /* when true, the ASN / client-version snapshot fails while the coordinate grid answers */
 let bridgeFailTop = false;
+/* when set, the bridge answers the way the Java side now does: one callback per bounded
+   chunk with (id, true, part, fin, seq). "hole" drops one middle part, so the page is
+   offered a sequence it can never join. */
+let bridgeChunked = false;
+let bridgeChunkHole = false;
 function makeBridge(window) {
   const coordsPayload = {
     timestamp: L1.capturedAt, total_nodes: L1.totalNodes, latest_height: L1.height,
@@ -225,7 +230,21 @@ function makeBridge(window) {
       if (url.indexOf('field=coordinates') >= 0) body = JSON.stringify(coordsPayload);
       else if (url.indexOf('field=top') >= 0 && !bridgeFailTop) body = JSON.stringify(topPayload);
       setTimeout(() => {
-        if (window.NPBridgeOnData) window.NPBridgeOnData(id, body !== null, body || '');
+        if (!window.NPBridgeOnData) return;
+        if (!bridgeChunked) {
+          window.NPBridgeOnData(id, body !== null, body || '');
+          return;
+        }
+        if (body === null) { window.NPBridgeOnData(id, false, '', true, 0); return; }
+        const CH = 997;
+        let seq = 0;
+        for (let off = 0; off < body.length; off += CH) {
+          seq++;
+          if (bridgeChunkHole && seq === 2 && off + CH < body.length) continue;
+          const fin = off + CH >= body.length;
+          window.NPBridgeOnData(id, true, body.slice(off, off + CH), fin, seq);
+        }
+        if (seq === 0) window.NPBridgeOnData(id, true, '', true, 1);
       }, 4);
     }
   };
@@ -500,6 +519,52 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     S.hr && (S.hr.currentHashrate + '/' + S.hr.hashrates.length));
   check('mining pools mapped', S.pools && S.pools.blockCount === FIX.pools.blockCount, S.pools && S.pools.blockCount);
   check('lightning stats mapped', S.ln && S.ln.node_count === FIX.lnstats.latest.node_count, S.ln && S.ln.node_count);
+
+  /* ---- loadLightning(): only finite figures and a string `added` are stored ----
+     The HUD and the panel read node_count, channel_count, total_capacity and added
+     straight off the answer; a string where a number belongs printed NaN into all of
+     them. The stats are re-typed field by field and an answer left with nothing usable
+     is rejected, keeping the previous ones on screen. */
+  const goodLn = JSON.stringify(S.ln);
+  const loadLn = async over => {
+    bodyOverride.set('/api/v1/lightning/statistics/latest', over);
+    let res = 'resolved';
+    await NP.loadLightning().then(() => { }, () => { res = 'rejected'; });
+    return res;
+  };
+  check('loadLightning rejects stats whose figures are all strings',
+    (await loadLn({ latest: { node_count: '13777', channel_count: '22680', total_capacity: '253094023783', added: 5 } })) === 'rejected');
+  check('a rejected lightning answer leaves the previous stats in place',
+    JSON.stringify(S.ln) === goodLn, JSON.stringify(S.ln));
+  check('loadLightning rejects a latest that is not an object',
+    (await loadLn([1, 2, 3])) === 'rejected');
+  check('loadLightning rejects stats with no usable figure at all',
+    (await loadLn({ latest: { tor_nodes: 'x', med_fee_rate: null, added: '2026-11-01T00:00:00.000Z' } })) === 'rejected');
+  check('a figure-less lightning answer leaves the previous stats in place',
+    JSON.stringify(S.ln) === goodLn, JSON.stringify(S.ln));
+  check('loadLightning accepts a mixed answer and keeps only its finite figures',
+    (await loadLn({ latest: {
+      node_count: 42, channel_count: 7, total_capacity: 'oops', med_fee_rate: 'NaN',
+      clearnet_tor_nodes: 1292, added: '2026-11-22T00:00:00.000Z'
+    } })) === 'resolved');
+  check('string figures are dropped and finite ones kept',
+    !!S.ln && S.ln.node_count === 42 && S.ln.channel_count === 7 &&
+    S.ln.clearnet_tor_nodes === 1292 &&
+    S.ln.total_capacity === undefined && S.ln.med_fee_rate === undefined,
+    S.ln && JSON.stringify(S.ln));
+  check('a string added survives',
+    !!S.ln && S.ln.added === '2026-11-22T00:00:00.000Z', S.ln && S.ln.added);
+  check('a numeric added is not adopted',
+    (await loadLn({ latest: { node_count: 1, channel_count: 1, added: 1795267457 } })) === 'resolved' && S.ln.added === '',
+    S.ln && S.ln.added);
+  bodyOverride.delete('/api/v1/lightning/statistics/latest');
+  await NP.loadLightning();
+  check('a good lightning answer replaces the partial one',
+    !!S.ln && S.ln.node_count === FIX.lnstats.latest.node_count &&
+    S.ln.channel_count === FIX.lnstats.latest.channel_count &&
+    S.ln.added === FIX.lnstats.latest.added,
+    S.ln && JSON.stringify({ n: S.ln.node_count, a: S.ln.added }));
+
   check('countries mapped', S.countries.length === FIX.countries.length, S.countries.length);
   check('LN HUD node count', els.vNodes.textContent === String(FIX.lnstats.latest.node_count).replace(/\B(?=(\d{3})+(?!\d))/g, ','), els.vNodes.textContent);
 
@@ -1040,6 +1105,57 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     S.wsHost === hostAfterRetry, S.wsHost + ' vs ' + hostAfterRetry);
   check('a stale close opens no extra socket', wsList.length === 2, wsList.length);
 
+  /* ---- a cached lightning snapshot is re-typed like a live one ----
+     restoreCache() used to adopt c.ln as it stood, so an object whose figures are all
+     junk passed isObj() and either printed NaN or, with nothing usable, still made boot
+     report a cache it does not have. */
+  ls = new Map([
+    ['nodepulse.cache.v2', JSON.stringify({
+      t: Date.now(),
+      ln: { node_count: '13777', channel_count: null, total_capacity: {}, added: 7, tor_nodes: 'x' },
+      lnAt: Date.now()
+    })]
+  ]);
+  const junkLn = makeSandbox({ bridge: false });
+  const ctxJ = vm.createContext(junkLn.sandbox);
+  const modeJunk = fetchMode;
+  fetchMode = 'fail';
+  try {
+    for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctxJ, { filename: 'junkln-' + i + '.js', timeout: 8000 });
+    await sleep(400);
+    runFrames(junkLn.rafQueue, 2);
+  } catch (e) { check('junk-ln cache boot does not throw', false, e && e.stack); }
+  fetchMode = modeJunk;
+  const JL = junkLn.window.NODEPULSE && junkLn.window.NODEPULSE.state;
+  check('a lightning snapshot whose figures are junk is not adopted', !!JL && JL.ln === null, JL && JSON.stringify(JL.ln));
+  check('junk lightning figures do not report a cache that is not there',
+    !!JL && junkLn.els.toast.classList.contains('on') === false, junkLn.els.toast.textContent);
+
+  ls = new Map([
+    ['nodepulse.cache.v2', JSON.stringify({
+      t: Date.now(),
+      ln: { node_count: 13777, channel_count: 'x', total_capacity: 253094023783, added: '2026-10-21T00:00:00.000Z' },
+      lnAt: Date.now()
+    })]
+  ]);
+  const mixedLn = makeSandbox({ bridge: false });
+  const ctxM = vm.createContext(mixedLn.sandbox);
+  const modeMixed = fetchMode;
+  fetchMode = 'fail';
+  try {
+    for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctxM, { filename: 'mixedln-' + i + '.js', timeout: 8000 });
+    await sleep(400);
+    runFrames(mixedLn.rafQueue, 2);
+  } catch (e) { check('mixed-ln cache boot does not throw', false, e && e.stack); }
+  fetchMode = modeMixed;
+  const ML = mixedLn.window.NODEPULSE && mixedLn.window.NODEPULSE.state;
+  check('a mixed lightning snapshot restores only its finite figures',
+    !!ML && ML.ln && ML.ln.node_count === 13777 && ML.ln.total_capacity === 253094023783 &&
+    ML.ln.channel_count === undefined,
+    ML && JSON.stringify(ML.ln));
+  check('a mixed lightning snapshot keeps its string added',
+    !!ML && ML.ln.added === '2026-10-21T00:00:00.000Z', ML && ML.ln && ML.ln.added);
+
   /* ---- a poisoned localStorage snapshot is rejected field by field ----
      JSON.parse happily returns a string, a number or an array, and localStorage is
      writable by anything that ever ran on this origin, so boot must not walk into it. */
@@ -1269,6 +1385,88 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     tipCalls[tipCalls.length - 1].indexOf('mempool.emzy.de') >= 0,
     tipCalls.join(' | '));
   check('the tip arrived from the fallback mirror', NB.state.tip === FIX.tip, NB.state.tip + ' vs ' + FIX.tip);
+
+  /* ---- the DATA footnote names the cached answer when the L1 source is cached ----
+     The old two-state wording printed "the built-in snapshot" for the cache case too:
+     a Bitnodes answer re-served from localStorage was described as the bundled snapshot,
+     with the snapshot's capture date instead of the answer's own. */
+  {
+    S.l1.src = 'cache';
+    NP.lang('en');
+    await sleep(450);
+    runFrames(rafQueue, 1);
+    check('EN footnote names the cached Bitnodes answer for a cached source',
+      els.note.innerHTML.indexOf('currently the cached Bitnodes answer of') > 0,
+      els.note.innerHTML.slice(0, 200));
+    check('EN footnote no longer calls a cached answer the built-in snapshot',
+      els.note.innerHTML.indexOf('currently the built-in snapshot') < 0,
+      els.note.innerHTML.slice(0, 200));
+    check('EN globe-points line says the answer is cached',
+      els.note.innerHTML.indexOf('unique coordinates Bitnodes geolocated (cached answer)') > 0,
+      els.note.innerHTML.slice(0, 400));
+    NP.lang('ko');
+    await sleep(450);
+    runFrames(rafQueue, 1);
+    check('KO footnote names the cached Bitnodes answer for a cached source',
+      els.note.innerHTML.indexOf('저장해 둔 Bitnodes 응답(') > 0,
+      els.note.innerHTML.slice(0, 200));
+    check('KO footnote no longer calls a cached answer the built-in snapshot',
+      els.note.innerHTML.indexOf('내장 스냅샷') < 0,
+      els.note.innerHTML.slice(0, 200));
+    check('KO globe-points line says the answer is cached',
+      els.note.innerHTML.indexOf('서로 다른 위치입니다(저장본)') > 0,
+      els.note.innerHTML.slice(0, 400));
+    S.l1.src = 'live';
+    NP.lang('ko');
+    await sleep(450);
+    runFrames(rafQueue, 1);
+    check('a live source is labelled live again',
+      els.note.innerHTML.indexOf('에서 지금 실시간으로 읽었습니다') > 0,
+      els.note.innerHTML.slice(0, 200));
+  }
+
+  check('every repeating boot timer registers through the visibility-aware wrapper',
+    NP.timers() >= 11, NP.timers());
+
+  /* ---- the native bridge hands big bodies over in bounded chunks ----
+     The Java side sends one call per chunk, (id, ok, part, fin, seq), so no call string
+     scales with the body size; the page reassembles the parts in sequence order, and a
+     sequence with a hole fails the request instead of splicing a body it never saw. */
+  {
+    bridgeChunked = true;
+    ls = new Map();
+    const chunked = makeSandbox({ bridge: true });
+    const ctxC = vm.createContext(chunked.sandbox);
+    try {
+      for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctxC, { filename: 'chunk-' + i + '.js', timeout: 8000 });
+      await sleep(500);
+      runFrames(chunked.rafQueue, 2);
+    } catch (e) { check('chunked bridge boot does not throw', false, e && e.stack); }
+    const CS = chunked.window.NODEPULSE && chunked.window.NODEPULSE.state;
+    check('a chunked bridge answer is reassembled in order',
+      !!CS && CS.l1 && CS.l1.src === 'live', CS && CS.l1 && CS.l1.src);
+    check('the reassembled coordinate grid is complete',
+      !!CS && CS.l1 && CS.l1.coords.length === L1.coords.length,
+      CS && CS.l1 && CS.l1.coords.length + ' vs ' + L1.coords.length);
+    check('the reassembled transport split is intact',
+      !!CS && CS.l1 && CS.l1.platforms && CS.l1.platforms.tor === L1.platforms.tor,
+      CS && CS.l1 && JSON.stringify(CS.l1.platforms));
+
+    bridgeChunkHole = true;
+    ls = new Map();
+    const hole = makeSandbox({ bridge: true });
+    const ctxH = vm.createContext(hole.sandbox);
+    try {
+      for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctxH, { filename: 'hole-' + i + '.js', timeout: 8000 });
+      await sleep(500);
+      runFrames(hole.rafQueue, 2);
+    } catch (e) { check('hole bridge boot does not throw', false, e && e.stack); }
+    const HS = hole.window.NODEPULSE && hole.window.NODEPULSE.state;
+    check('a lost chunk fails the request instead of splicing the body',
+      !!HS && HS.l1 && HS.l1.src === 'snapshot', HS && HS.l1 && HS.l1.src);
+    bridgeChunkHole = false;
+    bridgeChunked = false;
+  }
 
   /* ---- failure mode: no network at all ----
      without the bridge and with every request failing, both layers still draw the

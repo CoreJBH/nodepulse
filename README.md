@@ -158,15 +158,24 @@ visible, at under 1 % of the raw edge count.
   up when they do not.
 * **Time-driven animation.** Rotation and pulses are computed from the `requestAnimationFrame`
   timestamp, so the globe's motion is independent of frame loss.
+* **Nothing runs behind a hidden page.** The globe's frame loop already stopped on
+  `visibilitychange`; every repeating timer now does too — polling, refetching, panel
+  repaints and the clock all skip while `document.hidden`, and returning to the page
+  repaints the clock, the status and the open panel at once so the resumed screen is never
+  a stale one.
+* **Batched node drawing.** The two thousand-or-so globe dots are drawn one path and one
+  fill/stroke per alpha level instead of per dot, with the limb fade and pulse quantised
+  to a few levels; geometry and colours are unchanged and the canvas state changes per
+  frame drop from thousands to a few dozen.
 
 ### 5. Zero-dependency build and an automated verification suite
 `build.py` inlines CSS, geometry, snapshots, application code, and the base64 app icon into
-one document — about 371 KB — with tokens that fail the build if any substitution is missed,
+one document — about 377 KB — with tokens that fail the build if any substitution is missed,
 and it refuses to emit a file that could break out of its own `<script>` block.
 
 | Harness | What it proves | Result |
 | --- | --- | --- |
-| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge, snapshots, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads, a failed node-detail fetch, EN/KO | **243 / 243 assertions pass** |
+| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge (single-piece and chunked delivery, a lost chunk), snapshots, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads, a failed node-detail fetch, EN/KO | **269 / 269 assertions pass** |
 | `test/fill-truth.js` | Rendered continent fill compared with the land polygons over 50 camera angles, 743 k sampled pixels | ≈ 0.4 % false-positive / 0.26 % false-negative, all on sub-pixel Antarctic coastline edges |
 | `test/perf.js` | Frame cadence at a 390×844 phone viewport, DPR clamped to 2, then with 4× CPU throttling | p50 16.7 ms (60 fps), p95 33.4 ms under throttle |
 | `test/offline.js` | Boot with every network route aborted: snapshot geometry, status disclosure, no JS errors | pass |
@@ -195,7 +204,7 @@ node --check src/app.js   # syntax gate
 **Test it.**
 
 ```bash
-node test/headless.js               # 243 assertions, no browser required
+node test/headless.js               # 269 assertions, no browser required
 python3 build.py && node test/fill-truth.js   # browser harness, needs Playwright
 node test/perf.js                   # frame-time probe
 ```
@@ -224,7 +233,7 @@ enabled, an edge-to-edge `#040914` dark system bar treatment, and the NodePulse 
 
 * **Package:** `com.jbitmstr.nodepulse`
 * **Min / target SDK:** 24 / 34
-* **Version:** 1.1.7 (`versionCode` 9)
+* **Version:** 1.1.8 (`versionCode` 10)
 
 **Locked down shell.** File access, content access, file-URL access and universal access
 from file URLs are all off; the only page the WebView can show is the bundled asset, a
@@ -251,7 +260,7 @@ is about eleven concurrent GETs — idle threads retired after 30 s; anything be
 refused at once so the page falls to the next mirror or snapshot) with `HttpURLConnection`,
 gzip, 12 s connect / 25 s read and a 3 M-character
 body cap, then calls `window.NPBridgeOnData(id, ok, body)` with the body unchanged. The
-`window.NPBridgeOnData(...)` call string is built on the fetching thread, so the UI thread only
+call string is built on the fetching thread, so the UI thread only
 hands the finished string to the WebView. Hosts are whitelisted
 (`bitnodes.io`, `btcnodes.io`, `mempool.space`, `mempool.emzy.de`, `mempool.ninja`), a URL
 carrying `user:password@` is rejected, and
@@ -260,6 +269,17 @@ interface cannot be used as an open proxy. The `mempool.space` mirrors answer
 `Access-Control-Allow-Origin: *`, so their JSON is fetched normally; when CORS still refuses
 one, the page retries it through the bridge. When the bridge is absent — the plain web build
 — the page tries `fetch` and falls back to the bundled snapshots, labelled by date.
+
+**Bounded delivery.** A large answer is never built into one `evaluateJavascript()` call:
+that needed the body, its quoted copy — one character can grow to six as `\uXXXX` — and the
+finished call on the heap at once, per thread, up to three threads at a time. The bridge
+hands a body over in 32 K-character chunks instead, one call per chunk carrying
+`(id, ok, part, fin, seq)`, so each call string stays about 0.4 MB even in the worst
+quoting case and three concurrent deliveries stay within a couple of megabytes whatever the
+body size. The page buffers the parts and joins them in sequence order when the final call
+arrives; a sequence with a hole fails that request and falls to the next mirror or snapshot
+rather than splicing a body it never saw. A body above the 3 M-character cap is one failure
+call, never a copy.
 
 **Build it automatically.** `.github/workflows/build-apk.yml` runs on every push to `main`
 and on demand:

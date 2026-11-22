@@ -261,12 +261,40 @@
     on: false, seq: 0, wait: Object.create(null),
     init: function () {
       if (!window.NPBridge || typeof window.NPBridge.fetch !== 'function') return false;
-      window.NPBridgeOnData = function (id, ok, text) {
+      /* The native side hands a body over in bounded chunks — one evaluateJavascript()
+         call per chunk, each carrying (id, true, chunk, fin, seq) — so that neither its
+         quoted copy nor the call string ever scales with the body size. Parts are
+         buffered here and joined in sequence order when the final call arrives; a
+         three-argument caller (an older harness, a direct test) skips all of that:
+         an undefined fin means the whole body arrived in one piece. */
+      window.NPBridgeOnData = function (id, ok, text, fin, seq) {
         var p = hasOwn.call(BR.wait, id) ? BR.wait[id] : null;
         if (!p) return;
+        if (ok && fin === false) {
+          if (num(seq) && seq > 0) {
+            if (!p.parts) p.parts = {};
+            p.parts[seq] = String(text || '');
+          }
+          return;
+        }
         delete BR.wait[id];
         if (p.timer) clearTimeout(p.timer);
-        if (ok) p.res(String(text || '')); else p.rej(new Error('bridge ' + id));
+        if (!ok) { p.rej(new Error('bridge ' + id)); return; }
+        var full = String(text || '');
+        if (p.parts) {
+          /* A hole in the sequence means a part was lost: joining around it would splice
+             a body the page never saw, so the request fails and the next mirror or the
+             bundled snapshot takes over. */
+          if (!(num(seq) && seq > 0)) { p.rej(new Error('bridge ' + id)); return; }
+          p.parts[seq] = String(text || '');
+          var acc = '';
+          for (var i = 1; i <= seq; i++) {
+            if (!hasOwn.call(p.parts, i)) { p.rej(new Error('bridge ' + id)); return; }
+            acc += p.parts[i];
+          }
+          full = acc;
+        }
+        p.res(full);
       };
       BR.on = true;
       return true;
@@ -522,10 +550,28 @@
     });
   }
 
+  /* Every figure the Lightning block prints is re-typed here: a string where a number
+     belongs printed NaN straight into the HUD and the panel, and a non-string `added`
+     reached dateOf() with a shape it was never meant to read. Only the finite numbers
+     and the string `added` are kept; an answer left with nothing usable is rejected by
+     the caller, which keeps the previous stats on screen. */
+  var LN_NUMS = ['id', 'channel_count', 'node_count', 'total_capacity', 'tor_nodes',
+    'clearnet_nodes', 'unannounced_nodes', 'avg_capacity', 'avg_fee_rate',
+    'avg_base_fee_mtokens', 'med_capacity', 'med_fee_rate', 'med_base_fee_mtokens',
+    'clearnet_tor_nodes'];
+  function lnFromAnswer(d) {
+    if (!isObj(d)) return null;
+    var out = {};
+    LN_NUMS.forEach(function (k) { if (num(d[k])) out[k] = d[k]; });
+    out.added = typeof d.added === 'string' ? d.added : '';
+    return out;
+  }
+
   function loadLightning() {
     return request('/api/v1/lightning/statistics/latest').then(function (d) {
-      if (!isObj(d) || !isObj(d.latest)) throw new Error('no ln stats');
-      S.ln = d.latest; S.lnAt = Date.now(); ok(); schedulePaint();
+      var ln = lnFromAnswer(d && d.latest);
+      if (!ln || !num(ln.node_count) || !num(ln.channel_count)) throw new Error('no ln stats');
+      S.ln = ln; S.lnAt = Date.now(); ok(); schedulePaint();
     });
   }
 
@@ -1175,7 +1221,14 @@
     if (isObj(c.fees)) S.fees = feesFromCache(c.fees);
     if (isObj(c.hr)) S.hr = hrFromCache(c.hr);
     if (isObj(c.diff)) S.diff = diffFromCache(c.diff);
-    if (isObj(c.ln)) { S.ln = c.ln; S.lnAt = num(c.lnAt) ? c.lnAt : 0; }
+    if (isObj(c.ln)) {
+      var ln = lnFromAnswer(c.ln);
+      /* A snapshot whose only figures are junk is dropped, not adopted: it would print
+         '—' everywhere anyway, and it used to make boot report a cache it does not have. */
+      if (num(ln.node_count) || num(ln.channel_count)) {
+        S.ln = ln; S.lnAt = num(c.lnAt) ? c.lnAt : 0;
+      }
+    }
     if (isArr(c.countries)) {
       S.countries = c.countries.map(countryFromCache).filter(Boolean);
       S.conts = aggregateContinents(S.countries);
@@ -1185,7 +1238,7 @@
       S.mblocksAt = num(c.mblocksAt) ? c.mblocksAt : 0;
     }
     if (isObj(c.pools)) { S.pools = poolFromCache(c.pools); S.poolsAt = num(c.poolsAt) ? c.poolsAt : 0; }
-    return !!(num(c.tip) || isObj(c.mem) || isObj(c.ln));
+    return !!(num(c.tip) || isObj(c.mem) || isObj(S.ln));
   }
 
   /* ------------------------------------------------------------ websocket */
@@ -1677,6 +1730,29 @@
     return S.l1.src === 'live' ? L('live') : S.l1.src === 'cache' ? L('cache') : L('snap');
   }
 
+  /* The DATA footnote names where the L1 figures come from right now: a live Bitnodes
+     read, a cached Bitnodes answer (localStorage, served when the live request failed),
+     or the bundled snapshot. The old two-state wording printed "the built-in snapshot"
+     for the cache case too — true of neither the numbers nor the timestamp shown. */
+  function l1NowClause(l1, snapAt, en) {
+    if (l1 && l1.src === 'live') return en ? ' (live now)' : '에서 지금 실시간으로 읽었습니다';
+    if (l1 && l1.src === 'cache') {
+      var at = num(l1.at) ? dateOf(l1.at) : '—';
+      return en
+        ? ' — currently the cached Bitnodes answer of ' + at + ', because the live request did not answer'
+        : '에서 읽으며, 지금은 저장해 둔 Bitnodes 응답(' + at + ')을 표시 중입니다(실시간 요청이 답하지 않았습니다)';
+    }
+    return en
+      ? ' — currently the built-in snapshot ' + snapAt + ', because the live request did not answer'
+      : '에서 읽으며, 지금은 실시간 요청이 답하지 않아 내장 스냅샷(' + snapAt + ')을 표시 중입니다';
+  }
+
+  function l1PointsClause(l1, en) {
+    if (l1 && l1.src === 'live') return en ? 'live' : '실시간';
+    if (l1 && l1.src === 'cache') return en ? 'cached answer' : '저장본';
+    return en ? 'snapshot' : '스냅샷';
+  }
+
   function paintNote() {
     var e = $('note');
     if (!e) return;
@@ -1687,10 +1763,10 @@
       e.innerHTML =
         '<b>DATA</b> Bitcoin mainnet values are mempool.space REST + WebSocket responses; L1 full-node values are the Bitnodes crawler export (bitnodes.io/api/v1).<br>' +
         '· <b>Bitnodes is the primary L1 source</b>: the reachable node count, the clear-net/Tor/I2P split, the client versions and the unique coordinates on the globe are read from <code>snapshots/latest/?field=coordinates</code> and <code>?field=top</code>' +
-        (l1 && l1.src === 'live' ? ' (live now)' : ' — currently the built-in snapshot ' + snapAt + ', because the live request did not answer') + '.<br>' +
+        l1NowClause(l1, snapAt, true) + '.<br>' +
         '· The country split (' + (s ? s.countries.length : 0) + ' countries) is the Bitnodes snapshot captured ' + snapAt + ' with ' + fmtInt(s ? s.totalNodes : null) +
         ' nodes; Bitnodes exposes per-node country only through its paginated node list, which is too heavy to pull on a phone, so this panel names that snapshot instead of hiding it.<br>' +
-        '· Globe points: ' + (l1 ? fmtInt(l1.coords.length) : '0') + ' unique coordinates Bitnodes geolocated (' + (l1 && l1.src === 'live' ? 'live' : 'snapshot') + '). Tor and I2P nodes carry no coordinates, so they are not placed, and no link is drawn between nodes: Bitnodes publishes no peer graph.<br>' +
+        '· Globe points: ' + (l1 ? fmtInt(l1.coords.length) : '0') + ' unique coordinates Bitnodes geolocated (' + l1PointsClause(l1, true) + '). Tor and I2P nodes carry no coordinates, so they are not placed, and no link is drawn between nodes: Bitnodes publishes no peer graph.<br>' +
         '· Values the crawler cannot know (per-node latency, uptime, disk size, per-node height) are never shown or guessed.<br>' +
         '· Next blocks are mempool.space\'s own projection of the transactions that would fill each of the coming blocks, with the reported fee range and tx count.<br>' +
         '· Watchdog thresholds: no block for ' + (WD_BLOCK_SEC / 60) + ' min, fastest fee ≥ ' + WD_FEE_SPIKE + ' sat/vB or 3× the 10-minute minimum, one pool above ' + Math.round(WD_POOL_SHARE * 100) + '% of the week\'s blocks, or a block hash change at an already-seen height.<br>' +
@@ -1700,9 +1776,9 @@
     e.innerHTML =
       '<b>DATA</b> 비트코인 메인넷 값은 mempool.space REST + WebSocket 응답값이고, L1 풀노드 값은 Bitnodes 크롤러 export(bitnodes.io/api/v1)입니다.<br>' +
       '· <b>L1의 1차 출처는 Bitnodes</b>입니다: 도달 가능 노드 수, 클리어넷/Tor/I2P 비중, 클라이언트 버전, 지구본 좌표는 <code>snapshots/latest/?field=coordinates</code>와 <code>?field=top</code>' +
-      (l1 && l1.src === 'live' ? '에서 지금 실시간으로 읽었습니다' : '에서 읽으며, 지금은 실시간 요청이 답하지 않아 내장 스냅샷(' + snapAt + ')을 표시 중입니다') + '.<br>' +
+      l1NowClause(l1, snapAt, false) + '.<br>' +
       '· 국가 분포(' + (s ? s.countries.length : 0) + '개국)는 ' + snapAt + ' Bitnodes 스냅샷(' + fmtInt(s ? s.totalNodes : null) + ' 노드) 값입니다. Bitnodes는 노드별 국가를 페이지 목록으로만 공개해 휴대폰에서 전부 받아오기엔 무겁기 때문에, 이 항목만 스냅샷 기준임을 숨기지 않고 적습니다.<br>' +
-      '· 지구본 지점 ' + (l1 ? fmtInt(l1.coords.length) : '0') + '곳은 Bitnodes가 좌표를 확인한 서로 다른 위치입니다(' + (l1 && l1.src === 'live' ? '실시간' : '스냅샷') + '). Tor·I2P 노드는 좌표가 없어 배치하지 않고, 노드 사이에 선은 그리지 않습니다 — Bitnodes는 노드별 연결 그래프를 공개하지 않습니다.<br>' +
+      '· 지구본 지점 ' + (l1 ? fmtInt(l1.coords.length) : '0') + '곳은 Bitnodes가 좌표를 확인한 서로 다른 위치입니다(' + l1PointsClause(l1, false) + '). Tor·I2P 노드는 좌표가 없어 배치하지 않고, 노드 사이에 선은 그리지 않습니다 — Bitnodes는 노드별 연결 그래프를 공개하지 않습니다.<br>' +
       '· 크롤러가 알 수 없는 값(노드별 지연시간·가동시간·디스크 용량·개별 높이)은 표시하지도 추정하지도 않습니다.<br>' +
       '· 다음 블록은 mempool.space가 계산한 예측으로, 앞으로의 블록을 채울 트랜잭션 묶음의 수수료 범위와 트랜잭션 수입니다.<br>' +
       '· 감시 기준: ' + (WD_BLOCK_SEC / 60) + '분 이상 새 블록 없음, 최속 수수료 ' + WD_FEE_SPIKE + ' sat/vB 이상 또는 10분 최저의 3배, 한 채굴 풀이 주간 블록의 ' + Math.round(WD_POOL_SHARE * 100) + '% 초과, 이미 본 높이의 블록 해시 변경(리오그).<br>' +
@@ -2319,8 +2395,19 @@
 
     function drawNodes(t) {
       var th = TH(), ctx = G.ctx, glow = G.glow;
-      for (var i = 0; i < G.clusters.length; i++) {
-        var c = G.clusters[i];
+      var cl = G.clusters, n = cl.length;
+      if (!n) return;
+      /* Batched by alpha level. Every dot used to begin its own path and flip
+         fillStyle/strokeStyle — two state changes and up to four draw calls per node,
+         across a couple of thousand nodes per frame. The alpha each of those calls
+         needed is continuous in the limb fade and the pulse, so it is quantised to a
+         few levels and the dots of one level share a single path and one fill/stroke;
+         the geometry, radii and colours are unchanged. Levels sit in flat [x,y,r]
+         triples, and a level with no dots costs nothing. */
+      var DOTS = 10, HALOS = 8;
+      var dotLv = [], haloLv = [], ringLv = [], i, c, k;
+      for (i = 0; i < n; i++) {
+        c = cl[i];
         project(c.lat, c.lon, P);
         c.sx = P.x; c.sy = P.y; c.on = P.z > 0.02;
         if (!c.on) continue;
@@ -2336,23 +2423,57 @@
           var gs = r * 7.5;
           ctx.globalAlpha = Math.min(1, (0.42 + 0.26 * pulse) * edge + 0.35 * G.flash);
           ctx.drawImage(glow, P.x - gs / 2, P.y - gs / 2, gs, gs);
-          ctx.globalAlpha = 1;
         }
 
-        ctx.beginPath(); ctx.arc(P.x, P.y, r, 0, TAU);
-        ctx.fillStyle = 'rgba(' + th.dot + ',' + (0.95 * edge).toFixed(2) + ')';
-        ctx.fill();
-
-        var br = r * (1.9 + 0.30 * Math.sin(t * 1.9 + i));
-        ctx.beginPath(); ctx.arc(P.x, P.y, br, 0, TAU);
-        ctx.strokeStyle = 'rgba(' + th.halo + ',' + (0.18 * edge * pulse).toFixed(2) + ')';
-        ctx.lineWidth = 0.6; ctx.stroke();
-
+        k = Math.round(edge * (DOTS - 1));
+        if (k > 0) (dotLv[k] || (dotLv[k] = [])).push(P.x, P.y, r);
+        k = Math.round(edge * pulse * (HALOS - 1));
+        if (k > 0) (haloLv[k] || (haloLv[k] = [])).push(P.x, P.y, r * (1.9 + 0.30 * Math.sin(t * 1.9 + i)));
         if (!c.l1 && c.count > 1) {
-          ctx.beginPath(); ctx.arc(P.x, P.y, r + 2.4, 0, TAU);
-          ctx.strokeStyle = 'rgba(' + th.halo + ',' + (0.24 * edge).toFixed(2) + ')';
-          ctx.lineWidth = 0.5; ctx.stroke();
+          k = Math.round(edge * (HALOS - 1));
+          if (k > 0) (ringLv[k] || (ringLv[k] = [])).push(P.x, P.y, r + 2.4);
         }
+      }
+      if (glow) ctx.globalAlpha = 1;
+
+      var cells, j, x, y, rr;
+      for (k = 1; k < DOTS; k++) {
+        cells = dotLv[k];
+        if (!cells) continue;
+        ctx.beginPath();
+        for (j = 0; j < cells.length; j += 3) {
+          x = cells[j]; y = cells[j + 1]; rr = cells[j + 2];
+          ctx.moveTo(x + rr, y);
+          ctx.arc(x, y, rr, 0, TAU);
+        }
+        ctx.fillStyle = 'rgba(' + th.dot + ',' + (0.95 * k / (DOTS - 1)).toFixed(2) + ')';
+        ctx.fill();
+      }
+      ctx.lineWidth = 0.6;
+      for (k = 1; k < HALOS; k++) {
+        cells = haloLv[k];
+        if (!cells) continue;
+        ctx.beginPath();
+        for (j = 0; j < cells.length; j += 3) {
+          x = cells[j]; y = cells[j + 1]; rr = cells[j + 2];
+          ctx.moveTo(x + rr, y);
+          ctx.arc(x, y, rr, 0, TAU);
+        }
+        ctx.strokeStyle = 'rgba(' + th.halo + ',' + (0.18 * k / (HALOS - 1)).toFixed(2) + ')';
+        ctx.stroke();
+      }
+      ctx.lineWidth = 0.5;
+      for (k = 1; k < HALOS; k++) {
+        cells = ringLv[k];
+        if (!cells) continue;
+        ctx.beginPath();
+        for (j = 0; j < cells.length; j += 3) {
+          x = cells[j]; y = cells[j + 1]; rr = cells[j + 2];
+          ctx.moveTo(x + rr, y);
+          ctx.arc(x, y, rr, 0, TAU);
+        }
+        ctx.strokeStyle = 'rgba(' + th.halo + ',' + (0.24 * k / (HALOS - 1)).toFixed(2) + ')';
+        ctx.stroke();
       }
     }
 
@@ -2931,6 +3052,26 @@
     txt('clockKst', 'KST ' + pad2(kst.getUTCHours()) + ':' + pad2(kst.getUTCMinutes()));
   }
 
+  /* Every repeating timer registers through here and does nothing while the page is
+     hidden: a background tab or a screen-off phone used to keep polling, refetching,
+     repainting the panel and advancing the clock that nobody saw. The globe's own
+     requestAnimationFrame loop already stopped on visibilitychange, so the timers were
+     the only work still running behind a hidden page. The next visible tick picks each
+     job back up on its own cadence, and returning to the page repaints the clock, the
+     status and the open panel at once so the resumed screen is never a stale one. */
+  var bgTimers = [];
+  function every(ms, fn) {
+    var t = setInterval(function () { if (!document.hidden) fn(); }, ms);
+    bgTimers.push(t);
+    return t;
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) return;
+    tickClock();
+    paintStatus();
+    if (S.panelOpen) paintPanel();
+  });
+
   function boot() {
     loadPref();
     BR.init();
@@ -2947,7 +3088,7 @@
     applyLang();
     setLayer(S.layer);
     tickClock();
-    setInterval(tickClock, 1000);
+    every(1000, tickClock);
     paint();
     if (hadCache) toast(L('tCached'));
 
@@ -2957,18 +3098,16 @@
     refreshNodes(false);
     connectWS();
 
-    setInterval(function () {
-      if (S.ws !== 'open') refreshCore();
-    }, 20000);
-    setInterval(function () { if (S.ws === 'open') { loadTip().catch(noop); loadMem().catch(noop); } }, 90000);
-    setInterval(function () { loadBlocks().catch(noop); loadRecentTxs().catch(noop); }, 60000);
-    setInterval(function () { loadHashrate().catch(noop); loadDiff().catch(noop); }, 300000);
-    setInterval(function () { loadPools().catch(noop); }, POOL_TTL);
-    setInterval(function () { if (Date.now() - S.l1Tried > L1_TTL) loadL1(); }, 60000);
-    setInterval(refreshSlow, 1800000);
-    setInterval(function () { refreshNodes(false); }, 6 * 3600 * 1000);
-    setInterval(function () { if (stale()) { refreshCore(); if (S.ws !== 'open') connectWS(); } }, 45000);
-    setInterval(function () { paintStatus(); if (S.panelOpen) paintPanel(); }, 15000);
+    every(20000, function () { if (S.ws !== 'open') refreshCore(); });
+    every(90000, function () { if (S.ws === 'open') { loadTip().catch(noop); loadMem().catch(noop); } });
+    every(60000, function () { loadBlocks().catch(noop); loadRecentTxs().catch(noop); });
+    every(300000, function () { loadHashrate().catch(noop); loadDiff().catch(noop); });
+    every(POOL_TTL, function () { loadPools().catch(noop); });
+    every(60000, function () { if (Date.now() - S.l1Tried > L1_TTL) loadL1(); });
+    every(1800000, refreshSlow);
+    every(6 * 3600 * 1000, function () { refreshNodes(false); });
+    every(45000, function () { if (stale()) { refreshCore(); if (S.ws !== 'open') connectWS(); } });
+    every(15000, function () { paintStatus(); if (S.panelOpen) paintPanel(); });
 
     var hint = $('hint');
     if (hint) {
@@ -2996,6 +3135,8 @@
       lang: function (l) { if (l) { S.lang = l; applyLang(); } return S.lang; },
       loadL1: loadL1,
       bridge: function () { return BR.on; },
+      loadLightning: loadLightning,
+      timers: function () { return bgTimers.length; },
       wsUrl: wsUrl,
       connect: function () { connectWS(); },
       wsConnectMs: function (v) { if (num(v)) WS_CONNECT_MS = v; return WS_CONNECT_MS; },
