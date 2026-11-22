@@ -1,5 +1,17 @@
 name: Build Android APK
 
+# Drop this file in at .github/workflows/build-apk.yml.
+# The GitHub App that maintains this repository has no `workflows` permission, so it cannot
+# push a file under .github/workflows/ itself; everything else in this change is pushed
+# normally. Committing this file is the one manual step.
+#
+# v1.1.4 makes a release tag mean exactly one thing: a signed release APK. A tag run builds
+# and uploads only `assembleRelease` with the owner's long-lived key; a debug APK is never
+# built, uploaded or attached on a tag. If any of the four signing secrets is absent the run
+# stops with an error naming what is missing — there is no ephemeral key and no fallback to
+# the debug build. A push to `main` still publishes the debug APK, which says what it is in
+# its filename.
+
 on:
   push:
     branches: [main]
@@ -15,9 +27,9 @@ permissions:
 
 jobs:
   apk:
-    name: Build nodepulse.apk
+    name: Build and release nodepulse.apk
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -29,6 +41,11 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -39,6 +56,9 @@ jobs:
           python3 build.py
           ls -l dist/nodepulse.html
 
+      - name: Run JS tests
+        run: node test/headless.js
+
       - name: Stage web app into APK assets
         run: |
           set -euo pipefail
@@ -47,20 +67,88 @@ jobs:
           ls -l android/app/src/main/assets/index.html
           grep -c 'data:image/png;base64' android/app/src/main/assets/index.html
 
+      - name: Android lint and unit tests
+        working-directory: android
+        run: gradle :app:lintDebug :app:testDebugUnitTest --no-daemon --stacktrace
+
+      # The four secrets hold the owner's long-lived key:
+      #   NODEPULSE_KEYSTORE_BASE64  the .jks file, base64-encoded (base64 -w0 release.jks)
+      #   NODEPULSE_KEYSTORE_PASSWORD / NODEPULSE_KEY_ALIAS / NODEPULSE_KEY_PASSWORD
+      # There is no ephemeral fallback: a key generated for one run produces an APK that
+      # installs but cannot update the previous release, and nothing in it records that.
+      # A tag therefore fails here, before anything is built, when they are absent; a branch
+      # push builds and publishes only the debug APK.
+      - name: Read the release signing key
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.NODEPULSE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.NODEPULSE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.NODEPULSE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.NODEPULSE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=""
+          [ -n "${KEYSTORE_BASE64:-}" ] || missing="$missing NODEPULSE_KEYSTORE_BASE64"
+          [ -n "${KEYSTORE_PASSWORD:-}" ] || missing="$missing NODEPULSE_KEYSTORE_PASSWORD"
+          [ -n "${KEY_ALIAS:-}" ] || missing="$missing NODEPULSE_KEY_ALIAS"
+          [ -n "${KEY_PASSWORD:-}" ] || missing="$missing NODEPULSE_KEY_PASSWORD"
+          if [ -n "$missing" ]; then
+            if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+              echo "::error::a release tag needs all four signing secrets; missing:$missing"
+              echo "Refusing to publish a release: a debug-key APK would install but could never" \
+                   "update the previous release, and nothing in it would say which key signed it." >&2
+              exit 1
+            fi
+            echo "::warning::signing secrets not configured:$missing — this branch push builds and publishes the debug APK only"
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          STORE="$RUNNER_TEMP/nodepulse-release.jks"
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$STORE"
+          keytool -list -keystore "$STORE" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" > /dev/null
+          {
+            echo "NODEPULSE_KEYSTORE=$STORE"
+            echo "NODEPULSE_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "NODEPULSE_KEY_ALIAS=$KEY_ALIAS"
+            echo "NODEPULSE_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+          echo "release=true" >> "$GITHUB_OUTPUT"
+
+      # A tag never builds a debug APK. A branch push only ever builds the debug one.
       - name: Assemble debug APK
+        if: github.ref_type != 'tag'
         working-directory: android
         run: gradle assembleDebug --no-daemon --stacktrace
 
-      - name: Collect APK
+      - name: Assemble release APK
+        if: steps.signing.outputs.release == 'true'
+        working-directory: android
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      # Belt and braces: a tag that reached here without the key stops instead of attaching
+      # anything. The signing step already failed earlier; this catches a changed condition.
+      - name: Refuse an unsigned release
+        if: github.ref_type == 'tag' && steps.signing.outputs.release != 'true'
+        run: |
+          echo "::error::refusing to build a release tag without the release signing key"
+          exit 1
+
+      - name: Collect the release APK
+        id: collect
+        if: github.ref_type == 'tag'
         run: |
           set -euo pipefail
-          APK="$(find android/app/build/outputs/apk/debug -name '*.apk' -print -quit)"
-          test -n "$APK"
-          cp "$APK" nodepulse.apk
+          REL="$(find android/app/build/outputs/apk/release -name '*.apk' -print -quit)"
+          test -n "$REL"
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          "$BT/apksigner" verify --print-certs "$REL"
+          cp "$REL" nodepulse.apk
           ls -l nodepulse.apk
           sha256sum nodepulse.apk
+          echo "files=nodepulse.apk" >> "$GITHUB_OUTPUT"
 
-      - name: Upload APK artifact
+      - name: Upload release APK artifact
+        if: github.ref_type == 'tag'
         uses: actions/upload-artifact@v4
         with:
           name: nodepulse-apk
@@ -68,9 +156,43 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Attach APK to release
+      - name: Collect the debug APK
+        if: github.ref_type != 'tag'
+        run: |
+          set -euo pipefail
+          DBG="$(find android/app/build/outputs/apk/debug -name '*.apk' -print -quit)"
+          test -n "$DBG"
+          cp "$DBG" nodepulse-debug.apk
+          ls -l nodepulse-debug.apk
+          sha256sum nodepulse-debug.apk
+
+      - name: Upload debug APK artifact
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nodepulse-apk-debug
+          path: nodepulse-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      # Only a tag reaches this, and a tag only ever carries nodepulse.apk.
+      - name: Attach the signed APK to the release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: nodepulse.apk
           generate_release_notes: true
+
+      - name: Verify the release attachment
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release view "${GITHUB_REF_NAME}" -R "${GITHUB_REPOSITORY}" --json assets \
+            --jq '.assets[].name' | tee /tmp/assets.txt
+          grep -qx 'nodepulse.apk' /tmp/assets.txt
+          if grep -q 'debug' /tmp/assets.txt; then
+            echo "::error::a debug APK was attached to a release"
+            exit 1
+          fi
