@@ -431,7 +431,7 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   check('onDestroy detaches the WebView before destroying it',
     /if \(web != null\) \{[\s\S]{0,200}?detach\(web\);\s*\n\s*web\.destroy\(\)/.test(java));
   check('a dead renderer is handled instead of killing the app',
-    /onRenderProcessGone\(WebView view, RenderProcessGoneDetail detail\)[\s\S]{0,200}?return true;/.test(java));
+    /onRenderProcessGone\(WebView view, RenderProcessGoneDetail detail\)[\s\S]{0,700}?recoverFromRendererGone\(\);[\s\S]{0,120}?return true;/.test(java));
   check('the renderer recovery rebuilds the shell',
     /recoverFromRendererGone\(\)[\s\S]{0,600}?installWebView\(\)/.test(java));
   check('the release signature is v2 only',

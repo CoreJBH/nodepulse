@@ -260,6 +260,9 @@ public class MainActivity extends Activity {
          */
         @Override
         public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+            /* The Activity may already be on its way out; there is nothing to rebuild then,
+               and returning true still keeps the process alive. */
+            if (isFinishing() || isDestroyed()) return true;
             recoverFromRendererGone();
             return true;
         }
