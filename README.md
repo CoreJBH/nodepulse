@@ -307,7 +307,9 @@ Every third-party action in the workflow is pinned to the commit its release tag
 (`actions/checkout@11d5960a…`, `actions/setup-java@cf277c60…`, `actions/setup-node@49933ea5…`,
 `gradle/actions/setup-gradle@ed408507…`, `actions/upload-artifact@ea165f8d…`,
 `softprops/action-gh-release@3bb12739…`), with the tag in a trailing comment: a tag can be
-moved to new code, a commit SHA cannot.
+moved to new code, a commit SHA cannot. The App that pushes to this repository has no
+`workflows` permission, so that one file is the owner's single manual commit; the pinned copy
+is otherwise identical to the workflow described here.
 
 Staging is also wired into the Gradle graph itself: `stageWebApp` is a dependency of
 `preBuild`, so a plain local `gradle assembleDebug` stages `dist/nodepulse.html` into the
