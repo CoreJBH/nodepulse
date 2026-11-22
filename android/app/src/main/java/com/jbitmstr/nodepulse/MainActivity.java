@@ -103,10 +103,24 @@ public class MainActivity extends Activity {
         web.addJavascriptInterface(bridge, "NPBridge");
 
         setContentView(web);
-        if (state != null) {
-            web.restoreState(state);
-        } else {
+        if (!restoreWebViewState(state)) {
             web.loadUrl(APP_URL);
+        }
+    }
+
+    /**
+     * saveState() writes the WebView's back-forward list; restoreState() returns that list,
+     * or null when the bundle carried nothing usable — a killed process, a state saved by a
+     * different WebView version, an empty list. The old code loaded the app only when the
+     * bundle was null, so a restore that answered null left the WebView on a blank page for
+     * good. Anything short of a real restore now falls back to the bundled asset.
+     */
+    private boolean restoreWebViewState(Bundle state) {
+        if (state == null || web == null) return false;
+        try {
+            return web.restoreState(state) != null;
+        } catch (RuntimeException e) {
+            return false;
         }
     }
 

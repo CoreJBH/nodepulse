@@ -99,12 +99,28 @@ function makeDocument() {
 /* ------------------------------------------------------------------ fetch */
 let fetchMode = 'ok';
 const fetchLog = [];
+/* A path whose next answer is replaced (the type-validation tests drive a malformed
+   hashrate answer through loadHashrate) and node pks whose detail GET fails (the
+   geo-cache test). Both are empty unless a test fills them. */
+const bodyOverride = new Map();
+let failPks = [];
 function fakeFetch(url) {
   fetchLog.push(url);
   const pathOnly = url.replace(/^https?:\/\/[^/]+/, '');
   const host = url.replace(/^(https?:\/\/[^/]+).*/, '$1');
   if (fetchMode === 'fail') return Promise.reject(new Error('network down'));
   if (host !== 'https://mempool.space') return Promise.reject(new Error('mirror refused'));
+  if (failPks.length && failPks.some(pk => pathOnly === '/api/v1/lightning/nodes/' + pk)) {
+    return Promise.reject(new Error('node detail down'));
+  }
+  if (bodyOverride.has(pathOnly)) {
+    const over = bodyOverride.get(pathOnly);
+    return Promise.resolve({
+      ok: true, status: 200,
+      text: () => Promise.resolve(JSON.stringify(over)),
+      json: () => Promise.resolve(over)
+    });
+  }
   let body = null, kind = 'json';
   if (pathOnly === '/api/blocks/tip/height') { body = String(FIX.tip); kind = 'text'; }
   else if (pathOnly === '/api/v1/blocks') body = FIX.blocks;
@@ -444,6 +460,44 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   check('fees mapped', S.fees && S.fees.fastestFee === FIX.fees.fastestFee, S.fees && S.fees.fastestFee);
   check('hashrate mapped', S.hr && S.hr.currentHashrate === FIX.hashrate.currentHashrate);
   check('difficulty mapped', S.diff && S.diff.remainingBlocks === FIX.diff.remainingBlocks);
+
+  /* ---- loadHashrate(): the drawn fields must be a row list of finite numbers ----
+     The panel walks hashrates with forEach and averages it, and formats currentHashrate.
+     A proxy or a captive portal can answer with a string where that list belongs, and an
+     isObj() check alone let it through — forEach() then threw on the next paint, and a
+     string figure printed NaN. */
+  const goodHr = JSON.stringify(S.hr);
+  const loadHr = async over => {
+    bodyOverride.set('/api/v1/mining/hashrate/1w', over);
+    let res = 'resolved';
+    await NP.loadHashrate().then(() => { }, () => { res = 'rejected'; });
+    return res;
+  };
+  check('loadHashrate rejects a hashrates list that is not an array',
+    (await loadHr({ hashrates: 'oops', currentHashrate: 5 })) === 'rejected');
+  check('a rejected hashrate answer leaves the previous series in place',
+    JSON.stringify(S.hr) === goodHr, JSON.stringify(S.hr));
+  check('loadHashrate rejects a series with no usable row',
+    (await loadHr({ hashrates: [{ avgHashrate: 'x' }, 7, null], currentHashrate: 5 })) === 'rejected');
+  check('an unusable hashrate answer leaves the previous series in place',
+    JSON.stringify(S.hr) === goodHr, JSON.stringify(S.hr));
+  check('loadHashrate rejects a series that is an empty array',
+    (await loadHr({ hashrates: [], currentHashrate: 5 })) === 'rejected');
+  check('an empty hashrate answer leaves the previous series in place',
+    JSON.stringify(S.hr) === goodHr, JSON.stringify(S.hr));
+  check('loadHashrate accepts a mixed answer and keeps only its finite rows',
+    (await loadHr({ hashrates: [{ avgHashrate: 1e18 }, { avgHashrate: 'x' }, 7, { avgHashrate: null }], currentHashrate: 'nope' })) === 'resolved');
+  check('only the finite hashrate rows are stored',
+    !!S.hr && S.hr.hashrates.length === 1 && S.hr.hashrates[0].avgHashrate === 1e18,
+    S.hr && JSON.stringify(S.hr));
+  check('a non-finite currentHashrate is stored as null',
+    !!S.hr && S.hr.currentHashrate === null, S.hr && S.hr.currentHashrate);
+  bodyOverride.delete('/api/v1/mining/hashrate/1w');
+  await NP.loadHashrate();
+  check('a good hashrate answer replaces the partial one',
+    !!S.hr && S.hr.currentHashrate === FIX.hashrate.currentHashrate &&
+    S.hr.hashrates.length === FIX.hashrate.hashrates.length,
+    S.hr && (S.hr.currentHashrate + '/' + S.hr.hashrates.length));
   check('mining pools mapped', S.pools && S.pools.blockCount === FIX.pools.blockCount, S.pools && S.pools.blockCount);
   check('lightning stats mapped', S.ln && S.ln.node_count === FIX.lnstats.latest.node_count, S.ln && S.ln.node_count);
   check('countries mapped', S.countries.length === FIX.countries.length, S.countries.length);
@@ -706,6 +760,50 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   wsInstance.deliver({ blocks: [1, 2, null], transactions: [{}, 'tx'], 'mempool-blocks': ['x'] });
   check('a push that is not an object changes no state', beforeJunk === snap(), snap());
 
+  /* ---- a push whose figures are strings, objects or junk must not be adopted ----
+     Each websocket branch feeds a value straight into a paint that assumes a number or a
+     list. The old code only checked the branch's own type: a mempool count as a string,
+     a fees object without numbers, a block without a hash string and a projection entry
+     of strings all reached the panel, which printed NaN or threw inside shortHash(). */
+  const beforeDeep = snap();
+  wsInstance.deliver({
+    blocks: [{ height: 'x', id: 5 }, { height: 800100, id: 9 }, { id: 'c'.repeat(64) }],
+    mempoolInfo: { size: 'x', bytes: {}, total_fee: 'y' },
+    fees: { fastestFee: 'x', halfHourFee: null, hourFee: {} },
+    da: { difficultyChange: 'z', remainingBlocks: {}, estimatedRetargetDate: [] },
+    transactions: [{ txid: 123 }, { fee: 1 }, { txid: '' }],
+    'mempool-blocks': [{ nTx: 'x', blockVSize: {}, medianFee: 'q' }, 'junk', { feeRange: 'no' }]
+  });
+  check('a push with string figures changes no state', beforeDeep === snap(), snap());
+  check('no block without a hash string is stored',
+    S.blocks.every(b => typeof b.id === 'string' && b.id.length > 0),
+    S.blocks.map(b => typeof b.id).join(','));
+  check('no transaction without a txid is stored',
+    S.recent.every(t => typeof t.txid === 'string' && t.txid.length > 0),
+    S.recent.map(t => typeof t.txid).join(','));
+  check('the fee row keeps a finite fastestFee',
+    !!S.fees && typeof S.fees.fastestFee === 'number' && isFinite(S.fees.fastestFee),
+    S.fees && JSON.stringify(S.fees));
+  check('a push block with a string height does not move the tip',
+    S.tip === oldTip + 1, S.tip);
+
+  /* a tx with a real id but junk figures is listed by that id, with no derived number */
+  wsInstance.deliver({ transactions: [{ txid: 'e'.repeat(64), fee: 'x', vsize: null, value: {}, rate: 'q' }] });
+  const junkTx = S.recent[0];
+  check('a tx with junk figures keeps its id', !!junkTx && junkTx.txid === 'e'.repeat(64),
+    junkTx && junkTx.txid);
+  check('a tx with junk figures carries no number',
+    !!junkTx && junkTx.fee === null && junkTx.vsize === null && junkTx.value === null && junkTx.rate === null,
+    junkTx && JSON.stringify(junkTx));
+  NP.panel(true);
+  runFrames(rafQueue, 2);
+  await sleep(80);
+  check('junk figures print an em dash, never NaN',
+    ['listBlocks', 'listTxs', 'nextBlocks', 'pMem', 'pFee', 'pDiff', 'pHash']
+      .every(id => String(els[id].innerHTML).indexOf('NaN') < 0 && String(els[id].textContent).indexOf('NaN') < 0),
+    ['listBlocks', 'listTxs', 'nextBlocks', 'pMem', 'pFee', 'pDiff', 'pHash']
+      .filter(id => String(els[id].innerHTML).indexOf('NaN') >= 0 || String(els[id].textContent).indexOf('NaN') >= 0).join(','));
+
   /* ---- watchdog: clean state, then each alert ---- */
   /* settle on low fees and a fresh block, the state a healthy network is in */
   wsInstance.deliver({ blocks: liveBlocks, fees: FIX.fees });
@@ -806,6 +904,39 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   check('node peers are real channels-geo peers', peerNames.length > 0 &&
     peerNames.some(a => CHGEO.some(r => (r[0] === first.pk && r[5] === a) || (r[4] === first.pk && r[1] === a))),
     peerNames.join(', '));
+
+  /* ---- a failed node detail keeps the geo detail the cache already held ----
+     The nodes/{pubkey} GET fills alias, city, country and AS; its failure branch used to
+     write null into geoCache, so one failed request erased what the map had just shown —
+     and the refresh saved that null for the next boot. */
+  const geoPk = S.nodes[0].pk;
+  const geoNode = S.nodes[0];
+  const staleAt = Date.now() - 7 * 3600 * 1000;          // past the six-hour node TTL
+  ls.set('nodepulse.nodes.v2', JSON.stringify({
+    t: staleAt, chanAt: staleAt, rows: 0, nodes: [], links: [],
+    geo: {
+      [geoPk]: {
+        alias: 'STALE-ALIAS', lat: geoNode.lat, lon: geoNode.lon,
+        city: 'Old Town', country: 'Oldland', iso: 'KR', t: staleAt
+      }
+    }
+  }));
+  failPks = [geoPk];
+  await NP.refreshNodes(true);
+  failPks = [];
+  const keptNode = S.nodes.find(n => n.pk === geoPk);
+  check('a failed node detail keeps the cached alias',
+    !!keptNode && keptNode.alias === 'STALE-ALIAS', keptNode && keptNode.alias);
+  check('a failed node detail keeps the cached city and country',
+    !!keptNode && keptNode.city === 'Old Town' && keptNode.country === 'Oldland',
+    keptNode && (keptNode.city + ' / ' + keptNode.country));
+  const savedGeo = (JSON.parse(ls.get('nodepulse.nodes.v2') || '{}') || {}).geo || {};
+  check('a failed node detail is not written back as null',
+    !!savedGeo[geoPk] && typeof savedGeo[geoPk] === 'object' && savedGeo[geoPk].alias === 'STALE-ALIAS',
+    JSON.stringify(savedGeo[geoPk]));
+  check('the other node details were still refreshed during that pass',
+    S.nodes.some(n => n.pk !== geoPk && typeof n.city === 'string' && n.city.length > 0),
+    S.nodes.filter(n => n.city).length + ' nodes with a city');
 
   /* ---- L1 node card ---- */
   NP.layer('l1');

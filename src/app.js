@@ -167,6 +167,9 @@
     return s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
   function fmtFixed(v, d) { return num(v) ? v.toFixed(d) : '—'; }
+  /* The fee row prints one decimal: a figure the answer did not carry (a push may omit
+     halfHourFee or hourFee) is an em dash, never Math.round() of NaN. */
+  function fmtFee(v) { return num(v) ? String(Math.round(v * 10) / 10) : '—'; }
   function fmtBtc(sats) {
     if (!num(sats)) return '—';
     var b = sats / 1e8;
@@ -452,24 +455,63 @@
     });
   }
 
+  /* Fees: fastestFee drives the HUD and the watchdog, and the 30 m / 1 h figures sit
+     beside it in the panel, so an answer is kept only when fastestFee is a finite number
+     and only its numeric fields are copied — a string halfHourFee used to reach the
+     panel and print NaN. */
+  var FEE_FIELDS = ['fastestFee', 'halfHourFee', 'hourFee', 'economyFee', 'minimumFee'];
+  function feesFromAnswer(f) {
+    if (!isObj(f) || !num(f.fastestFee)) return null;
+    var out = {};
+    FEE_FIELDS.forEach(function (k) { if (num(f[k])) out[k] = f[k]; });
+    return out;
+  }
+  /* The next-retarget row needs a finite difficultyChange; the other two only label it. */
+  function diffFromAnswer(d) {
+    if (!isObj(d) || !num(d.difficultyChange)) return null;
+    return {
+      difficultyChange: d.difficultyChange,
+      remainingBlocks: num(d.remainingBlocks) ? d.remainingBlocks : null,
+      estimatedRetargetDate: (typeof d.estimatedRetargetDate === 'string' || num(d.estimatedRetargetDate))
+        ? d.estimatedRetargetDate : null
+    };
+  }
+
   function loadFees() {
     return request('/api/v1/fees/recommended').then(function (f) {
-      if (!isObj(f) || !num(f.fastestFee)) throw new Error('bad fees');
-      S.fees = f; noteFee(f); ok(); schedulePaint();
+      var fees = feesFromAnswer(f);
+      if (!fees) throw new Error('bad fees');
+      S.fees = fees; noteFee(fees); ok(); schedulePaint();
     });
+  }
+
+  /* The hashrate answer is walked twice: paintPanel averages every entry of hashrates
+     and formats currentHashrate. A proxy or a captive portal can answer with a string,
+     a number or an object where that list belongs, and an isObj() check alone let it
+     through — forEach() then threw on the next paint and a string figure printed NaN.
+     Only the fields the app draws survive, each a finite number, and an answer without
+     a single usable row is rejected so the previous series stays on screen. */
+  function hrFromAnswer(h) {
+    if (!isObj(h) || !isArr(h.hashrates)) return null;
+    var rows = h.hashrates.filter(function (r) { return isObj(r) && num(r.avgHashrate); })
+      .map(function (r) { return { avgHashrate: r.avgHashrate }; });
+    if (!rows.length) return null;
+    return { hashrates: rows, currentHashrate: num(h.currentHashrate) ? h.currentHashrate : null };
   }
 
   function loadHashrate() {
     return request('/api/v1/mining/hashrate/1w').then(function (h) {
-      if (!isObj(h)) throw new Error('bad hashrate');
-      S.hr = h; ok(); schedulePaint();
+      var hr = hrFromAnswer(h);
+      if (!hr) throw new Error('bad hashrate');
+      S.hr = hr; ok(); schedulePaint();
     });
   }
 
   function loadDiff() {
     return request('/api/v1/difficulty-adjustment').then(function (d) {
-      if (!isObj(d)) throw new Error('bad difficulty');
-      S.diff = d; ok(); schedulePaint();
+      var diff = diffFromAnswer(d);
+      if (!diff) throw new Error('bad difficulty');
+      S.diff = diff; ok(); schedulePaint();
     });
   }
 
@@ -909,7 +951,9 @@
     if (cache.geo) {
       Object.keys(cache.geo).forEach(function (k) {
         var v = cache.geo[k];
-        if (isObj(v) || v === null) geoCache[k] = v;
+        /* a real detail object only: nothing here is ever written as null, and a null
+           left by an older build carries nothing */
+        if (isObj(v)) geoCache[k] = v;
       });
     }
 
@@ -949,7 +993,13 @@
               ch: toNum(d.active_channel_count), cap: toNum(d.capacity),
               t: now
             };
-          }).catch(function () { geoCache[n.pk] = null; });
+          }).catch(function () {
+            /* A failed detail fetch keeps whatever the snapshot already held for this
+               node. Storing null here — as this line used to — erased an alias, city,
+               country and AS the map had just shown, and wrote that null back into the
+               saved snapshot. The kept entry is stale (old t), so the next refresh
+               fetches it again. */
+          });
         };
       });
 
@@ -1209,17 +1259,36 @@
     if (S.feeHist.length > 240) S.feeHist.splice(0, S.feeHist.length - 240);
   }
 
+  /* A push block must carry every figure the ledger row prints: a numeric height, a hash
+     string, and finite numbers for time, tx count and size. An entry missing them is
+     skipped instead of being drawn as NaN or throwing inside shortHash(). */
+  function pushedBlock(b) {
+    return isObj(b) && num(b.height) && typeof b.id === 'string' && b.id.length > 0 &&
+      num(b.timestamp) && num(b.tx_count) && num(b.size);
+  }
+
+  /* A push is not a REST answer: nothing has validated it before it arrives, and every
+     branch below feeds a value straight into a paint path that assumes numbers and
+     lists. Each field is therefore shape-checked here — a finite number where a figure
+     is printed, an array where a list is walked — and a branch that fails is skipped,
+     leaving the previous value on screen. */
   function handleWS(m) {
     if (!isObj(m)) return;
     var touched = false;
-    if (isObj(m.mempoolInfo)) {
+    if (isObj(m.mempoolInfo) && num(m.mempoolInfo.size) && num(m.mempoolInfo.bytes)) {
       S.mem = { count: m.mempoolInfo.size, vsize: m.mempoolInfo.bytes, totalFee: btcAmount(m.mempoolInfo.total_fee) };
       touched = true;
     }
-    if (isObj(m.fees)) { S.fees = m.fees; noteFee(m.fees); touched = true; }
-    if (isObj(m.da)) { S.diff = m.da; touched = true; }
+    if (isObj(m.fees)) {
+      var fees = feesFromAnswer(m.fees);
+      if (fees) { S.fees = fees; noteFee(fees); touched = true; }
+    }
+    if (isObj(m.da)) {
+      var da = diffFromAnswer(m.da);
+      if (da) { S.diff = da; touched = true; }
+    }
     if (isArr(m.blocks) && m.blocks.length) {
-      var list = orderBlocks(m.blocks.filter(function (b) { return isObj(b) && num(b.height); }).map(mapBlock)).slice(0, 8);
+      var list = orderBlocks(m.blocks.filter(pushedBlock).map(mapBlock)).slice(0, 8);
       if (list.length) {
         var top = list[0].height;
         if (S.tip !== null && top > S.tip) blockEvent(top, list[0]);
@@ -1231,9 +1300,15 @@
       }
     }
     if (isArr(m.transactions) && m.transactions.length) {
-      var add = m.transactions.filter(function (t) { return isObj(t) && typeof t.txid === 'string'; })
+      var add = m.transactions.filter(function (t) { return isObj(t) && typeof t.txid === 'string' && t.txid; })
         .map(function (t) {
-        return { txid: t.txid, fee: t.fee, vsize: t.vsize, value: t.value, rate: num(t.rate) ? t.rate : (t.vsize ? t.fee / t.vsize : null) };
+        return {
+          txid: t.txid,
+          fee: num(t.fee) ? t.fee : null,
+          vsize: num(t.vsize) ? t.vsize : null,
+          value: num(t.value) ? t.value : null,
+          rate: num(t.rate) ? t.rate : (num(t.fee) && num(t.vsize) && t.vsize > 0 ? t.fee / t.vsize : null)
+        };
       });
       if (add.length) {
         var seen = Object.create(null);
@@ -1245,12 +1320,18 @@
     /* mempool.space's own projection of the next blocks: each entry is the set of
        transactions that would fill one block, with its fee range and tx count. */
     if (isArr(m['mempool-blocks']) && m['mempool-blocks'].length) {
-      var mbs = m['mempool-blocks'].filter(isObj).map(function (b) {
-        var fr = isArr(b.feeRange) ? b.feeRange : [];
-        return {
-          nTx: b.nTx, vsize: b.blockVSize, size: b.blockSize, fees: b.totalFees,
-          median: b.medianFee, lo: fr.length ? fr[0] : null, hi: fr.length ? fr[fr.length - 1] : null
-        };
+      var mbs = [];
+      m['mempool-blocks'].forEach(function (b) {
+        if (!isObj(b)) return;
+        /* at least one real figure, the same rule the cached projection uses */
+        if (!num(b.medianFee) && !num(b.blockVSize) && !num(b.nTx)) return;
+        var fr = isArr(b.feeRange) ? b.feeRange.filter(function (v) { return num(v); }) : [];
+        mbs.push({
+          nTx: num(b.nTx) ? b.nTx : 0, vsize: num(b.blockVSize) ? b.blockVSize : 0,
+          size: num(b.blockSize) ? b.blockSize : 0, fees: num(b.totalFees) ? b.totalFees : null,
+          median: num(b.medianFee) ? b.medianFee : null,
+          lo: fr.length ? fr[0] : null, hi: fr.length ? fr[fr.length - 1] : null
+        });
       });
       if (mbs.length) {
         S.mblocks = mbs;
@@ -1451,7 +1532,7 @@
     var pf = $('pFee');
     if (pf) {
       pf.innerHTML = S.fees && num(S.fees.fastestFee)
-        ? esc(String(Math.round(S.fees.fastestFee * 10) / 10)) + '<span class="u">sat/vB</span><small>30m ' + esc(String(Math.round(S.fees.halfHourFee * 10) / 10)) + ' · 1h ' + esc(String(Math.round(S.fees.hourFee * 10) / 10)) + '</small>'
+        ? esc(fmtFee(S.fees.fastestFee)) + '<span class="u">sat/vB</span><small>30m ' + esc(fmtFee(S.fees.halfHourFee)) + ' · 1h ' + esc(fmtFee(S.fees.hourFee)) + '</small>'
         : '—';
     }
     var pd = $('pDiff');
@@ -2920,6 +3001,9 @@
       wsConnectMs: function (v) { if (num(v)) WS_CONNECT_MS = v; return WS_CONNECT_MS; },
       fetchMs: function (v) { if (num(v)) FETCH_MS = v; return FETCH_MS; },
       loadTip: loadTip,
+      loadHashrate: loadHashrate,
+      push: handleWS,
+      refreshNodes: refreshNodes,
       mblocks: function () { return S.mblocks; },
       watch: function () { evalWatch(); return { list: S.wd ? S.wd.list : [], alerts: (S.wd ? S.wd.alerts : []) || [], sig: S.alertSig }; },
       reorg: reorgEvent

@@ -9,7 +9,7 @@
 ![zero dependencies](https://img.shields.io/badge/dependencies-0-0b1220?style=flat-square)
 ![single file](https://img.shields.io/badge/build-single%20file%20HTML-0b1220?style=flat-square)
 ![canvas 2d](https://img.shields.io/badge/render-Canvas%202D-38bdf8?style=flat-square)
-![tests](https://img.shields.io/badge/assertions-221%20passing-2ea043?style=flat-square)
+![tests](https://img.shields.io/badge/assertions-243%20passing-2ea043?style=flat-square)
 ![data](https://img.shields.io/badge/L1-bitnodes-38bdf8?style=flat-square)
 ![data](https://img.shields.io/badge/mainnet-mempool.space-orange?style=flat-square)
 
@@ -94,6 +94,12 @@ is generated, interpolated from a model, or placed for visual balance.
   `mempool.space`, `mempool.emzy.de`, and `mempool.ninja`, and the WebSocket rotates through
   the same three mirrors; when all of them fail the app degrades to the snapshot and says so
   instead of substituting values.
+* **A malformed answer is rejected, not drawn.** Every feed shape-checks what it uses — REST
+  loaders and WebSocket pushes alike: a finite number where a figure is printed, a list where
+  a row list is walked, a hash string where a hash is shortened. A payload that fails keeps
+  the previous value on screen, so a broken mirror or a captive portal cannot turn a figure
+  into `NaN` or blank the panel, and a failed per-node detail fetch keeps the alias, city and
+  country already cached instead of overwriting them with nothing.
 * **Country counts say which snapshot they are.** Bitnodes exposes per-node country only
   through a paginated 21,826-row list (~20 MB). The app fetches it at build time
   (`fetch_l1.py`) and stamps that block with the capture date instead of pretending it is
@@ -155,12 +161,12 @@ visible, at under 1 % of the raw edge count.
 
 ### 5. Zero-dependency build and an automated verification suite
 `build.py` inlines CSS, geometry, snapshots, application code, and the base64 app icon into
-one document — about 366 KB — with tokens that fail the build if any substitution is missed,
+one document — about 371 KB — with tokens that fail the build if any substitution is missed,
 and it refuses to emit a file that could break out of its own `<script>` block.
 
 | Harness | What it proves | Result |
 | --- | --- | --- |
-| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge, snapshots, mempool-blocks, all four watchdog alerts, mirror fallback, EN/KO | **199 / 199 assertions pass** |
+| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge, snapshots, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads, a failed node-detail fetch, EN/KO | **243 / 243 assertions pass** |
 | `test/fill-truth.js` | Rendered continent fill compared with the land polygons over 50 camera angles, 743 k sampled pixels | ≈ 0.4 % false-positive / 0.26 % false-negative, all on sub-pixel Antarctic coastline edges |
 | `test/perf.js` | Frame cadence at a 390×844 phone viewport, DPR clamped to 2, then with 4× CPU throttling | p50 16.7 ms (60 fps), p95 33.4 ms under throttle |
 | `test/offline.js` | Boot with every network route aborted: snapshot geometry, status disclosure, no JS errors | pass |
@@ -189,7 +195,7 @@ node --check src/app.js   # syntax gate
 **Test it.**
 
 ```bash
-node test/headless.js               # 199 assertions, no browser required
+node test/headless.js               # 243 assertions, no browser required
 python3 build.py && node test/fill-truth.js   # browser harness, needs Playwright
 node test/perf.js                   # frame-time probe
 ```
@@ -218,7 +224,7 @@ enabled, an edge-to-edge `#040914` dark system bar treatment, and the NodePulse 
 
 * **Package:** `com.jbitmstr.nodepulse`
 * **Min / target SDK:** 24 / 34
-* **Version:** 1.1.6 (`versionCode` 8)
+* **Version:** 1.1.7 (`versionCode` 9)
 
 **Locked down shell.** File access, content access, file-URL access and universal access
 from file URLs are all off; the only page the WebView can show is the bundled asset, a
@@ -230,6 +236,12 @@ style block named by its SHA-256 hash, so no `'unsafe-inline'` is needed; `data:
 only the named https/wss hosts), cleartext HTTP is blocked at the manifest, and the release
 build is minified with R8. `build.py` computes the hashes over the exact bytes it writes and
 fails the build if the policy it emitted does not name every block it produced.
+
+**Never a blank start.** `onCreate` restores the WebView's saved state only when
+`restoreState()` answers with a back/forward list; when the bundle came from a killed
+process, another WebView version or holds nothing usable, the method now loads the bundled
+asset instead of leaving the WebView on an empty page (the old code loaded the app only when
+the bundle was `null`).
 
 **Native HTTP bridge.** `bitnodes.io` answers without an `Access-Control-Allow-Origin`
 header, so a WebView `fetch` would be blocked by CORS — and the L1 layer is the primary
