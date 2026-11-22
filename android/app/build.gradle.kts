@@ -48,8 +48,8 @@ android {
         applicationId = "com.jbitmstr.nodepulse"
         minSdk = 24
         targetSdk = 34
-        versionCode = 7
-        versionName = "1.1.5"
+        versionCode = 8
+        versionName = "1.1.6"
         resourceConfigurations += listOf("en")
     }
 
@@ -95,6 +95,13 @@ tasks.register<Copy>("stageWebApp") {
     into(layout.projectDirectory.dir("src/main/assets"))
     rename { "index.html" }
 }
+
+/* Running Gradle directly stages the web app too: preBuild runs before every packaging
+ * task, so a plain `gradle assembleDebug` can no longer produce an APK whose
+ * assets/index.html is missing (the shell would boot to a blank screen) when the
+ * checkout has not run build.py first. CI still stages the file explicitly and the
+ * headless tests run against dist/, so nothing changes there. */
+tasks.named("preBuild") { dependsOn("stageWebApp") }
 
 /* The gate. Only a task that packages a release needs the key, so assembleDebug,
  * lintDebug and testDebugUnitTest run exactly as before; assembleRelease, bundleRelease

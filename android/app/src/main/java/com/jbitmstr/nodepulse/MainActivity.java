@@ -212,12 +212,15 @@ public class MainActivity extends Activity {
            and the script string built from it cannot fill a low-end device's heap. */
         private static final int MAX_BODY_CHARS = 3 * 1024 * 1024;
         private static final int MAX_REDIRECTS = 5;
-        /* Two workers, one spare, eight waiting. A page never needs more than a handful of
-           concurrent GETs, and a request beyond this is refused at once so it falls to the
-           next mirror or to the bundled snapshot instead of piling up. */
+        /* Two workers, one spare, 32 waiting. Boot fires about eleven concurrent GETs
+           at once (tip, blocks, mempool, recent txs, fees, hashrate, difficulty, pools,
+           Lightning stats and countries, plus the Bitnodes snapshot pair), and a queue
+           sized to the burst absorbs it: a request beyond this is still refused at once
+           so it falls to the next mirror or to the bundled snapshot instead of piling
+           up, but the boot burst itself is never one of the refused. */
         private static final int POOL_CORE = 2;
         private static final int POOL_MAX = 3;
-        private static final int POOL_QUEUE = 8;
+        private static final int POOL_QUEUE = 32;
         private static final long POOL_KEEP_ALIVE_S = 30L;
 
         private final WeakReference<WebView> web;

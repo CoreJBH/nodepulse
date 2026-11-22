@@ -148,6 +148,37 @@ function makeFakeWS() {
 }
 const FakeWS = makeFakeWS();
 
+/* a socket that never finishes connecting — the CONNECTING-timeout test drives it */
+function makeHungWS() {
+  const list = [];
+  function HungWS(url) { this.url = url; this.readyState = 0; this.sent = []; list.push(this); }
+  HungWS.prototype.send = function (d) { this.sent.push(d); };
+  HungWS.prototype.close = function () { this.readyState = 3; if (this.onclose) this.onclose(); };
+  HungWS.list = list;
+  return HungWS;
+}
+
+/* the first mirror answers the headers but its body never arrives: the timeout must
+   cover the body read, so the request aborts and the next mirror serves the answer */
+function hangingBodyFetch(url, opt) {
+  fetchLog.push(url);
+  if (url.indexOf('https://mempool.space/api/blocks/tip/height') === 0) {
+    return Promise.resolve({
+      ok: true, status: 200,
+      text: () => new Promise((res, rej) => {
+        const signal = opt && opt.signal;
+        if (!signal) return rej(new Error('no signal'));
+        if (signal.aborted) return rej(new Error('aborted'));
+        signal.addEventListener('abort', () => rej(new Error('aborted')));
+      })
+    });
+  }
+  if (url.indexOf('/api/blocks/tip/height') >= 0) {
+    return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(String(FIX.tip)) });
+  }
+  return fakeFetch(url);
+}
+
 /* ------------------------------------------------------------- localStorage */
 let ls = new Map();
 const localStorage = {
@@ -786,6 +817,28 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   check('L1 card states there is no peer graph', l1card.indexOf('P2P') > 0 || l1card.indexOf('연결 그래프') > 0);
   check('L1 card does not invent disk or uptime', !/(GB<\/dd>|가동시간<\/dt>|디스크<\/dt>|uptime<\/dt>)/i.test(l1card), 'invented field');
 
+  /* ---- a two-finger pinch release must not open a node card ----
+     The globe only saw dragMoved from the single-finger phase, so letting go of a zoom
+     gesture on a cluster used to read as a tap and pop the card open. A clean tap must
+     still open it, so that is the control. */
+  els.modal.click();
+  check('card closed before the gesture tests', !els.modal.classList.contains('on'));
+  runFrames(rafQueue, 2);   // a layer switch rebuilds the clusters; draw them first
+  const pinchCluster = G.clusters.find(c => c.on && typeof c.sx === 'number') || G.clusters[0];
+  check('a visible cluster exists for the gesture test', !!pinchCluster && pinchCluster.on === true,
+    pinchCluster && (pinchCluster.on + '/' + pinchCluster.sx + ',' + pinchCluster.sy));
+  const pxEv = (type, id, x, y) => els.globe.dispatch(type, { pointerId: id, clientX: x, clientY: y, preventDefault() { } });
+  pxEv('pointerdown', 1, pinchCluster.sx, pinchCluster.sy);
+  pxEv('pointerup', 1, pinchCluster.sx, pinchCluster.sy);
+  check('a clean single-finger tap still opens the card', els.modal.classList.contains('on'));
+  els.modal.click();
+  pxEv('pointerdown', 1, pinchCluster.sx, pinchCluster.sy);
+  pxEv('pointerdown', 2, pinchCluster.sx + 40, pinchCluster.sy + 40);
+  pxEv('pointermove', 2, pinchCluster.sx + 60, pinchCluster.sy + 60);
+  pxEv('pointerup', 2, pinchCluster.sx + 60, pinchCluster.sy + 60);
+  pxEv('pointerup', 1, pinchCluster.sx, pinchCluster.sy);
+  check('releasing a pinch opens no node card', !els.modal.classList.contains('on'));
+
   /* ---- language toggle ---- */
   NP.lang('en');
   await sleep(500);
@@ -953,6 +1006,138 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   const SC = satsCache.window.NODEPULSE && satsCache.window.NODEPULSE.state;
   check('a cached satoshi fee is not adopted as a BTC amount',
     !!SC && SC.mem && SC.mem.totalFee === null && SC.mem.count === 9, SC && SC.mem && JSON.stringify(SC.mem));
+
+  /* ---- one corrupt element inside a cached array must not take the boot down ----
+     localStorage is writable by anything that ever ran on this origin; 1.1.5 trusted the
+     array as a whole, so a single number where a block object belongs crashed shortHash()
+     on the first paint and a string where the hashrate list belongs crashed forEach().
+     Every element is now rebuilt field by field; the well-formed ones survive. */
+  ls = new Map([['nodepulse.cache.v2', JSON.stringify({
+    t: Date.now(), tip: 812345,
+    blocks: [7, null, 'x', { height: 'n', id: 9 },
+      { height: 800123, id: 'a'.repeat(64), time: 'z', txs: null, size: {}, medianFee: 'q', pool: 5 }],
+    recent: [4, {}, { txid: 123 }, { txid: 'b'.repeat(64), value: 0.5, fee: 'x', vsize: null, rate: 3 }],
+    countries: ['KR', 5, { iso: 7, count: 1 }, { iso: 'KR', count: 'n' }, { iso: 'US', count: 12 }],
+    mblocks: [1, 'y', { vsize: 'x', median: 'q', lo: {}, hi: [], nTx: null }, { vsize: 1.2e6, median: 12, lo: 9, hi: 15, nTx: 2000 }],
+    mem: { count: 1200, vsize: 500000, totalFee: 300 }, fees: { fastestFee: 7, halfHourFee: 'x' },
+    hr: { hashrates: 'oops', currentHashrate: 5 },
+    diff: { difficultyChange: 1, remainingBlocks: 'n', estimatedRetargetDate: 9 },
+    ln: null, lnAt: 0, pools: { blockCount: 0, pools: 'x' }, poolsAt: 0
+  })]]);
+  const corruptMode = fetchMode;
+  fetchMode = 'fail';
+  const corrupt = makeSandbox({ bridge: false });
+  const ctxC = vm.createContext(corrupt.sandbox);
+  let corruptThrew = null;
+  try {
+    for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctxC, { filename: 'corrupt-' + i + '.js', timeout: 8000 });
+    await sleep(400);
+    runFrames(corrupt.rafQueue, 2);
+    corrupt.window.NODEPULSE.panel(true);
+    await sleep(300);
+    runFrames(corrupt.rafQueue, 2);
+  } catch (e) { corruptThrew = e; }
+  fetchMode = corruptMode;
+  check('a cache with corrupt array elements boots and paints without throwing', !corruptThrew, corruptThrew && corruptThrew.stack);
+  const CC = corrupt.window.NODEPULSE && corrupt.window.NODEPULSE.state;
+  check('only well-formed cached blocks survive', !!CC && CC.blocks.length === 1 &&
+    CC.blocks[0].height === 800123 && CC.blocks[0].time === null && CC.blocks[0].pool === null,
+    CC && JSON.stringify(CC.blocks));
+  check('only well-formed cached transactions survive', !!CC && CC.recent.length === 1 &&
+    CC.recent[0].txid === 'b'.repeat(64) && CC.recent[0].fee === 0, CC && JSON.stringify(CC.recent));
+  check('only well-formed cached countries survive', !!CC && CC.countries.length === 1 &&
+    CC.countries[0].iso === 'US' && CC.countries[0].count === 12, CC && JSON.stringify(CC.countries));
+  check('only well-formed cached next-blocks survive', !!CC && CC.mblocks.length === 1 &&
+    CC.mblocks[0].vsize === 1.2e6 && CC.mblocks[0].nTx === 2000, CC && JSON.stringify(CC.mblocks));
+  check('a cached hashrate list that is not an array is not adopted',
+    !!CC && CC.hr === null, CC && CC.hr && JSON.stringify(CC.hr));
+  check('a cached pool list that is not an array is not adopted',
+    !!CC && CC.pools === null, CC && CC.pools && JSON.stringify(CC.pools));
+  check('cached numeric fields are kept while corrupt siblings are dropped',
+    !!CC && CC.tip === 812345 && CC.mem && CC.mem.count === 1200 && CC.fees && CC.fees.fastestFee === 7 &&
+    CC.fees.halfHourFee === undefined && CC.diff && CC.diff.difficultyChange === 1 && CC.diff.remainingBlocks === null,
+    CC && JSON.stringify({ tip: CC.tip, mem: CC.mem, fees: CC.fees, diff: CC.diff }));
+
+  /* ---- a corrupt entry in the saved node snapshot is dropped, not drawn ---- */
+  ls = new Map([['nodepulse.nodes.v2', JSON.stringify({
+    t: Date.now(), geo: {}, rows: 99, chanAt: Date.now(),
+    nodes: [3, {}, { pk: 'x', lat: 1, lon: 1 },
+      { pk: 'a'.repeat(66), alias: 'ok-node', lat: 37.5, lon: 127, iso: 'KR', channels: 4, capacity: 1, deg: 2, peers: [] }],
+    links: ['ab', [1, 2], ['a'.repeat(66), 'b'.repeat(66)]]
+  })]]);
+  const corruptNodes = makeSandbox({ bridge: true });
+  const ctxCN = vm.createContext(corruptNodes.sandbox);
+  let corruptNodesThrew = null;
+  try {
+    for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctxCN, { filename: 'corruptnodes-' + i + '.js', timeout: 8000 });
+    await sleep(400);
+    runFrames(corruptNodes.rafQueue, 2);
+  } catch (e) { corruptNodesThrew = e; }
+  const CN = corruptNodes.window.NODEPULSE && corruptNodes.window.NODEPULSE.state;
+  check('a node snapshot with corrupt elements boots without throwing', !corruptNodesThrew, corruptNodesThrew && corruptNodesThrew.stack);
+  check('only well-formed cached nodes and links are drawn', !!CN && CN.nodes.length === 1 &&
+    CN.links.length === 1 && CN.nodeSrc === 'live',
+    CN && (CN.nodes.length + '/' + CN.links.length + '/' + CN.nodeSrc));
+
+  /* ---- a WebSocket that never finishes connecting fails fast to the next mirror ----
+     Without a CONNECTING timeout the app waited for the browser's own give-up — tens of
+     seconds — before rotating, and sat without a feed meanwhile. */
+  ls = new Map();
+  const HungWS = makeHungWS();
+  const hungWS = makeSandbox({ bridge: false });
+  hungWS.sandbox.WebSocket = HungWS;
+  hungWS.window.WebSocket = HungWS;
+  const ctxH = vm.createContext(hungWS.sandbox);
+  const modeBeforeHung = fetchMode;
+  fetchMode = 'fail';
+  try {
+    for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctxH, { filename: 'hungws-' + i + '.js', timeout: 8000 });
+    await sleep(200);
+  } catch (e) { check('hung-websocket boot does not throw', false, e && e.stack); }
+  const HN = hungWS.window.NODEPULSE;
+  HN.wsConnectMs(40);
+  HungWS.list[0].close();                       // give up on the boot socket by hand
+  await sleep(30);
+  const hostAfterBootClose = HN.state.wsHost;
+  HN.connect();                                 // opens hung socket #2
+  await sleep(140);                             // past the 40 ms connecting timeout
+  check('a socket still CONNECTING is closed by the timeout',
+    HungWS.list[1] && HungWS.list[1].readyState === 3, HungWS.list[1] && HungWS.list[1].readyState);
+  check('the connecting timeout advanced to the next mirror',
+    HN.state.wsHost === (hostAfterBootClose + 1) % 3, HN.state.wsHost + ' vs ' + hostAfterBootClose);
+  check('the timed-out socket left no live feed', HN.state.ws === 'closed', HN.state.ws);
+  await sleep(3800);                            // past the retry backoff
+  check('the retry after a connecting timeout opens the third mirror',
+    HungWS.list.length >= 3 && HungWS.list[2].url === 'wss://mempool.ninja/api/v1/ws',
+    HungWS.list[2] && HungWS.list[2].url);
+  fetchMode = modeBeforeHung;
+
+  /* ---- a body that hangs after the headers still falls to the next mirror ----
+     The abort timer used to be cleared the moment the response headers arrived, so a
+     mirror that stalled mid-body hung the request forever. */
+  ls = new Map();
+  const bodyHang = makeSandbox({ bridge: false, fetchImpl: hangingBodyFetch });
+  const ctxB = vm.createContext(bodyHang.sandbox);
+  const tipCallsBefore = fetchLog.length;
+  let bootThrew = null;
+  try {
+    for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctxB, { filename: 'bodyhang-' + i + '.js', timeout: 8000 });
+  } catch (e) { bootThrew = e; }
+  check('body-hang boot does not throw', !bootThrew, bootThrew && bootThrew.stack);
+  const NB = bodyHang.window.NODEPULSE;
+  NB.fetchMs(60);
+  let bodyResult = null;
+  await Promise.race([
+    NB.loadTip().then(() => { bodyResult = 'ok'; }, () => { bodyResult = 'err'; }),
+    sleep(3000).then(() => { bodyResult = bodyResult || 'timeout'; })
+  ]);
+  check('a body that hangs after the headers still completes', bodyResult === 'ok', bodyResult);
+  const tipCalls = fetchLog.slice(tipCallsBefore).filter(u => u.indexOf('tip/height') >= 0);
+  check('the hung body request rotated to the second mirror', tipCalls.length >= 2 &&
+    tipCalls[tipCalls.length - 2].indexOf('mempool.space') >= 0 &&
+    tipCalls[tipCalls.length - 1].indexOf('mempool.emzy.de') >= 0,
+    tipCalls.join(' | '));
+  check('the tip arrived from the fallback mirror', NB.state.tip === FIX.tip, NB.state.tip + ' vs ' + FIX.tip);
 
   /* ---- failure mode: no network at all ----
      without the bridge and with every request failing, both layers still draw the

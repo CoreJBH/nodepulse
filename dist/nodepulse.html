@@ -9,7 +9,7 @@
      computes over the exact bytes it has written, so no 'unsafe-inline' is needed and an
      injected block would have to match a hash that is already in the file. Nothing else
      is allowed: no frames, no forms, no plugins, no workers, no extra hosts. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-vy6I62cyBslfvwe+NkBWz2HlaD6O924N21j144tsZdE=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-nppFIcXLZVmS3XYzv5VWZuNnJacl3KoIYSrMoFFE1M8='; style-src 'sha256-cmrz4C/bq+MMb5YzyCFQWmbVcMe2YXkwYRmuhmAkPsE='; img-src data:; connect-src https://bitnodes.io https://www.bitnodes.io https://btcnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-vy6I62cyBslfvwe+NkBWz2HlaD6O924N21j144tsZdE=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-jtoy2inG35MbHWzGBqgjIITYyh0wuIZYHGbt+MeoQ9c='; style-src 'sha256-cmrz4C/bq+MMb5YzyCFQWmbVcMe2YXkwYRmuhmAkPsE='; img-src data:; connect-src https://bitnodes.io https://www.bitnodes.io https://btcnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
 <meta name="theme-color" content="#040914">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="NodePulse — 비트코인 L1 메인넷 실시간 감시. Bitnodes 풀노드 분포와 mempool.space 블록·멤풀·수수료를 실제 데이터로만 표시합니다.">
@@ -707,6 +707,18 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
   var WD_FEE_SPIKE = 80;                 // sat/vB
   var WD_POOL_SHARE = 0.35;              // one pool's share of a week's blocks
   var WD_REORG_MS = 30 * 60 * 1000;      // how long a reorg stays on the badge
+  /* A REST answer must be complete, not merely started: the abort timer spans the
+     headers AND the body read, so a mirror that stalls mid-body still falls to the next
+     one instead of hanging forever (test hook: window.NODEPULSE.fetchMs). */
+  var FETCH_MS = 9000;
+  /* A WebSocket that never finishes connecting is closed after this long and the next
+     mirror gets the retry, instead of the app sitting without a feed until the browser
+     gives up on its own (test hook: window.NP_WS_CONNECT_MS before boot,
+     window.NODEPULSE.wsConnectMs after). */
+  var WS_CONNECT_MS = 8000;
+  if (typeof window !== 'undefined' && window && num(window.NP_WS_CONNECT_MS)) {
+    WS_CONNECT_MS = window.NP_WS_CONNECT_MS;
+  }
 
   /* ------------------------------------------------------------------ i18n */
   var STR = {
@@ -958,12 +970,20 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       if (typeof AbortController !== 'undefined') {
         ctrl = new AbortController();
         opt.signal = ctrl.signal;
-        timer = setTimeout(function () { try { ctrl.abort(); } catch (e) { } }, 9000);
+        timer = setTimeout(function () { try { ctrl.abort(); } catch (e) { } }, FETCH_MS);
       }
+      /* The timer is cleared only once the BODY has settled, not when the headers
+         arrive: clearing it early left a mirror that stalls mid-body hanging forever
+         (the abort signal covers the body read too). */
       return fetch(host + path, opt).then(function (r) {
-        if (timer) clearTimeout(timer);
-        if (!r.ok) throw httpError(r);
-        return kind === 'text' ? r.text() : r.json();
+        if (!r.ok) { if (timer) clearTimeout(timer); throw httpError(r); }
+        return (kind === 'text' ? r.text() : r.json()).then(function (body) {
+          if (timer) clearTimeout(timer);
+          return body;
+        }, function (e) {
+          if (timer) clearTimeout(timer);
+          throw e;
+        });
       }).catch(function (e) {
         if (timer) clearTimeout(timer);
         if (e && e.fatal) throw e;
@@ -998,11 +1018,17 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       opt.signal = ctrl.signal;
       timer = setTimeout(function () { try { ctrl.abort(); } catch (e) { } }, ms || 15000);
     }
+    /* Same rule as request(): the timeout spans the body read, not just the headers. */
     return fetch(url, opt).then(function (r) {
-      if (timer) clearTimeout(timer);
-      if (!r.ok) throw httpError(r);
-      return asText ? r.text() : r.json();
-    }, function (e) { if (timer) clearTimeout(timer); throw e; });
+      if (!r.ok) { if (timer) clearTimeout(timer); throw httpError(r); }
+      return (asText ? r.text() : r.json()).then(function (body) {
+        if (timer) clearTimeout(timer);
+        return body;
+      }, function (e) {
+        if (timer) clearTimeout(timer);
+        throw e;
+      });
+    });
   }
 
   function ok() { S.lastOk = Date.now(); if (S.fail > 0) S.fail = 0; }
@@ -1501,26 +1527,47 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     });
   }
 
+  /* The saved node snapshot gets the same element-level treatment: a bare number in
+     the nodes array or a two-character string in the links array used to reach
+     Globe.build() and the channel lookup untouched. */
+  function nodeFromCache(n) {
+    return isObj(n) && validPk(n.pk) && num(n.lat) && num(n.lon) ? n : null;
+  }
+  function linkFromCache(l) {
+    return isArr(l) && l.length === 2 && typeof l[0] === 'string' && typeof l[1] === 'string' ? l : null;
+  }
+  function cachedNodeGraph(stored) {
+    var c = isObj(stored) ? stored : {};
+    return {
+      nodes: isArr(c.nodes) ? c.nodes.map(nodeFromCache).filter(Boolean) : [],
+      links: isArr(c.links) ? c.links.map(linkFromCache).filter(Boolean) : [],
+      rows: num(c.rows) ? c.rows : 0,
+      at: num(c.t) ? c.t : 0,
+      chanAt: num(c.chanAt) ? c.chanAt : (num(c.t) ? c.t : 0),
+      geo: isObj(c.geo) ? c.geo : null
+    };
+  }
+
   function refreshNodes(force) {
     /* localStorage is writable by anything that ever ran on this origin and JSON.parse
        returns whatever the string held, so the snapshot is only used after each field is
        checked for the shape this code walks. */
     var stored = recall(LS_NODES);
-    var cache = isObj(stored) ? stored : {};
+    var cache = cachedNodeGraph(stored);
     var now = Date.now();
-    var cacheAt = num(cache.t) ? cache.t : 0;
-    var cacheChanAt = num(cache.chanAt) ? cache.chanAt : cacheAt;
-    if (!force && isArr(cache.nodes) && cache.nodes.length && isArr(cache.links) && cache.links.length &&
+    var cacheAt = cache.at;
+    var cacheChanAt = cache.chanAt;
+    if (!force && cache.nodes.length && cache.links.length &&
       (now - cacheAt) < NODE_TTL) {
       /* A fresh snapshot is the whole answer: it is drawn, and the channel graph behind
          it is less than six hours old. The old code drew it and then fetched
          channels-geo, both rankings and every node detail again on every boot, so a
          restart re-downloaded a 1.5 MB payload it already had. */
-      applyNodes(cache.nodes, cache.links, 'live', cacheAt, { rows: num(cache.rows) ? cache.rows : 0, at: cacheChanAt });
+      applyNodes(cache.nodes, cache.links, 'live', cacheAt, { rows: cache.rows, at: cacheChanAt });
       return Promise.resolve();
     }
     var geoCache = Object.create(null);
-    if (isObj(cache.geo)) {
+    if (cache.geo) {
       Object.keys(cache.geo).forEach(function (k) {
         var v = cache.geo[k];
         if (isObj(v) || v === null) geoCache[k] = v;
@@ -1615,11 +1662,10 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
         store(LS_NODES, { t: now, geo: geoCache, nodes: nodes, links: links, rows: rows.length, chanAt: now });
       });
     }).catch(function () {
-      var cached = recall(LS_NODES);
-      if (isObj(cached) && isArr(cached.nodes) && cached.nodes.length) {
-        var at = num(cached.t) ? cached.t : 0;
-        applyNodes(cached.nodes, isArr(cached.links) ? cached.links : [], 'cache', at,
-          { rows: num(cached.rows) ? cached.rows : 0, at: num(cached.chanAt) ? cached.chanAt : at });
+      var cached = cachedNodeGraph(recall(LS_NODES));
+      if (cached.nodes.length) {
+        applyNodes(cached.nodes, cached.links, 'cache', cached.at,
+          { rows: cached.rows, at: cached.chanAt });
       } else if (!S.nodes.length) {
         applySeed();
       }
@@ -1652,21 +1698,104 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     };
   }
 
+  /* One corrupt element must not take the boot down: localStorage is writable by
+     anything that ever ran on this origin and JSON.parse returns whatever the string
+     held — including a bare number where a block object belongs, which used to crash
+     shortHash() on the first paint. Every cached array is rebuilt element by element,
+     from the entries that still carry the shape this code walks. */
+  function blockFromCache(b) {
+    if (!isObj(b) || !num(b.height) || typeof b.id !== 'string' || !b.id) return null;
+    return {
+      height: b.height, id: b.id,
+      time: num(b.time) ? b.time : null,
+      txs: num(b.txs) ? b.txs : 0,
+      size: num(b.size) ? b.size : 0,
+      medianFee: num(b.medianFee) ? b.medianFee : null,
+      pool: typeof b.pool === 'string' ? b.pool : null
+    };
+  }
+  function txFromCache(t) {
+    if (!isObj(t) || typeof t.txid !== 'string' || !t.txid) return null;
+    return {
+      txid: t.txid,
+      value: num(t.value) ? t.value : 0,
+      fee: num(t.fee) ? t.fee : 0,
+      vsize: num(t.vsize) ? t.vsize : 0,
+      rate: num(t.rate) ? t.rate : null
+    };
+  }
+  function feesFromCache(f) {
+    var out = {}, any = false;
+    ['fastestFee', 'halfHourFee', 'hourFee', 'economyFee', 'minimumFee'].forEach(function (k) {
+      if (num(f[k])) { out[k] = f[k]; any = true; }
+    });
+    return any ? out : null;
+  }
+  function hrFromCache(h) {
+    /* hashrates must be an array: paintPanel walks it with forEach, and a string
+       has a .length, so an array-level check alone let a cached string through. */
+    if (!isObj(h) || !isArr(h.hashrates)) return null;
+    return {
+      hashrates: h.hashrates.filter(function (r) { return isObj(r) && num(r.avgHashrate); }),
+      currentHashrate: num(h.currentHashrate) ? h.currentHashrate : null
+    };
+  }
+  function diffFromCache(d) {
+    if (!num(d.difficultyChange) && !num(d.remainingBlocks) && !d.estimatedRetargetDate) return null;
+    return {
+      difficultyChange: num(d.difficultyChange) ? d.difficultyChange : null,
+      remainingBlocks: num(d.remainingBlocks) ? d.remainingBlocks : null,
+      estimatedRetargetDate: d.estimatedRetargetDate || null
+    };
+  }
+  function countryFromCache(c) {
+    if (!isObj(c) || typeof c.iso !== 'string' || !num(c.count)) return null;
+    return { iso: c.iso, count: c.count, capacity: c.capacity !== undefined ? c.capacity : 0 };
+  }
+  function mblockFromCache(b) {
+    if (!isObj(b)) return null;
+    /* at least one real figure: a garbage object with nothing numeric is dropped */
+    if (!num(b.median) && !num(b.vsize) && !num(b.nTx)) return null;
+    return {
+      vsize: num(b.vsize) ? b.vsize : 0,
+      median: num(b.median) ? b.median : null,
+      lo: num(b.lo) ? b.lo : null,
+      hi: num(b.hi) ? b.hi : null,
+      nTx: num(b.nTx) ? b.nTx : 0
+    };
+  }
+  function poolFromCache(p) {
+    /* evalWatch divides by blockCount and reads pool rows by name: a string where the
+       row list belongs passed the length check and printed NaN as a share. */
+    if (!isArr(p.pools) || !p.pools.length || !num(p.blockCount) || p.blockCount <= 0) return null;
+    var rows = p.pools.filter(function (r) { return isObj(r) && typeof r.name === 'string' && num(r.blockCount); });
+    if (!rows.length) return null;
+    return { blockCount: p.blockCount, pools: rows.map(function (r) { return { name: r.name, blockCount: r.blockCount }; }) };
+  }
+
   function restoreCache() {
     var c = recall(LS_CACHE);
     if (!isObj(c)) return false;
     if (num(c.tip)) S.tip = c.tip;
-    if (isArr(c.blocks)) S.blocks = c.blocks;
+    if (isArr(c.blocks)) {
+      S.blocks = c.blocks.map(blockFromCache).filter(Boolean).slice(0, 8);
+      trackChain(S.blocks);
+    }
     if (isObj(c.mem)) S.mem = memFromCache(c.mem);
-    if (isArr(c.recent)) S.recent = c.recent;
-    if (isObj(c.fees)) S.fees = c.fees;
-    if (isObj(c.hr)) S.hr = c.hr;
-    if (isObj(c.diff)) S.diff = c.diff;
+    if (isArr(c.recent)) S.recent = c.recent.map(txFromCache).filter(Boolean).slice(0, 10);
+    if (isObj(c.fees)) S.fees = feesFromCache(c.fees);
+    if (isObj(c.hr)) S.hr = hrFromCache(c.hr);
+    if (isObj(c.diff)) S.diff = diffFromCache(c.diff);
     if (isObj(c.ln)) { S.ln = c.ln; S.lnAt = num(c.lnAt) ? c.lnAt : 0; }
-    if (isArr(c.countries)) { S.countries = c.countries; S.conts = aggregateContinents(S.countries); }
-    if (isArr(c.mblocks)) { S.mblocks = c.mblocks; S.mblocksAt = num(c.mblocksAt) ? c.mblocksAt : 0; }
-    if (isObj(c.pools)) { S.pools = c.pools; S.poolsAt = num(c.poolsAt) ? c.poolsAt : 0; }
-    if (isArr(c.blocks)) trackChain(c.blocks);
+    if (isArr(c.countries)) {
+      S.countries = c.countries.map(countryFromCache).filter(Boolean);
+      S.conts = aggregateContinents(S.countries);
+    }
+    if (isArr(c.mblocks)) {
+      S.mblocks = c.mblocks.map(mblockFromCache).filter(Boolean).slice(0, 8);
+      S.mblocksAt = num(c.mblocksAt) ? c.mblocksAt : 0;
+    }
+    if (isObj(c.pools)) { S.pools = poolFromCache(c.pools); S.poolsAt = num(c.poolsAt) ? c.poolsAt : 0; }
     return !!(num(c.tip) || isObj(c.mem) || isObj(c.ln));
   }
 
@@ -1690,8 +1819,23 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     ws = sock;
     S.ws = 'connecting';
     paintStatus();
+    /* A socket can stay CONNECTING forever (a captive portal, a dead mirror): the
+       browser only gives up on its own after tens of seconds, so the mirrors never
+       rotate and the app sits without a feed. If the socket is still CONNECTING when
+       this fires, close it, advance the mirror and schedule the retry here. */
+    var openTimer = setTimeout(function () {
+      if (ws !== sock || sock.readyState !== 0) return;
+      try { sock.close(); } catch (e) { }
+      if (ws !== sock) return;                       // the close handler already ran
+      ws = null;
+      S.ws = 'closed';
+      S.wsHost = (S.wsHost + 1) % WS_HOSTS.length;
+      paintStatus();
+      scheduleWS();
+    }, WS_CONNECT_MS);
     sock.onopen = function () {
       if (ws !== sock) return;
+      clearTimeout(openTimer);
       S.ws = 'open'; S.wsTries = 0; ok();
       try { sock.send(JSON.stringify({ action: 'want', data: ['blocks', 'stats', 'mempool-blocks'] })); } catch (e) { }
       paintStatus();
@@ -2242,7 +2386,7 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       xs: [], ys: [], zs: []
     };
     var P = { x: 0, y: 0, z: 0 };
-    var pointers = {}, pinch = null, dragMoved = 0, dragStart = null;
+    var pointers = {}, pinch = null, dragMoved = 0, dragStart = null, pinchHappened = false;
 
     function normLon(l) { while (l > 180) l -= 360; while (l < -180) l += 360; return l; }
 
@@ -3040,10 +3184,14 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
           var a = pointers[keys[0]], b = pointers[keys[1]];
           pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: G.zoomT };
           G.dragging = false;
+          /* A pinch never opens a card: dragMoved is not advanced while two fingers are
+             down, so the release below would read a zoom gesture as a tap. */
+          pinchHappened = true;
         } else {
           G.dragging = true; G.vYaw = 0;
           dragStart = { x: e.clientX, y: e.clientY, yaw: G.yaw, pitch: G.pitch };
           dragMoved = 0;
+          pinchHappened = false;
         }
         G.lastTouch = Date.now();
         try { cv.setPointerCapture(e.pointerId); } catch (err) { }
@@ -3075,7 +3223,7 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
         if (keys.length < 2) pinch = null;
         if (keys.length === 0) {
           G.dragging = false;
-          if (wasDrag < 6) {
+          if (wasDrag < 6 && !pinchHappened) {
             var c = hitTest(e.clientX, e.clientY);
             if (c) showNodeCard(c);
           }
@@ -3429,6 +3577,10 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       loadL1: loadL1,
       bridge: function () { return BR.on; },
       wsUrl: wsUrl,
+      connect: function () { connectWS(); },
+      wsConnectMs: function (v) { if (num(v)) WS_CONNECT_MS = v; return WS_CONNECT_MS; },
+      fetchMs: function (v) { if (num(v)) FETCH_MS = v; return FETCH_MS; },
+      loadTip: loadTip,
       mblocks: function () { return S.mblocks; },
       watch: function () { evalWatch(); return { list: S.wd ? S.wd.list : [], alerts: (S.wd ? S.wd.alerts : []) || [], sig: S.alertSig }; },
       reorg: reorgEvent

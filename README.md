@@ -9,7 +9,7 @@
 ![zero dependencies](https://img.shields.io/badge/dependencies-0-0b1220?style=flat-square)
 ![single file](https://img.shields.io/badge/build-single%20file%20HTML-0b1220?style=flat-square)
 ![canvas 2d](https://img.shields.io/badge/render-Canvas%202D-38bdf8?style=flat-square)
-![tests](https://img.shields.io/badge/assertions-169%20passing-2ea043?style=flat-square)
+![tests](https://img.shields.io/badge/assertions-221%20passing-2ea043?style=flat-square)
 ![data](https://img.shields.io/badge/L1-bitnodes-38bdf8?style=flat-square)
 ![data](https://img.shields.io/badge/mainnet-mempool.space-orange?style=flat-square)
 
@@ -218,7 +218,7 @@ enabled, an edge-to-edge `#040914` dark system bar treatment, and the NodePulse 
 
 * **Package:** `com.jbitmstr.nodepulse`
 * **Min / target SDK:** 24 / 34
-* **Version:** 1.1.5 (`versionCode` 7)
+* **Version:** 1.1.6 (`versionCode` 8)
 
 **Locked down shell.** File access, content access, file-URL access and universal access
 from file URLs are all off; the only page the WebView can show is the bundled asset, a
@@ -234,9 +234,10 @@ fails the build if the policy it emitted does not name every block it produced.
 **Native HTTP bridge.** `bitnodes.io` answers without an `Access-Control-Allow-Origin`
 header, so a WebView `fetch` would be blocked by CORS — and the L1 layer is the primary
 dataset. `MainActivity.HttpBridge` exposes `NPBridge.fetch(id, url)`, performs the GET on a
-bounded `ThreadPoolExecutor` (two workers, one spare, eight queued requests, idle threads
-retired after 30 s; anything beyond that is refused at once so the page falls to the next
-mirror or snapshot) with `HttpURLConnection`, gzip, 12 s connect / 25 s read and a 3 M-character
+bounded `ThreadPoolExecutor` (two workers, one spare, 32 queued requests — the boot burst
+is about eleven concurrent GETs — idle threads retired after 30 s; anything beyond that is
+refused at once so the page falls to the next mirror or snapshot) with `HttpURLConnection`,
+gzip, 12 s connect / 25 s read and a 3 M-character
 body cap, then calls `window.NPBridgeOnData(id, ok, body)` with the body unchanged. The
 `window.NPBridgeOnData(...)` call string is built on the fetching thread, so the UI thread only
 hands the finished string to the WebView. Hosts are whitelisted
@@ -260,6 +261,11 @@ and on demand:
    tag never publishes a debug-key build.
 6. On a tag the signed APK is uploaded as the workflow artifact **`nodepulse-apk`** (file
    `nodepulse.apk`); on a branch push the debug one is **`nodepulse-apk-debug`**.
+
+Staging is also wired into the Gradle graph itself: `stageWebApp` is a dependency of
+`preBuild`, so a plain local `gradle assembleDebug` stages `dist/nodepulse.html` into the
+assets and can no longer package an APK without `assets/index.html` (which would boot to a
+blank screen) even when `build.py` has not been run in that checkout first.
 
 **Get the APK.**
 
