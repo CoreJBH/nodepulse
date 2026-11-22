@@ -23,7 +23,7 @@ CELL_DEG = 20      # lat/lon bucket used to keep two picks from sitting on one d
 CELL_CAP = 2
 REGION_CAP = 5
 PEERS_KEPT = 4
-LINK_PER_NODE = 5  # channel arcs one dot may carry (must match app.js capLinks)
+LINK_PER_NODE = 5  # channel arcs one dot may carry (must match src/js/40-graph.js capLinks)
 
 # A Lightning public key is 33 compressed bytes in hex and is the only value from the API
 # that lands in a URL path, so it is checked against that exact shape first.
@@ -69,7 +69,7 @@ def cell_of(lat, lon):
 
 
 def cluster_key(lat, lon):
-    """Must match clusterKeyOf() in app.js: the 4-degree bucket that becomes one dot.
+    """Must match clusterKeyOf() in src/js/40-graph.js: the 4-degree bucket that becomes one dot.
     Math.round() rounds .5 upward, Python's round() rounds to even — so do it by hand."""
     return (int(math.floor(lat / 4 + 0.5)), int(math.floor(lon / 4 + 0.5)))
 
@@ -157,7 +157,7 @@ def cap_links(pairs, by, k=LINK_PER_NODE):
     """Keep at most k real channels per dot, never an invented one. The dots with the
     fewest partners choose first, so a small node keeps its one or two real channels
     instead of being pushed out by a hub; inside a dot the strongest peer (highest
-    channels-geo degree) wins. Same rule as capLinks() in app.js, ties broken on the
+    channels-geo degree) wins. Same rule as capLinks() in src/js/40-graph.js, ties broken on the
     pubkey as a plain string, so the snapshot and the live view cut the same set."""
     peers = {}
     for a, b in pairs:

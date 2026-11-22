@@ -24,12 +24,10 @@
   function l1Freshness(l1) {
     if (!l1) return null;
     if (l1.src === 'live') return { tag: 'LIVE', text: L('fLive'), note: L('fLiveNote') };
-    if (l1.src === 'cache') {
-      return { tag: 'CACHE', text: L('fCache') + ' · ' + (l1.at ? dateOf(l1.at) : '—'), note: L('fCacheNote') };
-    }
-    var at = l1.at ? dateOf(l1.at) : '—';
-    if (l1.why === 'cors') return { tag: 'SNAPSHOT', text: L('fCors') + ' · ' + at, note: L('fCorsNote') };
-    return { tag: 'SNAPSHOT', text: L('fSnap') + ' · ' + at, note: L('fSnapNote') };
+    /* The measurement time has its own row above this one, so it is not repeated here. */
+    if (l1.src === 'cache') return { tag: 'CACHE', text: L('fCache'), note: L('fCacheNote') };
+    if (l1.why === 'cors') return { tag: 'SNAPSHOT', text: L('fCors'), note: L('fCorsNote') };
+    return { tag: 'SNAPSHOT', text: L('fSnap'), note: L('fSnapNote') };
   }
 
   /* The short form for the row under the title, which is visible without opening the

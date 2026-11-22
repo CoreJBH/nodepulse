@@ -9,7 +9,7 @@
      computes over the exact bytes it has written, so no 'unsafe-inline' is needed and an
      injected block would have to match a hash that is already in the file. Nothing else
      is allowed: no frames, no forms, no plugins, no workers, no extra hosts. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-vy6I62cyBslfvwe+NkBWz2HlaD6O924N21j144tsZdE=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-FssoxWwFHxHEa/hwV6c7UkHGf5d2HvrBe6sfgpuxoN0='; style-src 'sha256-6w1Rfrt7p20VfphdJ71BVCtsEStVmEDhRQLeYNIXsyQ='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-vy6I62cyBslfvwe+NkBWz2HlaD6O924N21j144tsZdE=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-QDi8VcJI9zPNaqmWP7RmupZwy8ZtUOv7QxdRn72w4hs='; style-src 'sha256-6w1Rfrt7p20VfphdJ71BVCtsEStVmEDhRQLeYNIXsyQ='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
 <meta name="theme-color" content="#040914">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="NodePulse — 비트코인 L1 메인넷 실시간 감시. Bitnodes 풀노드 분포와 mempool.space 블록·멤풀·수수료를 실제 데이터로만 표시합니다.">
@@ -751,7 +751,7 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       live: '실시간', snap: '내장 스냅샷', cache: '저장본', none: '—',
       fLive: '실시간 · Bitnodes', fLiveNote: '좌표 · 전송망 · 버전을 지금 읽었습니다',
       fCache: '저장본', fCacheNote: '실시간 요청이 답하지 않아 저장해 둔 답을 표시',
-      fCors: '정적 스냅샷 · 브라우저 CORS 차단', fCorsNote: 'bitnodes.io가 CORS 헤더를 보내지 않아 브라우저에서는 읽을 수 없습니다 · Android 앱은 네이티브 브리지로 실시간',
+      fCors: '정적 스냅샷 · 브라우저 CORS 차단', fCorsNote: 'bitnodes.io가 CORS 헤더를 보내지 않아 브라우저에서는 읽을 수 없습니다 · Android 앱은 브리지로 실시간',
       fSnap: '정적 스냅샷', fSnapNote: '실시간 요청을 기다리는 중이거나 답하지 않았습니다',
       snapBasis: '스냅샷 기준',
       legL1static: '좌표 · 정적 스냅샷', subSnap: '스냅샷', subCache: '저장본', subLive: '실시간',
@@ -791,7 +791,7 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       live: 'live', snap: 'built-in snapshot', cache: 'cached', none: '—',
       fLive: 'live · Bitnodes', fLiveNote: 'coordinates, transport and versions read just now',
       fCache: 'cached answer', fCacheNote: 'the live request did not answer, so the last saved answer is shown',
-      fCors: 'static snapshot · browser CORS block', fCorsNote: 'bitnodes.io sends no Access-Control-Allow-Origin, so a browser cannot read it · the Android app reads it live through its native bridge',
+      fCors: 'static snapshot · browser CORS block', fCorsNote: 'bitnodes.io sends no Access-Control-Allow-Origin, so a browser cannot read it · the Android app reads it live through its bridge',
       fSnap: 'static snapshot', fSnapNote: 'waiting for the live request, or it did not answer',
       snapBasis: 'snapshot',
       legL1static: 'dots · static snapshot', subSnap: 'SNAPSHOT', subCache: 'CACHE', subLive: 'LIVE',
@@ -1355,12 +1355,10 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
   function l1Freshness(l1) {
     if (!l1) return null;
     if (l1.src === 'live') return { tag: 'LIVE', text: L('fLive'), note: L('fLiveNote') };
-    if (l1.src === 'cache') {
-      return { tag: 'CACHE', text: L('fCache') + ' · ' + (l1.at ? dateOf(l1.at) : '—'), note: L('fCacheNote') };
-    }
-    var at = l1.at ? dateOf(l1.at) : '—';
-    if (l1.why === 'cors') return { tag: 'SNAPSHOT', text: L('fCors') + ' · ' + at, note: L('fCorsNote') };
-    return { tag: 'SNAPSHOT', text: L('fSnap') + ' · ' + at, note: L('fSnapNote') };
+    /* The measurement time has its own row above this one, so it is not repeated here. */
+    if (l1.src === 'cache') return { tag: 'CACHE', text: L('fCache'), note: L('fCacheNote') };
+    if (l1.why === 'cors') return { tag: 'SNAPSHOT', text: L('fCors'), note: L('fCorsNote') };
+    return { tag: 'SNAPSHOT', text: L('fSnap'), note: L('fSnapNote') };
   }
 
   /* The short form for the row under the title, which is visible without opening the
