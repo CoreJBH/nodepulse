@@ -17,3 +17,4 @@ Thumbs.db
 
 # Test build (build.py --test keeps the window.NODEPULSE hook; never shipped)
 dist/nodepulse.test.html
+.build/

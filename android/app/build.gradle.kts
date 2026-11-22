@@ -48,8 +48,8 @@ android {
         applicationId = "com.jbitmstr.nodepulse"
         minSdk = 24
         targetSdk = 34
-        versionCode = 13
-        versionName = "1.1.11"
+        versionCode = 14
+        versionName = "1.1.12"
         resourceConfigurations += listOf("en")
     }
 
@@ -89,11 +89,24 @@ android {
     }
 }
 
-// No dependencies in the app itself: the shell is a plain android.webkit.WebView over the
-// single-file app staged into src/main/assets/index.html by CI. JUnit is for the host-side
-// unit tests (HttpBridgeChunkTest), which run on the JVM through :app:testDebugUnitTest.
+// One dependency in the app itself: androidx.activity, for ComponentActivity and its
+// OnBackPressedCallback. The shell is otherwise a plain android.webkit.WebView over the
+// single-file app staged into src/main/assets/index.html by CI. The deprecated
+// onBackPressed() override could not close the page's own layers before leaving the app;
+// the dispatcher can. JUnit is for the host-side unit tests, which run on the JVM through
+// :app:testDebugUnitTest.
 dependencies {
+    implementation("androidx.activity:activity:1.9.3")
     testImplementation("junit:junit:4.13.2")
+}
+
+/* Since Kotlin 1.8 the jdk7/jdk8 extensions live inside kotlin-stdlib itself, but an older
+ * androidx artifact still asks for kotlin-stdlib-jdk8 1.6.21 alongside it, and the two jars
+ * carry the same classes (a duplicate-class failure at dex time). Excluding the two split
+ * artifacts leaves the single kotlin-stdlib that androidx.activity brings. */
+configurations.configureEach {
+    exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk8")
+    exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk7")
 }
 
 tasks.register<Copy>("stageWebApp") {

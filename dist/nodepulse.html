@@ -9,7 +9,7 @@
      computes over the exact bytes it has written, so no 'unsafe-inline' is needed and an
      injected block would have to match a hash that is already in the file. Nothing else
      is allowed: no frames, no forms, no plugins, no workers, no extra hosts. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-vy6I62cyBslfvwe+NkBWz2HlaD6O924N21j144tsZdE=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-eaVp31mtpyKMGGn5poS1gBqh1bKxnLDPXvQmGal8h9U='; style-src 'sha256-STc3RB0tPADLJSrycqu9P407CIiLDvUnbU/wbczthVA='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-vy6I62cyBslfvwe+NkBWz2HlaD6O924N21j144tsZdE=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-FssoxWwFHxHEa/hwV6c7UkHGf5d2HvrBe6sfgpuxoN0='; style-src 'sha256-6w1Rfrt7p20VfphdJ71BVCtsEStVmEDhRQLeYNIXsyQ='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
 <meta name="theme-color" content="#040914">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="NodePulse — 비트코인 L1 메인넷 실시간 감시. Bitnodes 풀노드 분포와 mempool.space 블록·멤풀·수수료를 실제 데이터로만 표시합니다.">
@@ -445,9 +445,12 @@ body.ln .card{background:linear-gradient(180deg, rgba(23,19,56,.98), rgba(11,9,3
 .peers .v{margin-top:8px;font-family:var(--mono);font-size:9px;letter-spacing:.04em;color:var(--dim)}
 
 /* toast */
+/* The offset comes from the measured HUD height (Globe.layout() writes --toast-bottom),
+   so the pill always rides just above the HUD whatever that HUD's own height is. The
+   fallback is the value this page used to hard-code. */
 .toast{
   position:fixed;z-index:20;left:50%;transform:translateX(-50%) translateY(14px);
-  bottom:calc(env(safe-area-inset-bottom,0px) + 148px);
+  bottom:var(--toast-bottom,148px);
   padding:9px 14px;border-radius:999px;border:1px solid rgba(var(--ac),.34);
   background:rgba(8,20,42,.94);color:var(--ink);font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
   box-shadow:0 8px 26px rgba(0,0,0,.5),0 0 22px rgba(var(--ac),.18);
@@ -459,7 +462,7 @@ body.ln .toast{background:rgba(18,14,44,.94)}
 .toast.on{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
 
 .hint{
-  position:fixed;z-index:9;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 196px);
+  position:fixed;z-index:9;left:50%;transform:translateX(-50%);bottom:var(--hint-bottom,196px);
   font-family:var(--mono);font-size:8.5px;letter-spacing:.18em;color:var(--dim2);
   opacity:0;visibility:hidden;transition:opacity .8s ease, visibility .8s ease;
   pointer-events:none;text-align:center;white-space:nowrap;
@@ -571,6 +574,7 @@ body.ln .toast{background:rgba(18,14,44,.94)}
         <div class="row"><div class="k"><span data-i18n="kPlat">접속망</span><em>CLEARNET · TOR · I2P</em></div><div class="v" id="pPlat">—</div></div>
         <div class="row"><div class="k"><span data-i18n="kL1H">크롤러 기준 높이</span><em>BITNODES HEIGHT</em></div><div class="v" id="pL1H">—</div></div>
         <div class="row"><div class="k"><span data-i18n="kL1At">측정 시각</span><em>SNAPSHOT</em></div><div class="v" id="pL1At">—</div></div>
+        <div class="row"><div class="k"><span data-i18n="kL1Fresh">L1 실시간성</span><em>L1 FRESHNESS</em></div><div class="v" id="pL1Fresh">—</div></div>
       </div>
 
       <div id="secLNWrap">
@@ -682,6 +686,9 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
 (function () {
   'use strict';
 
+/* Core: the page-level constants, the two-language string table, the DOM and text
+   helpers, the number formatters and the one live state object every other module reads. */
+
   var DEG = Math.PI / 180, TAU = Math.PI * 2;
   var API_HOSTS = ['https://mempool.space', 'https://mempool.emzy.de', 'https://mempool.ninja'];
   var WS_HOSTS = ['mempool.space', 'mempool.emzy.de', 'mempool.ninja'];
@@ -735,12 +742,19 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       secNet: 'BITCOIN MAINNET · 실시간', secL1: 'BITCOIN L1 · 풀노드', secLN: 'LIGHTNING · MEMPOOL.SPACE',
       kHeight: '블록 높이', kMem: '멤풀', kFee: '최속 수수료', kHash: '해시레이트', kDiff: '다음 난이도 조정',
       kL1: '도달 가능 풀노드', kPlat: '접속망', kL1H: '크롤러 기준 높이', kL1At: '측정 시각',
+      kL1Fresh: 'L1 실시간성',
       kLN: '라이트닝 노드', kLNCap: '채널 · 용량',
       secDistL1: '대륙별 L1 노드 분포', secDistLN: '대륙별 라이트닝 노드 분포',
       secVer: '클라이언트 버전', secNext: '다음 블록 · NEXT BLOCKS', secWatch: '네트워크 감시 · WATCHDOG',
       secLedger: '최근 블록 · 최근 트랜잭션', hBlocks: '최근 블록', hTxs: '최근 트랜잭션',
       loading: '불러오는 중…', syncing: '실시간 동기화', polling: '폴링 갱신', retry: '연결 재시도 중',
       live: '실시간', snap: '내장 스냅샷', cache: '저장본', none: '—',
+      fLive: '실시간 · Bitnodes', fLiveNote: '좌표 · 전송망 · 버전을 지금 읽었습니다',
+      fCache: '저장본', fCacheNote: '실시간 요청이 답하지 않아 저장해 둔 답을 표시',
+      fCors: '정적 스냅샷 · 브라우저 CORS 차단', fCorsNote: 'bitnodes.io가 CORS 헤더를 보내지 않아 브라우저에서는 읽을 수 없습니다 · Android 앱은 네이티브 브리지로 실시간',
+      fSnap: '정적 스냅샷', fSnapNote: '실시간 요청을 기다리는 중이거나 답하지 않았습니다',
+      snapBasis: '스냅샷 기준',
+      legL1static: '좌표 · 정적 스냅샷', subSnap: '스냅샷', subCache: '저장본', subLive: '실시간',
       subL1: 'FULL NODE NETWORK · BITNODES', subLN: 'LIGHTNING CHANNEL GRAPH · MEMPOOL.SPACE',
       legL1dot: 'L1 풀노드 위치 (Bitnodes)', legL1note: 'Tor·I2P 노드는 좌표 없음', legLNdot: 'LIGHTNING NODE',
       legLNline: 'LIGHTNING CHANNEL (실측)',
@@ -768,12 +782,19 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       secNet: 'BITCOIN MAINNET · LIVE', secL1: 'BITCOIN L1 · FULL NODES', secLN: 'LIGHTNING · MEMPOOL.SPACE',
       kHeight: 'Block height', kMem: 'Mempool', kFee: 'Fastest fee', kHash: 'Hashrate', kDiff: 'Next difficulty',
       kL1: 'Reachable full nodes', kPlat: 'Transport', kL1H: 'Crawler height', kL1At: 'Measured at',
+      kL1Fresh: 'L1 freshness',
       kLN: 'Lightning nodes', kLNCap: 'Channels · capacity',
       secDistL1: 'L1 nodes by continent', secDistLN: 'Lightning nodes by continent',
       secVer: 'Client versions', secNext: 'Next blocks', secWatch: 'Network watchdog',
       secLedger: 'Recent blocks · recent transactions', hBlocks: 'Recent blocks', hTxs: 'Recent txs',
       loading: 'loading…', syncing: 'live sync', polling: 'polling', retry: 'reconnecting',
       live: 'live', snap: 'built-in snapshot', cache: 'cached', none: '—',
+      fLive: 'live · Bitnodes', fLiveNote: 'coordinates, transport and versions read just now',
+      fCache: 'cached answer', fCacheNote: 'the live request did not answer, so the last saved answer is shown',
+      fCors: 'static snapshot · browser CORS block', fCorsNote: 'bitnodes.io sends no Access-Control-Allow-Origin, so a browser cannot read it · the Android app reads it live through its native bridge',
+      fSnap: 'static snapshot', fSnapNote: 'waiting for the live request, or it did not answer',
+      snapBasis: 'snapshot',
+      legL1static: 'dots · static snapshot', subSnap: 'SNAPSHOT', subCache: 'CACHE', subLive: 'LIVE',
       subL1: 'FULL NODE NETWORK · BITNODES', subLN: 'LIGHTNING CHANNEL GRAPH · MEMPOOL.SPACE',
       legL1dot: 'L1 FULL NODE LOCATION (Bitnodes)', legL1note: 'Tor/I2P nodes have no coordinates', legLNdot: 'LIGHTNING NODE',
       legLNline: 'LIGHTNING CHANNEL (measured)',
@@ -921,6 +942,9 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     pools: null, poolsAt: 0,
     wd: null, alertSig: '', feeHist: [], chain: Object.create(null), reorgAt: 0, reorgAtHeight: 0
   };
+
+/* Network: the native bridge the Android shell exposes, the one GET path that walks the
+   three mempool mirrors and falls to the bridge, and the online/offline guard. */
 
   /* --------------------------------------------------------- native bridge */
   /* MainActivity exposes NPBridge.fetch(id, url) and calls back
@@ -1101,6 +1125,10 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
   }
 
   function ok() { S.lastOk = Date.now(); if (S.fail > 0) S.fail = 0; }
+
+/* Market: the mempool.space REST loaders — chain tip, blocks, mempool, recent
+   transactions, fees, hashrate, difficulty, pools, Lightning statistics, countries.
+   Every one of them types what it keeps and rejects a payload it cannot draw. */
 
   function loadTip() {
     return request('/api/blocks/tip/height', 'text').then(function (t) {
@@ -1301,6 +1329,10 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     });
   }
 
+/* Bitcoin L1: the Bitnodes answer, what it may claim about itself (live, cache or
+   snapshot, and why), the transport split, client versions, and the build-time country
+   table the crawler only publishes page by page. */
+
   /* --------------------------------------------------------------- L1 data */
   /* Bitnodes carries two light endpoints with everything the app shows live:
        ?field=coordinates  total_nodes, latest_height, unique lat/lon pairs
@@ -1313,6 +1345,32 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
   function validSplit(p) {
     return isObj(p) && num(p.clearnet) && num(p.tor) && num(p.i2p) &&
       p.clearnet >= 0 && p.tor >= 0 && p.i2p >= 0;
+  }
+
+  /* What the L1 block says about how fresh it is. The three states are kept apart on
+     purpose: a live Bitnodes read, a saved answer served after a failed request, and the
+     bundled build-time snapshot — and the snapshot says why it is one, so a browser that
+     can never read bitnodes.io (no CORS header; one attempt, then the poll stops) is not
+     drawn as a live network that is merely slow. */
+  function l1Freshness(l1) {
+    if (!l1) return null;
+    if (l1.src === 'live') return { tag: 'LIVE', text: L('fLive'), note: L('fLiveNote') };
+    if (l1.src === 'cache') {
+      return { tag: 'CACHE', text: L('fCache') + ' · ' + (l1.at ? dateOf(l1.at) : '—'), note: L('fCacheNote') };
+    }
+    var at = l1.at ? dateOf(l1.at) : '—';
+    if (l1.why === 'cors') return { tag: 'SNAPSHOT', text: L('fCors') + ' · ' + at, note: L('fCorsNote') };
+    return { tag: 'SNAPSHOT', text: L('fSnap') + ' · ' + at, note: L('fSnapNote') };
+  }
+
+  /* The short form for the row under the title, which is visible without opening the
+     panel: the L1 layer says at a glance whether these dots are live or a snapshot. */
+  function l1Badge() {
+    var l1 = S.l1;
+    if (!l1) return '';
+    if (l1.src === 'live') return ' · ' + L('subLive');
+    if (l1.src === 'cache') return ' · ' + L('subCache');
+    return ' · ' + L('subSnap') + (l1.why === 'cors' ? ' · CORS' : '');
   }
 
   function applyL1(d) {
@@ -1328,8 +1386,12 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       vers: (isArr(d.vers) && d.vers.length) ? d.vers : l1Versions(d),
       /* Only a caller that says so is live. A payload re-served from localStorage or from
          the bundled snapshot must never inherit the LIVE label from a default: what the
-         panel and the footnote print about the source hangs off this one field. */
+         panel and the footnote print about the source hangs off this one field. `why`
+         keeps the reason when the answer is not live, so the panel can say whether this
+         browser is refused by the host (CORS) or the request simply failed. */
       src: d.src === 'live' ? 'live' : d.src === 'cache' ? 'cache' : 'snapshot',
+      why: (d.src === 'live' || d.src === 'cache') ? d.src
+        : (d.why === 'cors' || d.why === 'boot') ? d.why : 'fail',
       loadAt: Date.now()
     };
     if (S.layer === 'l1') Globe.build();
@@ -1449,7 +1511,9 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     }).catch(function () {
       /* In the browser the refusal is final for this page load, so the timer above will
          find the poll off rather than repeat it; the Android shell keeps retrying, where
-         a failure is an ordinary network fault that can clear. */
+         a failure is an ordinary network fault that can clear. The reason is kept so the
+         panel can name it instead of saying only that the request did not answer. */
+      var why = BR.on ? 'fail' : 'cors';
       if (!BR.on) S.l1Off = true;
       var cached = recall(LS_CACHE + '.l1');
       if (isObj(cached) && isObj(cached.d) && isArr(cached.d.coords) && cached.d.coords.length) {
@@ -1458,7 +1522,7 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
         if (!d.platforms) d.platforms = l1Platforms(d);
         applyL1(d);
       } else if (!S.l1 || S.l1.src !== 'live') {
-        applySnapshotL1('fallback');
+        applySnapshotL1(why);
       }
     });
   }
@@ -1505,6 +1569,9 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     return { count: acc, total: total, countries: s.countries.length };
   }
 
+/* Lightning graph: channels-geo parsing, the topology-driven node pick, the real-channel
+   cap and the saved node snapshot with its element-by-element validation. */
+
   /* ------------------------------------------------------------- nodes ---- */
   function toNum(v) {
     var x = typeof v === 'string' ? parseFloat(v) : v;
@@ -1537,29 +1604,49 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
   }
 
   /* ---- real channel graph: mempool.space /api/v1/lightning/channels-geo ------- */
-  function graphFrom(rows) {
-    var g = { by: Object.create(null), keys: [], links: [] };
-    function touch(pk, alias, lat, lon) {
-      var n = g.by[pk];
-      if (!n) {
-        n = g.by[pk] = { pk: pk, alias: alias || pk.slice(0, 10), lat: lat, lon: lon, peers: Object.create(null), deg: 0 };
-        g.keys.push(pk);
-      }
-      return n;
+  /* A 33-byte compressed key as its 66 hex characters, checked by code point rather than
+     by a regular expression: every row of channels-geo carries two of them and the payload
+     holds thousands of rows, so the key test is the hottest check in the parse. Case is
+     not significant here (mempool.space answers lower-case), as it was not for PK_RE. */
+  function isPk(s) {
+    if (typeof s !== 'string' || s.length !== 66) return false;
+    for (var i = 0; i < 66; i++) {
+      var c = s.charCodeAt(i);
+      if (!((c >= 48 && c <= 57) || (c >= 97 && c <= 102) || (c >= 65 && c <= 70))) return false;
     }
-    (rows || []).forEach(function (r) {
-      if (!r || typeof r.length !== 'number' || r.length < 8) return;
-      var a = String(r[0]), b = String(r[4]);
-      if (!validPk(a) || !validPk(b) || a === b) return;
-      var la = toNum(r[3]), loa = toNum(r[2]), lb = toNum(r[7]), lob = toNum(r[6]);
-      if (la === null || loa === null || lb === null || lob === null) return;
-      if (Math.abs(la) > 90 || Math.abs(lb) > 90 || Math.abs(loa) > 180 || Math.abs(lob) > 180) return;
-      var A = touch(a, r[1], la, loa), B = touch(b, r[5], lb, lob);
-      if (A.peers[b]) return;
+    return true;
+  }
+
+  /* One node of the graph. Its grid cell, region and cluster key depend only on its
+     coordinates, so they are computed once here instead of for every candidate of every
+     pick round (the pick used to build three strings per node per round). */
+  function graphNode(pk, alias, lat, lon) {
+    return {
+      pk: pk,
+      alias: (typeof alias === 'string' && alias) ? alias : pk.slice(0, 10),
+      lat: lat, lon: lon, peers: Object.create(null), deg: 0,
+      cell: cellOf(lat, lon), reg: regionOf(lat, lon), dot: clusterKeyOf(lat, lon)
+    };
+  }
+
+  function graphFrom(rows) {
+    var by = Object.create(null), keys = [], links = [], list = isArr(rows) ? rows : [];
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i];
+      if (!r || typeof r.length !== 'number' || r.length < 8) continue;
+      var a = r[0], b = r[4];
+      if (!isPk(a) || !isPk(b) || a === b) continue;
+      var loa = toNum(r[2]), la = toNum(r[3]), lob = toNum(r[6]), lb = toNum(r[7]);
+      if (la === null || loa === null || lb === null || lob === null) continue;
+      if (la > 90 || la < -90 || lb > 90 || lb < -90 || loa > 180 || loa < -180 || lob > 180 || lob < -180) continue;
+      var A = by[a], B = by[b];
+      if (!A) { A = by[a] = graphNode(a, r[1], la, loa); keys.push(a); }
+      if (!B) { B = by[b] = graphNode(b, r[5], lb, lob); keys.push(b); }
+      if (A.peers[b]) continue;
       A.peers[b] = 1; B.peers[a] = 1; A.deg++; B.deg++;
-      g.links.push([a, b]);
-    });
-    return g;
+      links.push([a, b]);
+    }
+    return { by: by, keys: keys, links: links };
   }
 
   function regionOf(lat, lon) {
@@ -1588,27 +1675,31 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       if (A.alias !== B.alias) return A.alias < B.alias ? -1 : 1;
       return a < b ? -1 : 1;
     });
+    /* neig[k] is the number of already-picked nodes k really shares a channel with. Every
+       pick touches only that node's own peers, so the count is kept incrementally: the old
+       loop recounted it for every candidate of every round by walking that candidate's
+       whole peer map (22 rounds × ~1 200 candidates × their degree). The picks and their
+       order are exactly the same — a candidate is chosen by that count, then by degree,
+       scanning the same order as before. */
+    var neig = Object.create(null);
     var sel = [], inset = Object.create(null), cells = Object.create(null), regs = Object.create(null), dots = Object.create(null), relax = 0;
     function fits(n) {
-      var c = cellOf(n.lat, n.lon), k = regionOf(n.lat, n.lon);
-      if (dots[clusterKeyOf(n.lat, n.lon)]) return false;
-      return (cells[c] || 0) < CELL_CAP + relax && (regs[k] || 0) < REGION_CAP + relax;
+      return !dots[n.dot] && (cells[n.cell] || 0) < CELL_CAP + relax && (regs[n.reg] || 0) < REGION_CAP + relax;
     }
     while (sel.length < MAX_NODES) {
       var best = null, bestV = -1, bestD = -1;
       for (var i = 0; i < order.length; i++) {
         var n = g.by[order[i]];
         if (inset[n.pk] || !fits(n)) continue;
-        var v = 0;
-        for (var p in n.peers) if (inset[p]) v++;
+        var v = neig[n.pk] || 0;
         if (v > bestV || (v === bestV && n.deg > bestD)) { best = n; bestV = v; bestD = n.deg; }
       }
       if (!best) { if (relax < 3) { relax++; continue; } break; }
       sel.push(best); inset[best.pk] = 1;
-      var c2 = cellOf(best.lat, best.lon), k2 = regionOf(best.lat, best.lon);
-      cells[c2] = (cells[c2] || 0) + 1;
-      regs[k2] = (regs[k2] || 0) + 1;
-      dots[clusterKeyOf(best.lat, best.lon)] = 1;
+      for (var p in best.peers) { if (!inset[p]) neig[p] = (neig[p] || 0) + 1; }
+      cells[best.cell] = (cells[best.cell] || 0) + 1;
+      regs[best.reg] = (regs[best.reg] || 0) + 1;
+      dots[best.dot] = 1;
     }
     return sel;
   }
@@ -1625,22 +1716,26 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
 
   var LINK_PER_NODE = 5;
 
+  function countKeys(o) { var c = 0; for (var k in o) c++; return c; }
+
   function capLinks(pairs, g) {
-    var peers = Object.create(null), order = [], cnt = Object.create(null), used = Object.create(null), out = [], i, k, q;
+    var peers = Object.create(null), cnt = Object.create(null), used = Object.create(null), out = [], i, k, q;
     function add(x, y) {
       if (!g.by[x] || !g.by[y] || x === y) return;
       (peers[x] || (peers[x] = Object.create(null)))[y] = 1;
       (peers[y] || (peers[y] = Object.create(null)))[x] = 1;
     }
     for (i = 0; i < pairs.length; i++) add(pairs[i][0], pairs[i][1]);
-    function size(o) { var c = 0; for (var p in o) c++; return c; }
-    for (k in peers) order.push(k);
+    /* Each node's pair count is measured once. It used to be counted inside the sort
+       comparator, which walked the peer map on every comparison. */
+    var order = [], size = Object.create(null);
+    for (k in peers) { order.push(k); size[k] = countKeys(peers[k]); }
     order.sort(function (x, y) {
-      var d = size(peers[x]) - size(peers[y]);
+      var d = size[x] - size[y];
       if (d) return d;
       return x < y ? -1 : 1;
     });
-    function deg(k) { return g.by[k].deg || 0; }
+    function deg(k2) { return g.by[k2].deg || 0; }
     for (i = 0; i < order.length; i++) {
       var p = order[i], mine = peers[p];
       while ((cnt[p] || 0) < LINK_PER_NODE) {
@@ -1715,24 +1810,91 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     });
   }
 
-  /* The saved node snapshot gets the same element-level treatment: a bare number in
-     the nodes array or a two-character string in the links array used to reach
-     Globe.build() and the channel lookup untouched. */
-  function nodeFromCache(n) {
-    return isObj(n) && validPk(n.pk) && num(n.lat) && num(n.lon) ? n : null;
+  /* The saved node snapshot is rebuilt field by field, not merely accepted when its key
+     and coordinate happen to be right. localStorage is writable by anything that ever ran
+     on this origin and JSON.parse hands back whatever the string held, so a bare number in
+     the nodes array, a string where the channel count belongs, an object in the alias, a
+     boolean in the capacity or a two-character string in the links array all used to reach
+     Globe.build(), the channel lookup and the detail card untouched — and the card printed
+     "[object Object]" or "NaN". Nothing below is copied without being the type the paint
+     path expects: a finite number where a figure is formatted, a string where a name is
+     printed, a list of strings where peers are listed, a real boolean for Tor. */
+  function textField(v, max) {
+    return typeof v === 'string' ? v.slice(0, max || 120) : '';
   }
+  /* A count or a timestamp: finite, not negative, and not larger than the field can mean.
+     The default ceiling is above any millisecond timestamp (1.8e12 today); a capacity in
+     satoshis is the one field that needs a wider one (2.1e15 is every bitcoin that exists). */
+  function countField(v, max) {
+    return num(v) && v >= 0 && v <= (max || 1e15) ? v : null;
+  }
+  function nodeFromCache(n) {
+    if (!isObj(n) || !validPk(n.pk) || !num(n.lat) || !num(n.lon)) return null;
+    if (!(n.lat >= -90 && n.lat <= 90 && n.lon >= -180 && n.lon <= 180)) return null;
+    var peers = [];
+    if (isArr(n.peers)) {
+      for (var i = 0; i < n.peers.length && peers.length < 6; i++) {
+        var p = n.peers[i];
+        if (typeof p === 'string' && p) peers.push(p.slice(0, 64));
+      }
+    }
+    return {
+      pk: n.pk,
+      alias: textField(n.alias) || n.pk.slice(0, 10),
+      lat: n.lat, lon: n.lon,
+      iso: textField(n.iso, 2).toUpperCase(),
+      city: textField(n.city), country: textField(n.country), asOrg: textField(n.asOrg, 64),
+      firstSeen: countField(n.firstSeen) || 0,
+      updatedAt: countField(n.updatedAt) || 0,
+      sockets: countField(n.sockets, 1e4) || 0,
+      tor: n.tor === true,
+      channels: countField(n.channels),
+      channelsSrc: n.channelsSrc === 'ranking' || n.channelsSrc === 'node' ? n.channelsSrc : '',
+      capacity: countField(n.capacity, 1e16),
+      deg: countField(n.deg, 1e6) || 0,
+      peers: peers,
+      tag: n.tag === 'seed' || n.tag === 'live' || n.tag === 'cache' ? n.tag : 'cache'
+    };
+  }
+  /* A link is a pair of real node keys, not merely two strings. */
   function linkFromCache(l) {
-    return isArr(l) && l.length === 2 && typeof l[0] === 'string' && typeof l[1] === 'string' ? l : null;
+    return isArr(l) && l.length === 2 && validPk(l[0]) && validPk(l[1]) && l[0] !== l[1] ? l : null;
+  }
+  /* A cached node-detail entry is read for exactly the fields a live answer fills. An
+     entry without usable coordinates is dropped: every one of those fields is merged into
+     a plotted node, so half an entry is worse than none. */
+  function geoFromCache(v) {
+    if (!isObj(v) || !num(v.lat) || !num(v.lon)) return null;
+    if (!(v.lat >= -90 && v.lat <= 90 && v.lon >= -180 && v.lon <= 180)) return null;
+    return {
+      alias: textField(v.alias), lat: v.lat, lon: v.lon,
+      city: textField(v.city), country: textField(v.country), iso: textField(v.iso, 2).toUpperCase(),
+      asOrg: textField(v.asOrg, 64),
+      firstSeen: countField(v.firstSeen) || 0, updatedAt: countField(v.updatedAt) || 0,
+      sockets: countField(v.sockets, 1e4) || 0, tor: v.tor === true,
+      ch: countField(v.ch, 1e6), cap: countField(v.cap, 1e16), t: countField(v.t) || 0
+    };
   }
   function cachedNodeGraph(stored) {
     var c = isObj(stored) ? stored : {};
+    var geo = null;
+    if (isObj(c.geo)) {
+      geo = Object.create(null);
+      Object.keys(c.geo).forEach(function (k) {
+        if (!validPk(k)) return;
+        var v = geoFromCache(c.geo[k]);
+        /* a real detail object only: nothing here is ever written as null, and a null
+           left by an older build carries nothing */
+        if (v) geo[k] = v;
+      });
+    }
     return {
       nodes: isArr(c.nodes) ? c.nodes.map(nodeFromCache).filter(Boolean) : [],
       links: isArr(c.links) ? c.links.map(linkFromCache).filter(Boolean) : [],
-      rows: num(c.rows) ? c.rows : 0,
-      at: num(c.t) ? c.t : 0,
-      chanAt: num(c.chanAt) ? c.chanAt : (num(c.t) ? c.t : 0),
-      geo: isObj(c.geo) ? c.geo : null
+      rows: countField(c.rows, 1e8) || 0,
+      at: countField(c.t) || 0,
+      chanAt: countField(c.chanAt) || (countField(c.t) || 0),
+      geo: geo
     };
   }
 
@@ -1754,15 +1916,8 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       applyNodes(cache.nodes, cache.links, 'live', cacheAt, { rows: cache.rows, at: cacheChanAt });
       return Promise.resolve();
     }
-    var geoCache = Object.create(null);
-    if (cache.geo) {
-      Object.keys(cache.geo).forEach(function (k) {
-        var v = cache.geo[k];
-        /* a real detail object only: nothing here is ever written as null, and a null
-           left by an older build carries nothing */
-        if (isObj(v)) geoCache[k] = v;
-      });
-    }
+    /* cachedNodeGraph() has already re-typed every entry it kept. */
+    var geoCache = cache.geo || Object.create(null);
 
     return Promise.all([
       request(CH_PATH),
@@ -1868,6 +2023,9 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     });
   }
 
+/* Saved answers: localStorage is writable by anything that ever ran on this origin, so
+   every field read back is re-typed here before it reaches a paint path. */
+
   /* ---------------------------------------------------------------- cache */
   function saveCache() {
     store(LS_CACHE, {
@@ -1900,7 +2058,8 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
      shortHash() on the first paint. Every cached array is rebuilt element by element,
      from the entries that still carry the shape this code walks. */
   function blockFromCache(b) {
-    if (!isObj(b) || !num(b.height) || typeof b.id !== 'string' || !b.id) return null;
+    if (!isObj(b) || !num(b.height) || b.height <= 0 || Math.floor(b.height) !== b.height) return null;
+    if (typeof b.id !== 'string' || !b.id) return null;
     return {
       height: b.height, id: b.id,
       time: num(b.time) ? b.time : null,
@@ -1921,6 +2080,7 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     };
   }
   function feesFromCache(f) {
+    if (!isObj(f)) return null;
     var out = {}, any = false;
     ['fastestFee', 'halfHourFee', 'hourFee', 'economyFee', 'minimumFee'].forEach(function (k) {
       if (num(f[k])) { out[k] = f[k]; any = true; }
@@ -1936,20 +2096,27 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       currentHashrate: num(h.currentHashrate) ? h.currentHashrate : null
     };
   }
+  /* The retarget row prints a percentage, a block count and a date, so each of the three
+     is re-typed on the way out of storage: a string block count used to reach fmtInt(),
+     and an object or array in estimatedRetargetDate reached dateOf(), which answered an
+     em dash only because new Date(object) happens to be invalid. */
   function diffFromCache(d) {
-    if (!num(d.difficultyChange) && !num(d.remainingBlocks) && !d.estimatedRetargetDate) return null;
-    return {
-      difficultyChange: num(d.difficultyChange) ? d.difficultyChange : null,
-      remainingBlocks: num(d.remainingBlocks) ? d.remainingBlocks : null,
-      estimatedRetargetDate: d.estimatedRetargetDate || null
-    };
+    if (!isObj(d)) return null;
+    var ch = num(d.difficultyChange) ? d.difficultyChange : null;
+    var rem = num(d.remainingBlocks) && d.remainingBlocks >= 0 ? d.remainingBlocks : null;
+    var at = null;
+    if (typeof d.estimatedRetargetDate === 'string' && d.estimatedRetargetDate) at = d.estimatedRetargetDate;
+    else if (num(d.estimatedRetargetDate) && d.estimatedRetargetDate > 0) at = d.estimatedRetargetDate;
+    if (ch === null && rem === null && at === null) return null;
+    return { difficultyChange: ch, remainingBlocks: rem, estimatedRetargetDate: at };
   }
   /* One country row, whether it arrived live or was read back from storage: an ISO code
      to name it and a finite count to sum. capacity is a string of satoshis in the API and
      is only ever parsed, so it is kept as it came (or 0). */
   function countryRow(c) {
     if (!isObj(c) || typeof c.iso !== 'string' || !c.iso || !num(c.count)) return null;
-    return { iso: c.iso, count: c.count, capacity: c.capacity !== undefined ? c.capacity : 0 };
+    var cap = typeof c.capacity === 'string' || num(c.capacity) ? c.capacity : 0;
+    return { iso: c.iso.slice(0, 2).toUpperCase(), count: c.count, capacity: cap };
   }
 
   function mblockFromCache(b) {
@@ -1976,7 +2143,9 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
   function restoreCache() {
     var c = recall(LS_CACHE);
     if (!isObj(c)) return false;
-    if (num(c.tip)) S.tip = c.tip;
+    /* A block height is a positive whole number; anything else in that field is not a
+       height this build ever wrote and must not become the HUD's tip. */
+    if (num(c.tip) && c.tip > 0 && c.tip < 1e9 && Math.floor(c.tip) === c.tip) S.tip = c.tip;
     if (isArr(c.blocks)) {
       S.blocks = c.blocks.map(blockFromCache).filter(Boolean).slice(0, 8);
       trackChain(S.blocks);
@@ -2005,6 +2174,9 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     if (isObj(c.pools)) { S.pools = poolFromCache(c.pools); S.poolsAt = num(c.poolsAt) ? c.poolsAt : 0; }
     return !!(num(c.tip) || isObj(c.mem) || isObj(S.ln));
   }
+
+/* Live feeds and the watchdog: one socket at a time, every pushed field shape-checked,
+   and the four alerts computed only from values an API reported. */
 
   /* ------------------------------------------------------------ websocket */
   var ws = null, wsTimer = null, wsHeld = false;
@@ -2235,6 +2407,9 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     return alerts;
   }
 
+/* UI painting: the status pills, the HUD, the panel, the ledger lists, the data
+   footnote and the toast. Nothing here reaches the network. */
+
   /* ------------------------------------------------------------- painting */
   var paintQueued = false, lastPaint = 0, noteDirty = true, lastSave = 0;
 
@@ -2272,6 +2447,10 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     mark(live, 'warn', bad);
     mark(live, 'pulse', !bad);
     if (liveTxt) liveTxt.textContent = bad ? (S.lastOk ? 'STALE' : 'WAIT') : 'LIVE';
+    /* The pill above is the mempool feed. The L1 layer has its own answer, and the row
+       under the title carries it, so a static snapshot is never read as a live network. */
+    txt('subrow', subrowText());
+    paintLegend();
     var wsLabel = S.ws === 'open' ? 'WS' : (S.ws === 'off' ? 'POLL' : 'POLL');
     if (wsTxt) wsTxt.textContent = wsLabel;
     mark(wsPill, 'off', S.ws !== 'open');
@@ -2282,6 +2461,26 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       mark($('syncWrap'), 'warn', bad);
     }
     paintWatchPill();
+  }
+
+  /* The row under the title, the legend and the L1 block all answer the same question:
+     is this live, a saved answer, or the bundled snapshot — and if it is the snapshot,
+     is that because the request has not answered yet or because this browser can never
+     read bitnodes.io at all. */
+  function subrowText() {
+    return S.layer === 'l1' ? L('subL1') + l1Badge() : L('subLN');
+  }
+
+  var legendSig = '';
+  function paintLegend() {
+    var html = S.layer === 'l1'
+      ? '<span class="l"><span class="dot"></span>' + esc(L('legL1dot')) + '</span><span class="l">' + esc(L('legL1note')) + '</span>' +
+        ((!S.l1 || S.l1.src !== 'live') ? '<span class="l">' + esc(L('legL1static')) + '</span>' : '')
+      : '<span class="l"><span class="dot"></span>' + esc(L('legLNdot')) + '</span><span class="l"><span class="line"></span>' + esc(L('legLNline')) + '</span>';
+    if (html === legendSig) return;
+    legendSig = html;
+    var el = $('legend');
+    if (el) el.innerHTML = html;
   }
 
   function paintWatchPill() {
@@ -2386,7 +2585,14 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     }
     txt('pL1H', l1 && num(l1.height) ? fmtInt(l1.height) : '—');
     txt('pL1At', l1 && l1.at ? dateOf(l1.at) : '—');
-    txt('l1Tag', l1 ? (l1.src === 'live' ? 'LIVE' : l1.src === 'cache' ? 'CACHE' : 'SNAPSHOT') : 'BITNODES');
+    var fresh = l1Freshness(l1);
+    var pfr = $('pL1Fresh');
+    if (pfr) {
+      pfr.innerHTML = fresh
+        ? esc(fresh.text) + (fresh.note ? '<small>' + esc(fresh.note) + '</small>' : '')
+        : '—';
+    }
+    txt('l1Tag', fresh ? fresh.tag : 'BITNODES');
 
     /* Lightning block */
     var pl = $('pLN');
@@ -2436,7 +2642,7 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     if (S.layer === 'l1') {
       var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
       txt('distTotal', fmtInt(total) + ' · ' + (agg.countries || 0) + (S.lang === 'en' ? ' countries' : '개국') +
-        (s && s.capturedAt ? ' · ' + dateOf(s.capturedAt * 1000).slice(0, 10) : ''));
+        (s && s.capturedAt ? ' · ' + L('snapBasis') + ' ' + dateOf(s.capturedAt * 1000).slice(0, 10) : ''));
     } else {
       txt('distTotal', fmtInt(total) + ' · ' + S.countries.length + (S.lang === 'en' ? ' countries' : '개국'));
     }
@@ -2609,6 +2815,9 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     schedulePaint();
   }
 
+/* Globe: the Canvas 2D orthographic renderer, its two palettes, the hit test and the
+   pointer handling. build.py inlines every module into one script block in this order. */
+
   /* ---------------------------------------------------------------- globe */
   /* Two palettes, one renderer. The L1 identity is the original cyan / deep blue;
      Lightning is electric violet. Every colour the globe draws comes from here. */
@@ -2717,6 +2926,21 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       applyRes();
     }
 
+    /* The toast and the hint sit above the HUD, and the HUD's measured height is what
+       decides where that is: the two fixed offsets (148px, 196px) were right for one HUD
+       size only, so on a short screen the toast dropped into the middle of the globe.
+       The globe itself gets the room between the topbar and the toast's top edge. The old
+       layout reserved a floor of 200px whatever the screen — at 450px tall in landscape
+       that floor was larger than the space there was, and the sphere was drawn behind the
+       toast. The floor is now the toast line, and a small minimum keeps the globe visible
+       on a very short viewport instead of letting it vanish. */
+    var TOAST_GAP = 14, TOAST_H = 32, HINT_GAP = 62, MIN_BOX = 120, MIN_R = 56;
+
+    function setVar(name, px) {
+      var el = document.documentElement;
+      if (el && el.style && typeof el.style.setProperty === 'function') el.style.setProperty(name, Math.round(px) + 'px');
+    }
+
     function layout() {
       var w = G.w, h = G.h;
       var head = document.querySelector('.topbar .head');
@@ -2724,17 +2948,15 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       var sub = document.querySelector('.subrow');
       var hud = document.querySelector('.hud');
       var topH = (head ? head.offsetHeight : 56) + (layers ? layers.offsetHeight : 28) + (sub ? sub.offsetHeight : 18) + 16;
-      var hudH = (hud ? hud.offsetHeight : 150) - 16;
-      var avail = Math.max(200, h - hudH - topH);
+      var hudH = hud ? hud.offsetHeight : 150;
+      var toastTop = h - (hudH + TOAST_GAP + TOAST_H);
+      var box = Math.max(MIN_BOX, toastTop - topH);
       G.cx = w / 2;
-      G.cy = topH + avail * 0.50;
-      G.R = Math.min(w * 0.44, avail * 0.46);
-      if (h > w * 1.6) G.cy = topH + avail * 0.52;
-      var hint = document.getElementById('hint');
-      if (hint) {
-        var below = h - (G.cy + G.R);
-        hint.style.bottom = Math.max(150, Math.round(below - 30)) + 'px';
-      }
+      G.cy = topH + box * 0.50;
+      G.R = Math.max(MIN_R, Math.min(w * 0.44, box * 0.46));
+      if (h > w * 1.6) G.cy = topH + box * 0.52;
+      setVar('--toast-bottom', hudH + TOAST_GAP);
+      setVar('--hint-bottom', hudH + HINT_GAP);
     }
 
     function buildBackground() {
@@ -3630,6 +3852,48 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     return keys.length === 1 ? any : '';
   }
 
+/* Cards and view state: the node detail card, the layer switch, language switching and
+   the stored layer/language preference; the shell back handler closes these first. */
+
+  /* -------------------------------------------------------------- shell back */
+  /* The panel and the node card are dismissible layers of the page, and on Android the back
+     gesture has to close them before it leaves the app. The shell cannot see the page's
+     state, so the page keeps it informed: syncBack() reports how many layers are open
+     through NPBack.setDepth() whenever that changes, and window.NodepulseBack() is the one
+     call the shell makes when the gesture arrives. It answers whether it consumed the
+     press. A plain browser has no NPBack and never calls either. */
+  function cardOpen() {
+    var m = $('modal');
+    return !!(m && m.classList.contains('on'));
+  }
+
+  function backDepth() { return cardOpen() ? 2 : (S.panelOpen ? 1 : 0); }
+
+  function syncBack() {
+    try {
+      if (window.NPBack && typeof window.NPBack.setDepth === 'function') window.NPBack.setDepth(backDepth());
+    } catch (e) { }
+  }
+
+  window.NodepulseBack = function () {
+    if (cardOpen()) { closeNodeCard(); return true; }
+    if (S.panelOpen) { setPanel(false); return true; }
+    return false;
+  };
+
+  function setPanel(open) {
+    S.panelOpen = !!open;
+    var top = $('topbar'), btn = $('toggle');
+    if (top) top.classList.toggle('open', S.panelOpen);
+    if (btn) {
+      btn.textContent = S.panelOpen ? '−' : '+';
+      btn.setAttribute('aria-expanded', S.panelOpen ? 'true' : 'false');
+      btn.setAttribute('aria-label', S.panelOpen ? L('pClose') : L('pOpen'));
+    }
+    if (S.panelOpen) paintPanel();
+    syncBack();
+  }
+
   /* ------------------------------------------------------------ node card */
   function showNodeCard(cluster) {
     if (S.layer === 'l1') showL1Card(cluster);
@@ -3638,12 +3902,14 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     Globe.hold(true);
     var cb = $('cardClose');
     if (cb) cb.addEventListener('click', closeNodeCard);
+    syncBack();
   }
 
   function closeNodeCard() {
     var m = $('modal');
     if (m) m.classList.remove('on');
     Globe.hold(false);
+    syncBack();
   }
 
   function cardRows(rows) {
@@ -3741,11 +4007,9 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     show('secL1Wrap', layer === 'l1');
     show('secVerWrap', layer === 'l1');
     show('secLNWrap', layer === 'ln');
-    txt('subrow', layer === 'l1' ? L('subL1') : L('subLN'));
+    txt('subrow', subrowText());
     txt('distTitle', layer === 'l1' ? L('secDistL1') : L('secDistLN'));
-    $('legend').innerHTML = layer === 'l1'
-      ? '<span class="l"><span class="dot"></span>' + esc(L('legL1dot')) + '</span><span class="l">' + esc(L('legL1note')) + '</span>'
-      : '<span class="l"><span class="dot"></span>' + esc(L('legLNdot')) + '</span><span class="l"><span class="line"></span>' + esc(L('legLNline')) + '</span>';
+    paintLegend();
     Globe.build();
     Globe.retheme();
     noteDirty = true;
@@ -3764,12 +4028,10 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
       if (k) nodes[i].textContent = L(k);
     }
     txt('langBtn', S.lang === 'en' ? 'KO' : 'EN');
-    txt('subrow', S.layer === 'l1' ? L('subL1') : L('subLN'));
+    txt('subrow', subrowText());
     txt('distTitle', S.layer === 'l1' ? L('secDistL1') : L('secDistLN'));
     txt('hint', L('hint'));
-    $('legend').innerHTML = S.layer === 'l1'
-      ? '<span class="l"><span class="dot"></span>' + esc(L('legL1dot')) + '</span><span class="l">' + esc(L('legL1note')) + '</span>'
-      : '<span class="l"><span class="dot"></span>' + esc(L('legLNdot')) + '</span><span class="l"><span class="line"></span>' + esc(L('legLNline')) + '</span>';
+    paintLegend();
     var tg = $('toggle');
     if (tg) tg.setAttribute('aria-label', S.panelOpen ? L('pClose') : L('pOpen'));
     noteDirty = true;
@@ -3784,6 +4046,8 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     if (p.lang === 'en' || p.lang === 'ko') S.lang = p.lang;
     if (p.layer === 'l1' || p.layer === 'ln') S.layer = p.layer;
   }
+
+/* Boot: the refresh cadence, the UI bindings, the clock and the start of the app. */
 
   /* ------------------------------------------------------------------ boot */
   function refreshCore() {
@@ -3802,17 +4066,7 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
   function noop() { }
 
   function bindUI() {
-    var top = $('topbar'), btn = $('toggle'), panel = $('panel');
-    function setPanel(open) {
-      S.panelOpen = open;
-      if (top) top.classList.toggle('open', open);
-      if (btn) {
-        btn.textContent = open ? '−' : '+';
-        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-        btn.setAttribute('aria-label', open ? L('pClose') : L('pOpen'));
-      }
-      if (open) paintPanel();
-    }
+    var btn = $('toggle'), panel = $('panel');
     if (btn) btn.addEventListener('click', function () { setPanel(!S.panelOpen); });
     var strip = $('strip');
     if (strip) strip.addEventListener('click', function () { setPanel(true); if (panel) panel.scrollTop = 0; });
@@ -3840,6 +4094,9 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     var modal = $('modal');
     if (modal) modal.addEventListener('click', function (e) { if (e.target === modal) closeNodeCard(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeNodeCard(); });
+    /* The card and the panel are the shell's dismissible layers: tell it what is open so
+       the back gesture can close them instead of leaving the app. */
+    syncBack();
   }
 
   function tickClock() {

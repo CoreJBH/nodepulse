@@ -4,6 +4,9 @@
 Also writes a clean copy for distribution / the repository at dist/nodepulse.html.
 With --test it writes dist/nodepulse.test.html instead, keeping the window.NODEPULSE hook
 that test/headless.js drives the app through; the release build strips that block.
+With --check it writes nothing and only compiles the assembled application code with
+`node --check`, which is the syntax gate for src/js/ (an individual module is not a
+script on its own: the modules share one function scope inside one IIFE).
 The app icon (assets/icon-64.png for the tab, assets/icon-180.png for the
 home-screen icon) is inlined as a base64 data URI so the build stays a single
 self-contained file with no external requests.
@@ -21,10 +24,13 @@ Two things happen here that the source files do not carry themselves:
   fails if the written policy does not match the blocks it just produced.
 """
 import base64
+import glob
 import hashlib
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -33,6 +39,9 @@ ASSETS = os.path.join(HERE, 'assets')
 OUT = os.path.abspath(os.path.join(HERE, '..', '..', 'bitcoin-network-monitor.html'))
 DIST = os.path.join(HERE, 'dist', 'nodepulse.html')
 TEST_DIST = os.path.join(HERE, 'dist', 'nodepulse.test.html')
+
+APP_SRC = os.path.join(SRC, 'js')
+CHECK_OUT = os.path.join(HERE, '.build', 'app.js')
 
 CSP_SCRIPT = '/*__CSP_SCRIPT__*/'
 CSP_STYLE = '/*__CSP_STYLE__*/'
@@ -45,7 +54,7 @@ def read(*p):
         return f.read()
 
 
-# The test hook (window.NODEPULSE) is delimited in src/app.js so that the shipping build
+# The test hook (window.NODEPULSE) is delimited in src/js/90-boot.js so that the shipping build
 # does not contain it at all: a page with a switch that can read and drive the app's state
 # is a page where anything running in it can do the same. --test keeps the block for
 # test/headless.js, which cannot check the app without it.
@@ -57,8 +66,29 @@ def strip_test_hook(app):
     a = app.find(TEST_HOOK_START)
     b = app.find(TEST_HOOK_END)
     if a < 0 or b < a:
-        sys.exit('ERROR: the test-hook markers are missing from src/app.js')
+        sys.exit('ERROR: the test-hook markers are missing from src/js/90-boot.js')
     return app[:a] + app[b + len(TEST_HOOK_END):]
+
+
+def app_source():
+    """The application code, assembled from src/js/ in file-name order.
+
+    Every module is a plain fragment of the same function scope: 00-core.js opens the
+    IIFE that 90-boot.js closes, and the numbered names decide the order they are
+    written in. The split is by responsibility (core, network, market, L1, graph, store,
+    live feeds, painting, globe, view, boot) and the page still receives one script
+    block, so the Content-Security-Policy names one hash for it.
+    """
+    parts = sorted(glob.glob(os.path.join(APP_SRC, '*.js')))
+    if not parts:
+        sys.exit('ERROR: no application modules under src/js/')
+    out = []
+    for p in parts:
+        text = read(p).strip()
+        if not text:
+            sys.exit('ERROR: %s is empty' % p)
+        out.append(text)
+    return '\n\n'.join(out)
 
 
 def icon_b64(name):
@@ -186,6 +216,19 @@ def apply_csp(html):
 
 def main(argv):
     self_test_escape()
+    if '--check' in argv[1:]:
+        app = app_source()
+        os.makedirs(os.path.dirname(CHECK_OUT), exist_ok=True)
+        with open(CHECK_OUT, 'w', encoding='utf-8') as f:
+            f.write(app)
+        node = shutil.which('node')
+        if not node:
+            sys.exit('ERROR: node is needed for --check (it compiles the assembled app)')
+        done = subprocess.run([node, '--check', CHECK_OUT])
+        if done.returncode != 0:
+            sys.exit('ERROR: the assembled application code does not parse')
+        print('checked %s (%d bytes of application code)' % (CHECK_OUT, len(app.encode('utf-8'))))
+        return
     test_build = '--test' in argv[1:]
     tpl = read(SRC, 'index.template.html')
     css = read(SRC, 'app.css')
@@ -205,7 +248,7 @@ def main(argv):
         if same is True:
             compared += 1
     world, country, seed, chan, l1 = (embedded[k] for k in ('world', 'country', 'seed', 'channels', 'l1'))
-    app = read(SRC, 'app.js').strip()
+    app = app_source()
     if not test_build:
         app = strip_test_hook(app)
 

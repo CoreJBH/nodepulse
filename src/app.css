@@ -422,9 +422,12 @@ body.ln .card{background:linear-gradient(180deg, rgba(23,19,56,.98), rgba(11,9,3
 .peers .v{margin-top:8px;font-family:var(--mono);font-size:9px;letter-spacing:.04em;color:var(--dim)}
 
 /* toast */
+/* The offset comes from the measured HUD height (Globe.layout() writes --toast-bottom),
+   so the pill always rides just above the HUD whatever that HUD's own height is. The
+   fallback is the value this page used to hard-code. */
 .toast{
   position:fixed;z-index:20;left:50%;transform:translateX(-50%) translateY(14px);
-  bottom:calc(env(safe-area-inset-bottom,0px) + 148px);
+  bottom:var(--toast-bottom,148px);
   padding:9px 14px;border-radius:999px;border:1px solid rgba(var(--ac),.34);
   background:rgba(8,20,42,.94);color:var(--ink);font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
   box-shadow:0 8px 26px rgba(0,0,0,.5),0 0 22px rgba(var(--ac),.18);
@@ -436,7 +439,7 @@ body.ln .toast{background:rgba(18,14,44,.94)}
 .toast.on{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
 
 .hint{
-  position:fixed;z-index:9;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 196px);
+  position:fixed;z-index:9;left:50%;transform:translateX(-50%);bottom:var(--hint-bottom,196px);
   font-family:var(--mono);font-size:8.5px;letter-spacing:.18em;color:var(--dim2);
   opacity:0;visibility:hidden;transition:opacity .8s ease, visibility .8s ease;
   pointer-events:none;text-align:center;white-space:nowrap;

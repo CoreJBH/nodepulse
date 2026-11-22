@@ -1,0 +1,195 @@
+/* Cards and view state: the node detail card, the layer switch, language switching and
+   the stored layer/language preference; the shell back handler closes these first. */
+
+  /* -------------------------------------------------------------- shell back */
+  /* The panel and the node card are dismissible layers of the page, and on Android the back
+     gesture has to close them before it leaves the app. The shell cannot see the page's
+     state, so the page keeps it informed: syncBack() reports how many layers are open
+     through NPBack.setDepth() whenever that changes, and window.NodepulseBack() is the one
+     call the shell makes when the gesture arrives. It answers whether it consumed the
+     press. A plain browser has no NPBack and never calls either. */
+  function cardOpen() {
+    var m = $('modal');
+    return !!(m && m.classList.contains('on'));
+  }
+
+  function backDepth() { return cardOpen() ? 2 : (S.panelOpen ? 1 : 0); }
+
+  function syncBack() {
+    try {
+      if (window.NPBack && typeof window.NPBack.setDepth === 'function') window.NPBack.setDepth(backDepth());
+    } catch (e) { }
+  }
+
+  window.NodepulseBack = function () {
+    if (cardOpen()) { closeNodeCard(); return true; }
+    if (S.panelOpen) { setPanel(false); return true; }
+    return false;
+  };
+
+  function setPanel(open) {
+    S.panelOpen = !!open;
+    var top = $('topbar'), btn = $('toggle');
+    if (top) top.classList.toggle('open', S.panelOpen);
+    if (btn) {
+      btn.textContent = S.panelOpen ? '−' : '+';
+      btn.setAttribute('aria-expanded', S.panelOpen ? 'true' : 'false');
+      btn.setAttribute('aria-label', S.panelOpen ? L('pClose') : L('pOpen'));
+    }
+    if (S.panelOpen) paintPanel();
+    syncBack();
+  }
+
+  /* ------------------------------------------------------------ node card */
+  function showNodeCard(cluster) {
+    if (S.layer === 'l1') showL1Card(cluster);
+    else showLNCard(cluster);
+    $('modal').classList.add('on');
+    Globe.hold(true);
+    var cb = $('cardClose');
+    if (cb) cb.addEventListener('click', closeNodeCard);
+    syncBack();
+  }
+
+  function closeNodeCard() {
+    var m = $('modal');
+    if (m) m.classList.remove('on');
+    Globe.hold(false);
+    syncBack();
+  }
+
+  function cardRows(rows) {
+    return rows.map(function (r) {
+      return '<div class="cell' + (r[2] ? ' full' : '') + '"><dt>' + esc(r[0]) + '</dt><dd class="' + (r[1] === '—' ? 'na' : '') + '">' + esc(r[1]) + '</dd></div>';
+    }).join('');
+  }
+
+  function showL1Card(cluster) {
+    var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
+    var l1 = S.l1 || {};
+    var pt = cluster.pts && cluster.pts.length ? cluster.pts[0] : [cluster.lat, cluster.lon];
+    var iso = cluster.iso || '';
+    var place = iso ? countryName(iso, '') + (iso ? ' (' + iso + ')' : '') : '—';
+    var card = $('card');
+    if (!card) return;
+    var rows = [
+      [L('cCoord'), pt[0].toFixed(4) + '°, ' + pt[1].toFixed(4) + '°'],
+      [L('cCell'), fmtInt(cluster.count) + ' ' + L('cCells')],
+      [L('cCountry'), place],
+      [L('cSrc'), l1.src === 'live' ? 'Bitnodes ' + L('live') : l1.src === 'cache' ? 'Bitnodes ' + L('cache') : 'Bitnodes ' + L('snap')],
+      [L('cSnapAt'), l1.at ? dateOf(l1.at) : '—'],
+      [L('cHeight'), S.tip === null ? '—' : fmtInt(S.tip)]
+    ];
+    card.innerHTML =
+      '<div class="card-head"><div>' +
+      '<div class="kicker">BITCOIN L1 · FULL NODE</div>' +
+      '<h2>' + esc(pt[0].toFixed(2) + '°, ' + pt[1].toFixed(2) + '°') + '</h2>' +
+      '<p class="place">' + esc(place === '—' ? L('cWhere') + ' ' + (iso || '—') : place) + '</p>' +
+      '</div><button class="close" id="cardClose" aria-label="close">×</button></div>' +
+      '<dl class="grid">' + cardRows(rows) + '</dl>' +
+      (s && s.capturedAt ? '<div class="disc">' + L('cCountry') + ': Bitnodes ' + dateOf(s.capturedAt * 1000).slice(0, 10) + ' · ' + fmtInt(s.totalNodes) + ' nodes</div>' : '') +
+      '<p class="disc"><b>Bitnodes</b> · ' + esc(L('cL1Note')) + '</p>';
+  }
+
+  function showLNCard(cluster) {
+    var n = cluster.nodes[0];
+    var many = cluster.nodes.length > 1;
+    var continent = contName(contOf(n.iso));
+    var place = [n.city, S.lang === 'en' ? n.country : countryName(n.iso, n.country)].filter(Boolean).join(' · ');
+    var chainTipHash = null, chainTipHeight = S.tip;
+    if (S.blocks && S.blocks.length) chainTipHash = S.blocks[0].id;
+
+    var card = $('card');
+    if (!card) return;
+    var rows = [
+      [L('cCoord'), num(n.lat) && num(n.lon) ? n.lat.toFixed(4) + '°, ' + n.lon.toFixed(4) + '°' : '—'],
+      [L('cCountry'), (countryName(n.iso, n.country) || '—') + (n.iso ? ' (' + n.iso + ')' : '')],
+      [L('cCh'), num(n.channels) ? fmtInt(n.channels) : '—'],
+      [L('cCap'), num(n.capacity) ? fmtBtcCap(n.capacity) + ' BTC' : '—'],
+      [L('cMapCh'), num(n.deg) ? fmtInt(n.deg) : '—'],
+      [L('cAS'), n.asOrg || '—'],
+      [L('cSock'), n.sockets ? n.sockets + L('sockUnit') + (n.tor ? ' · Tor' : ' · clearnet') : '—'],
+      [L('cFirst'), dateOf(n.firstSeen)],
+      [L('cUpd'), n.updatedAt ? dateOf(n.updatedAt) : '—']
+    ];
+    if (many) rows.push([L('cCluster'), cluster.count + L('unitNodes') + ' · ' + fmtInt(cluster.channels) + L('unitCh'), true]);
+
+    var aliasList = many ? cluster.nodes.map(function (x) { return esc(x.alias); }).slice(0, 6).join(', ') : '';
+    var peers = n.peers || [];
+    var peerHTML = peers.length
+      ? '<div class="peers"><div class="t">' + L('cPeers') + '</div><div class="p">' +
+        peers.map(function (a) { return '<span class="peer">' + esc(a) + '</span>'; }).join('') +
+        '</div><div class="v">' + fmtInt(cluster.deg) + ' / ' + cluster.arcs + ' · channels-geo</div></div>'
+      : '';
+
+    card.innerHTML =
+      '<div class="card-head"><div>' +
+      '<div class="kicker">NODE · ' + esc(continent) + '</div>' +
+      '<h2>' + esc(n.alias) + '</h2>' +
+      '<p class="place">' + esc(place || '—') + '</p>' +
+      '</div><button class="close" id="cardClose" aria-label="' + esc(L('cClose')) + '">×</button></div>' +
+      '<dl class="grid">' + cardRows(rows) + '</dl>' +
+      peerHTML +
+      (aliasList ? '<div class="disc tight">' + aliasList + (cluster.nodes.length > 6 ? ' +' + (cluster.nodes.length - 6) : '') + '</div>' : '') +
+      '<div class="tip"><div class="t">' + L('cChainTip') + '</div>' +
+      '<div class="h">' + esc(chainTipHash || '—') + '</div>' +
+      '<div class="v">' + L('cHeight') + ' ' + (chainTipHeight === null ? '—' : fmtInt(chainTipHeight)) + ' · ' + esc(S.nodeSrc === 'seed' ? L('snap') : ago(S.nodeAt)) + '</div></div>' +
+      '<p class="disc">' + esc(L('cLNNote')) + '</p>';
+  }
+
+  /* ------------------------------------------------------------- layer/i18n */
+  function setLayer(layer) {
+    if (layer !== 'l1' && layer !== 'ln') return;
+    S.layer = layer;
+    document.body.classList.toggle('l1', layer === 'l1');
+    document.body.classList.toggle('ln', layer === 'ln');
+    mark($('layerL1'), 'on', layer === 'l1');
+    mark($('layerLN'), 'on', layer === 'ln');
+    var b1 = $('layerL1'), b2 = $('layerLN');
+    if (b1) b1.setAttribute('aria-selected', layer === 'l1' ? 'true' : 'false');
+    if (b2) b2.setAttribute('aria-selected', layer === 'ln' ? 'true' : 'false');
+    var cv = $('globe');
+    if (cv) cv.setAttribute('aria-label', L(layer === 'l1' ? 'ariaL1' : 'ariaLN'));
+    show('secL1Wrap', layer === 'l1');
+    show('secVerWrap', layer === 'l1');
+    show('secLNWrap', layer === 'ln');
+    txt('subrow', subrowText());
+    txt('distTitle', layer === 'l1' ? L('secDistL1') : L('secDistLN'));
+    paintLegend();
+    Globe.build();
+    Globe.retheme();
+    noteDirty = true;
+    storePref();
+    schedulePaint();
+  }
+
+  function applyLang() {
+    document.body.classList.toggle('en', S.lang === 'en');
+    if (document.documentElement && document.documentElement.setAttribute) {
+      document.documentElement.setAttribute('lang', S.lang === 'en' ? 'en' : 'ko');
+    }
+    var nodes = document.querySelectorAll ? document.querySelectorAll('[data-i18n]') : [];
+    for (var i = 0; i < nodes.length; i++) {
+      var k = nodes[i].getAttribute('data-i18n');
+      if (k) nodes[i].textContent = L(k);
+    }
+    txt('langBtn', S.lang === 'en' ? 'KO' : 'EN');
+    txt('subrow', subrowText());
+    txt('distTitle', S.layer === 'l1' ? L('secDistL1') : L('secDistLN'));
+    txt('hint', L('hint'));
+    paintLegend();
+    var tg = $('toggle');
+    if (tg) tg.setAttribute('aria-label', S.panelOpen ? L('pClose') : L('pOpen'));
+    noteDirty = true;
+    storePref();
+    schedulePaint();
+  }
+
+  function storePref() { store(LS_PREF, { layer: S.layer, lang: S.lang }); }
+  function loadPref() {
+    var p = recall(LS_PREF);
+    if (!p) return;
+    if (p.lang === 'en' || p.lang === 'ko') S.lang = p.lang;
+    if (p.layer === 'l1' || p.layer === 'ln') S.layer = p.layer;
+  }
+

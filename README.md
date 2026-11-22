@@ -9,7 +9,7 @@
 ![zero dependencies](https://img.shields.io/badge/dependencies-0-0b1220?style=flat-square)
 ![single file](https://img.shields.io/badge/build-single%20file%20HTML-0b1220?style=flat-square)
 ![canvas 2d](https://img.shields.io/badge/render-Canvas%202D-38bdf8?style=flat-square)
-![tests](https://img.shields.io/badge/assertions-349%20passing-2ea043?style=flat-square)
+![tests](https://img.shields.io/badge/assertions-403%20passing-2ea043?style=flat-square)
 ![data](https://img.shields.io/badge/L1-bitnodes-38bdf8?style=flat-square)
 ![data](https://img.shields.io/badge/mainnet-mempool.space-orange?style=flat-square)
 
@@ -90,10 +90,28 @@ is generated, interpolated from a model, or placed for visual balance.
   still shows the network's last known geometry with no connection. The UI never passes the
   snapshot off as live: the status pill and the data row report the state, the source, and
   the timestamp of what is being shown.
+* **A static answer says it is static, and says why.** The L1 layer is in one of three
+  states — a live Bitnodes read, a saved answer, or the bundled build-time snapshot — and
+  three places on screen name it: the row under the title (`… · 실시간` / `… · 저장본` /
+  `… · 스냅샷 · CORS`), the panel's *L1 freshness* row, and the globe legend. In a plain
+  browser the state is fixed: `bitnodes.io` sends no `Access-Control-Allow-Origin`, so the
+  read cannot succeed however good the network is. The page makes one attempt, stops the L1
+  poll for the session and prints `정적 스냅샷 · 브라우저 CORS 차단` (static snapshot ·
+  browser CORS block) with the note that the Android app reads it live through its native
+  bridge — a frozen picture never passes for a live network. The country split is the
+  build-time snapshot in every case and is labelled with its capture date wherever it is
+  drawn.
 * **Rate limits are surfaced, not hidden.** Requests rotate across
   `mempool.space`, `mempool.emzy.de`, and `mempool.ninja`, and the WebSocket rotates through
   the same three mirrors; when all of them fail the app degrades to the snapshot and says so
   instead of substituting values.
+* **A saved answer is rebuilt, not trusted.** localStorage is writable by anything that has
+  ever run on this origin and `JSON.parse` returns whatever the string held. Every field of
+  the saved Lightning sample (key, alias, coordinates, channel count, capacity, sockets, Tor
+  flag, peers, tag) and of the saved price snapshot (block height, retarget date, fee rows,
+  country rows) is re-typed on the way out of storage, so a poisoned cache costs the app its
+  remembered values and never its rendering — a card cannot print `[object Object]` or `NaN`
+  from a cache it did not write.
 * **A malformed answer is rejected, not drawn.** Every feed shape-checks what it uses — REST
   loaders and WebSocket pushes alike: a finite number where a figure is printed, a list where
   a row list is walked, a hash string where a hash is shortened. A payload that fails keeps
@@ -141,6 +159,16 @@ Out of 5 812 usable channels in the current snapshot, the globe draws about 44 a
 20 plotted nodes: a single connected component that still keeps low-degree regional nodes
 visible, at under 1 % of the raw edge count.
 
+The path from the 1.5 MB payload to those arcs is one pass per stage. A node key is checked
+by its 66 code points instead of two regular expressions per row; each node's grid cell,
+region and cluster key are computed once at parse time instead of three times per candidate
+per round; the pick keeps a running count of how many already-picked nodes each candidate
+shares a real channel with, so adding a pick touches only that node's own peers; and the
+per-node pair count in the channel cap is measured once instead of inside the sort comparator.
+On the captured 7 773-row payload the whole path — parse, pick, cap — measures about 17 ms
+(was 36 ms), of which the pick is 4.5 ms (was 23.5 ms), with the picks and the capped links
+byte-for-byte identical.
+
 ### 4. A 60 fps mobile budget
 * **No `shadowBlur`, ever.** Every glow is a pre-rendered radial-gradient sprite blitted
   with `drawImage`; `shadowBlur` alone costs more than the whole rest of the frame on a
@@ -179,12 +207,18 @@ visible, at under 1 % of the raw edge count.
 
 ### 5. Zero-dependency build and an automated verification suite
 `build.py` inlines CSS, geometry, snapshots, application code, and the base64 app icon into
-one document — about 379 KB — with tokens that fail the build if any substitution is missed,
-and it refuses to emit a file that could break out of its own `<script>` block.
+one document — about 386 KB — with tokens that fail the build if any substitution is missed,
+and it refuses to emit a file that could break out of its own `<script>` block. The
+application code is split by responsibility into eleven files under `src/js/` that share one
+function scope (`00-core` … `90-boot`, the last one closing the IIFE); `build.py` joins them
+in file-name order into the same single script block, so the split costs nothing at run time,
+the policy still names one hash, and the release build still has no second copy of the app to
+drift from. `python3 build.py --check` compiles the assembled code with `node --check`.
 
 | Harness | What it proves | Result |
 | --- | --- | --- |
-| `test/headless.js` | Builds `dist/nodepulse.html` and the `--test` build, then a DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge (single-piece and chunked delivery, a lost chunk, the timeout floor against the native one, one bridge attempt after three failed mirrors), snapshots, the browser-only Bitnodes stop, a cached answer kept out of LIVE, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads (including a string count in the country, transport-split and version rows), a failed node-detail fetch, a clock running behind the API, a pinch dropped by a lost focus, a five-second frame's inertia, a held reconnect behind a hidden page, an offline phone that asks no host, and EN/KO through the real data-i18n nodes | **349 / 349 assertions pass** |
+| `test/headless.js` | Builds `dist/nodepulse.html` and the `--test` build, then a DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge (single-piece and chunked delivery, a lost chunk, the timeout floor against the native one, one bridge attempt after three failed mirrors), snapshots, the browser-only Bitnodes stop, a cached answer kept out of LIVE, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads (including a string count in the country, transport-split and version rows), a failed node-detail fetch, a clock running behind the API, a pinch dropped by a lost focus, a five-second frame's inertia, a held reconnect behind a hidden page, an offline phone that asks no host, EN/KO through the real data-i18n nodes, a cache poisoned field by field (a string channel count, an object capacity, a string Tor flag, an object alias, a number in the peers list, a junk retarget date), the CORS-blocked browser's static-snapshot labelling, the shell back call closing the card and then the panel, and an 800×450 landscape layout | **403 / 403 assertions pass** |
+| `HttpBridgePolicyTest.java` | The bridge's policy on the JVM: the request-id shape, the four-host allowlist (scheme, credentials, port, lookalike names), a redirect to another host or to plain http refused while a hop inside the allowlist is followed, loopback/link-local/private/CGNAT/multicast/unspecified/IPv6-unique-local addresses refused, and the navigation policy two `shouldOverrideUrlLoading` overloads answer | `:app:testDebugUnitTest`, 10 tests |
 | `HttpBridgeChunkTest.java` | The 32 K chunk boundaries `HttpBridge` hands a body over with, walked at limits 1–9 over emoji and flag text: no chunk ends in a lone high surrogate or starts with a lone low one, and the parts join back into the body | `:app:testDebugUnitTest`, 7 tests |
 | `test/fill-truth.js` | Rendered continent fill compared with the land polygons over 50 camera angles, 743 k sampled pixels | ≈ 0.4 % false-positive / 0.26 % false-negative, all on sub-pixel Antarctic coastline edges |
 | `test/perf.js` | Frame cadence at a 390×844 phone viewport, DPR clamped to 2, then with 4× CPU throttling | p50 16.7 ms (60 fps), p95 33.4 ms under throttle |
@@ -208,13 +242,13 @@ involved.
 
 ```bash
 python3 build.py          # -> dist/nodepulse.html  (and the workspace copy)
-node --check src/app.js   # syntax gate
+python3 build.py --check  # syntax gate: the assembled src/js modules, compiled by node
 ```
 
 **Test it.**
 
 ```bash
-node test/headless.js               # 349 assertions, no browser required
+node test/headless.js               # 403 assertions, no browser required
 python3 build.py && node test/fill-truth.js   # browser harness, needs Playwright
 node test/perf.js                   # frame-time probe
 ```
@@ -248,7 +282,7 @@ enabled, an edge-to-edge `#040914` dark system bar treatment, and the NodePulse 
 
 * **Package:** `com.jbitmstr.nodepulse`
 * **Min / target SDK:** 24 / 34
-* **Version:** 1.1.11 (`versionCode` 13)
+* **Version:** 1.1.12 (`versionCode` 14)
 
 **Locked down shell.** File access, content access, file-URL access and universal access
 from file URLs are all off; the only page the WebView can show is the bundled asset, a
@@ -262,7 +296,7 @@ build is minified with R8. `build.py` computes the hashes over the exact bytes i
 fails the build if the policy it emitted does not name every block it produced.
 
 **The test hook is not in the shipped page.** `window.NODEPULSE` — the switch
-`test/headless.js` reads the app's state and drives it through — is delimited in `src/app.js`
+`test/headless.js` reads the app's state and drives it through — is delimited in `src/js/90-boot.js`
 and `build.py` strips the whole block from `dist/nodepulse.html`, the file the APK ships; a
 build that still carries it fails. `build.py --test` writes `dist/nodepulse.test.html` with
 the block kept, and that is the file the harness runs, so the release page has no switch that
@@ -365,41 +399,81 @@ at a fixed step, so nothing is skipped. `HttpBridgeChunkTest` walks the same bou
 the JVM over emoji and flag text at limits 1–9 and asserts both, plus that the parts join
 back into the body; `:app:testDebugUnitTest` runs it.
 
+**The back gesture closes the page's own layers.** `onBackPressed()` is deprecated and, more
+to the point, could not know that a node card or the panel was open — back left the app from
+under an open card. The shell is a `ComponentActivity` with an `OnBackPressedCallback` on its
+dispatcher. The page reports how many of its own layers are open through `NPBack.setDepth()`
+(0 nothing, 1 the panel, 2 a card on top of it) and the callback calls
+`window.NodepulseBack()`, which closes the card first, then the panel; with nothing open the
+WebView history is tried and the callback finally disables itself and lets the dispatcher
+finish the activity. A plain browser has no `NPBack` and never calls it.
+
+**A bridge request has a shape, and its address has to be public.** `NPBridge.fetch` refuses
+an id that is not a short token of digits, letters, `_` or `-` — the one value the page
+contributes to a JavaScript call — and answers nothing at all for one, since the page never
+sends that shape. Before opening a connection it resolves the allowlisted host and refuses
+the request when any address comes back loopback, unspecified, link-local, private
+(RFC 1918), carrier-grade NAT (100.64/10), multicast or IPv6 unique-local (fc00::/7); a
+redirect hop is re-validated against the same allowlist before it is fetched. The allowlist
+is what says *which name*; the address check is the second lock on *where that name currently
+points*. `HttpBridgePolicyTest` holds both on the JVM.
+
+**Landscape gets its own budget.** The globe reserved at least 200px of height whatever the
+screen and the toast sat at a fixed 148px from the bottom, so on a 450px-tall landscape
+viewport the sphere's lower limb was drawn behind the toast. The globe now takes the room
+between the topbar and the toast's top edge (with a small floor so it cannot vanish), and the
+toast and the hint take their offset from the measured HUD height — `--toast-bottom` and
+`--hint-bottom`, written by `Globe.layout()` — so the layout answers the HUD it actually has
+instead of one assumed HUD size. The headless suite checks an 800×450 viewport as well as a
+phone one.
+
+**The next WebView step is written down.** `docs/webview-hardening.md` describes the
+`WebViewAssetLoader` + `WebMessageListener` migration — an https origin for the bundled asset
+and an origin-scoped message port instead of `addJavascriptInterface` and
+`evaluateJavascript` — with the order to land it in and what would not change.
+
 **Build it automatically.** `.github/workflows/build-apk.yml` runs on every push to `main`
 and on demand:
 
-1. `python3 build.py` builds the single-file app.
+1. `python3 build.py` builds the single-file app and `python3 build.py --check` compiles the
+   assembled application code.
 2. `node test/headless.js` runs the offline verification harness.
 3. The built HTML is copied to `android/app/src/main/assets/index.html`.
 4. `gradle :app:lintDebug :app:testDebugUnitTest` checks the shell.
-5. A push to `main` assembles the debug APK. A `v*` tag assembles **only** the signed,
-   minified release APK and fails before building when the signing secrets are not set, so a
-   tag never publishes a debug-key build.
-6. On a tag the signed APK is uploaded as the workflow artifact **`nodepulse-apk`** (file
-   `nodepulse.apk`); on a branch push the debug one is **`nodepulse-apk-debug`**.
+5. The four signing secrets are read. Without them a `v*` tag stops here, before anything is
+   built; a branch run ends after the checks and publishes no APK.
+6. With the key present, `gradle assembleRelease` builds the minified, R8-processed APK,
+   `apksigner verify --print-certs` prints what signed it, and the file is uploaded as the
+   workflow artifact **`nodepulse-apk`** (`nodepulse.apk`).
+7. A `v*` tag attaches that same file to the GitHub release, and the run fails if the release
+   ends up carrying anything but `nodepulse.apk`.
 
-Every third-party action in the workflow is pinned to the commit its release tag pointed at
-(`actions/checkout@11d5960a…`, `actions/setup-java@cf277c60…`, `actions/setup-node@49933ea5…`,
-`gradle/actions/setup-gradle@ed408507…`, `actions/upload-artifact@ea165f8d…`,
-`softprops/action-gh-release@3bb12739…`), with the tag in a trailing comment: a tag can be
-moved to new code, a commit SHA cannot. The App that pushes to this repository has no
-`workflows` permission, so that one file is the owner's single manual commit; the pinned copy
-is otherwise identical to the workflow described here.
+Every third-party action in the workflow is pinned to the commit its release tag pointed at —
+`actions/checkout@11d5960a326750d5838078e36cf38b85af677262` (v4.3.1),
+`actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3` (v4.8.0),
+`actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020` (v4.4.0),
+`gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a` (v4.4.3),
+`actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02` (v4.6.2),
+`softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65` (v2.2.1) — with the tag
+in a trailing comment: a tag can be moved to new code, a commit SHA cannot. The App that
+pushes to this repository has no `workflows` permission, so that one file is the owner's
+single manual commit; the pinned copy is otherwise identical to the workflow described here.
 
 Staging is also wired into the Gradle graph itself: `stageWebApp` is a dependency of
-`preBuild`, so a plain local `gradle assembleDebug` stages `dist/nodepulse.html` into the
-assets and can no longer package an APK without `assets/index.html` (which would boot to a
-blank screen) even when `build.py` has not been run in that checkout first.
+`preBuild`, so any local packaging task stages `dist/nodepulse.html` into the assets and can
+no longer package an APK without `assets/index.html` (which would boot to a blank screen)
+even when `build.py` has not been run in that checkout first.
 
-**Get the APK.**
+**Get the APK.** There is exactly one kind of published APK: the signed release one,
+attached to the latest GitHub release.
 
-* GitHub → **Actions** → *Build Android APK* → latest run → **Artifacts** →
-  `nodepulse-apk`, or
-* from a shell: `gh run download --name nodepulse-apk -R CoreJBH/nodepulse`
+* GitHub → **Releases** → latest → `nodepulse.apk`, or
+* from a shell: `gh release download -R CoreJBH/nodepulse -p nodepulse.apk`
 
-Install it on the phone (allow "install unknown apps" for the browser or file manager you
-open it with). A tag push (`v*`) attaches the signed release APK — and nothing else — to that
-release.
+Install it on the phone (allow "install unknown apps" for the app or file manager you open it
+with). While the four signing secrets are not configured the repository publishes nothing to
+install: a `v*` tag fails closed instead of attaching an APK signed with another key, and a
+branch push ends after the checks.
 
 **Release signing fails closed.** A release APK is signed with the owner's long-lived key,
 read from `NODEPULSE_KEYSTORE_BASE64` / `NODEPULSE_KEYSTORE_PASSWORD` / `NODEPULSE_KEY_ALIAS`
@@ -409,7 +483,7 @@ fallback: `assembleRelease` / `bundleRelease` stop before an APK exists and name
 missing, because an APK signed with the debug key installs but can never update a released
 one, and nothing about it says which key signed it. `assembleDebug`, `lintDebug` and the
 unit tests never touch the key. A `v*` tag needs the secrets — that workflow run fails
-rather than publishing a differently signed APK; a branch push builds only the debug APK.
+rather than publishing a differently signed APK, and a branch push publishes no APK at all.
 The release signature is **v2 only**: v1 is the JAR signature that exists for Android 6 and
 older, this build's `minSdk` is 24, and nothing it installs on needs the weaker scheme.
 
@@ -417,8 +491,8 @@ older, this build's `minSdk` is 24, and nothing it installs on needs the weaker 
 
 ```bash
 cd android
-gradle assembleDebug     # -> app/build/outputs/apk/debug/app-debug.apk (no key needed)
-gradle assembleRelease   # -> needs the four NODEPULSE_* signing values, or it stops
+gradle assembleDebug     # compile check, no key needed — not a build to install
+gradle assembleRelease   # -> app/build/outputs/apk/release/, needs the four NODEPULSE_* values
 ```
 
 ---
@@ -429,10 +503,21 @@ gradle assembleRelease   # -> needs the four NODEPULSE_* signing values, or it s
 src/
   index.template.html      document shell: head, metadata, inline icon slots, both layers
   app.css                  layout, panels, typography
-  app.js                   projection, fill, graph, packets, data layer, UI (~2 000 lines)
+  js/00-core.js            constants, the two-language string table, DOM/format helpers, state
+  js/10-net.js             the native bridge and the three-mirror walk
+  js/20-market.js          mempool.space REST loaders
+  js/30-l1.js              the Bitnodes answer, its freshness, transport split, country table
+  js/40-graph.js           channels-geo parse, topology-driven pick, channel cap, node cache
+  js/45-store.js           every saved answer, re-typed field by field
+  js/50-live.js            one socket at a time, pushed payloads, the watchdog
+  js/60-ui.js              status pills, HUD, panel, data footnote, toast
+  js/70-render.js          Canvas 2D globe, palettes, fill, hit test, pointers
+  js/80-view.js            node card, layer and language switching, back depth
+  js/90-boot.js            refresh cadence, bindings, boot (closes the IIFE)
   data/                    world geometry, country table, real node + channel + L1 snapshots
 assets/                    app icon (64/180/192/512), README screenshots
-build.py                   single-file assembly (inlines CSS/JS/data/base64 icon)
+build.py                   single-file assembly (modules + CSS + data + base64 icon)
+docs/webview-hardening.md  the WebViewAssetLoader + WebMessageListener migration plan
 dist/nodepulse.html        build output, ready to open
 fixtures/                  recorded API payloads the headless test replays
 fetch_l1.py                Bitnodes crawler export -> src/data/l1-data.js (L1 snapshot)

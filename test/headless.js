@@ -45,6 +45,15 @@ const NODESEED = readDataFile('seed-nodes.js', 'NODE_SEED');
 const CHSEED = readDataFile('channels-data.js', 'CHANNEL_SEED');
 const L1SEED = readDataFile('l1-data.js', 'L1_SNAPSHOT');
 
+/* The application code as build.py assembles it: src/js/*.js in file-name order, one
+   script block. The modules share one function scope, so a check that reads the code has
+   to read them together. */
+function appSource() {
+  const dir = path.join(ROOT, 'src', 'js');
+  return fs.readdirSync(dir).filter(f => f.endsWith('.js')).sort()
+    .map(f => fs.readFileSync(path.join(dir, f), 'utf8').trim()).join('\n\n');
+}
+
 const results = [];
 function check(name, cond, detail) {
   results.push({ name, ok: !!cond, detail: detail === undefined ? '' : String(detail) });
@@ -55,7 +64,14 @@ function check(name, cond, detail) {
 function makeEl(id) {
   const el = {
     id, textContent: '', innerHTML: '', value: '', offsetWidth: 100, scrollTop: 0,
-    width: 0, height: 0, attrs: {}, listeners: {}, children: [], style: {},
+    width: 0, height: 0, attrs: {}, listeners: {}, children: [],
+    /* CSS custom properties: Globe.layout() publishes the measured HUD height this way so
+       the toast and the hint sit on top of the real HUD, not a hard-coded offset. */
+    style: {
+      _p: {},
+      setProperty(k, v) { this._p[k] = String(v); },
+      getPropertyValue(k) { return this._p[k] || ''; }
+    },
     classList: (() => {
       const set = new Set();
       return {
@@ -436,15 +452,43 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     /recoverFromRendererGone\(\)[\s\S]{0,600}?installWebView\(\)/.test(java));
   check('the release signature is v2 only',
     /enableV1Signing = false/.test(gradle) && !/enableV1Signing = true/.test(gradle));
-  check('the version bumped to 1.1.11 (versionCode 13)',
-    /versionCode = 13/.test(gradle) && /versionName = "1\.1\.11"/.test(gradle));
+  check('the version bumped to 1.1.12 (versionCode 14)',
+    /versionCode = 14/.test(gradle) && /versionName = "1\.1\.12"/.test(gradle));
   check('the unit test that walks the chunk boundaries is in the tree',
     fs.existsSync(path.join(ROOT, 'android', 'app', 'src', 'test', 'java', 'com', 'jbitmstr', 'nodepulse', 'HttpBridgeChunkTest.java')) &&
     /testImplementation\("junit:junit:4\.13\.2"\)/.test(gradle));
+  /* v1.1.12: the back gesture, the id shape and the address guard. */
+  check('the shell registers an OnBackPressedCallback instead of overriding onBackPressed()',
+    /extends ComponentActivity/.test(java) && /new OnBackPressedCallback\(true\)/.test(java) &&
+    /getOnBackPressedDispatcher\(\)\.addCallback\(this, backCallback\)/.test(java) &&
+    !/public void onBackPressed\(\)/.test(java));
+  check('the back callback asks the page to close its own layers first',
+    /backDepth > 0[\s\S]{0,200}?window\.NodepulseBack&&window\.NodepulseBack\(\)/.test(java));
+  check('the page reports its open layers through NPBack',
+    /addJavascriptInterface\(new BackSignal\(\), "NPBack"\)/.test(java) && /public void setDepth\(int depth\)/.test(java));
+  check('the navigation policy is one static function both overloads use',
+    /static boolean navigationBlocked\(String url\)/.test(java) &&
+    (java.match(/navigationBlocked\(/g) || []).length >= 3);
+  check('a bridge request id must have the allowed shape',
+    /static boolean validId\(String id\)/.test(java) && /if \(!validId\(id\)\) return;/.test(java));
+  check('a resolved address must be public before it is contacted',
+    /static boolean blockedAddress\(InetAddress a\)/.test(java) &&
+    /static boolean hostSafe\(String host\)/.test(java) &&
+    /hostSafe\(target\.getHost\(\)\)/.test(java) &&
+    /isSiteLocalAddress\(\)/.test(java) && /isLoopbackAddress\(\)/.test(java) &&
+    /isLinkLocalAddress\(\)/.test(java) && /isMulticastAddress\(\)/.test(java));
+  check('every redirect hop is checked before it is fetched',
+    /static String nextHop\(String base, String location\)/.test(java) &&
+    /url = nextHop\(url, c\.getHeaderField\("Location"\)\)/.test(java));
+  check('the policy tests are in the tree',
+    fs.existsSync(path.join(ROOT, 'android', 'app', 'src', 'test', 'java', 'com', 'jbitmstr', 'nodepulse', 'HttpBridgePolicyTest.java')));
+  check('the Android shell uses androidx.activity, and the project says so',
+    /implementation\("androidx\.activity:activity:1\.9\.3"\)/.test(gradle) &&
+    /android\.useAndroidX=true/.test(fs.readFileSync(path.join(ROOT, 'android', 'gradle.properties'), 'utf8')));
 }
 
 (async function main() {
-  const { sandbox, window, els, i18n, rafQueue } = makeSandbox({ bridge: true });
+  const { sandbox, window, els, i18n, rafQueue, doc } = makeSandbox({ bridge: true });
   const ctx = vm.createContext(sandbox);
   for (let i = 0; i < scripts.length; i++) {
     try {
@@ -1256,7 +1300,7 @@ check('inline script blocks', scripts.length === 6, scripts.length);
 
   /* ---- i18n: every L() key exists in both dictionaries, and the strings this release
      moved out of the code are gone from the source ---- */
-  const appSrc = fs.readFileSync(path.join(ROOT, 'src', 'app.js'), 'utf8');
+  const appSrc = appSource();
   const strBlock = appSrc.slice(appSrc.indexOf('var STR = {'), appSrc.indexOf('function L(k)'));
   const koBlock = strBlock.slice(strBlock.indexOf('ko: {'), strBlock.indexOf('en: {'));
   const enBlock = strBlock.slice(strBlock.indexOf('en: {'));
@@ -2003,6 +2047,219 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     g.vYaw = 0;
     g.lastTs = 0;                                 // let the next frame re-anchor
     runFrames(rafQueue, 1);
+  }
+
+  /* ======================================================================
+     v1.1.12 — the saved snapshot, the L1 label, the shell back gesture, the
+     landscape layout, the graph path and the module split.
+     ====================================================================== */
+
+  /* ---- a poisoned node snapshot is re-typed field by field ----------------
+     localStorage is writable by anything that ever ran on this origin and JSON.parse
+     returns whatever the string held. A node used to be accepted when its key and two
+     coordinates were numbers and everything else in it was copied as it stood, so a
+     string channel count, an object capacity, a string in the tor flag, an object in
+     the alias or a number in the peers list reached the detail card and the globe. */
+  {
+    const PK1 = cachedNodes[0].pk, PK2 = cachedNodes[1].pk;
+    const poison = {
+      t: Date.now(), rows: 7773, chanAt: Date.now(),
+      links: [['aa', 'bb'], [PK1, PK1], 5, null, [PK1, PK2], ['z'.repeat(66), PK2]],
+      geo: { [PK1]: { lat: 'x', lon: 2, alias: { a: 1 } }, evil: { lat: 1, lon: 2 }, [PK2]: { lat: 10, lon: 20, alias: 'GEO' } },
+      nodes: [7, null, { pk: 'nothex', lat: 1, lon: 2 }, { pk: PK1, lat: '12', lon: 2 },
+        {
+          pk: PK2, lat: 10, lon: 20, alias: { x: 1 }, channels: '12', capacity: { a: 1 }, tor: 'yes',
+          peers: [1, { a: 1 }, 'Alias-k'], deg: 'x', sockets: [], iso: 'KOR', firstSeen: 'x',
+          updatedAt: {}, city: 5, country: [], asOrg: {}, channelsSrc: 'evil', tag: 'evil'
+        }]
+    };
+    ls = new Map([['nodepulse.nodes.v2', JSON.stringify(poison)]]);
+    const sb = makeSandbox({ bridge: false });
+    const c = vm.createContext(sb.sandbox);
+    const mode = fetchMode; fetchMode = 'fail';
+    let threw = null;
+    try {
+      for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], c, { filename: 'poison-node-' + i + '.js', timeout: 8000 });
+      await sleep(400);
+      runFrames(sb.rafQueue, 2);
+    } catch (e) { threw = e; }
+    fetchMode = mode;
+    const NS = sb.window.NODEPULSE && sb.window.NODEPULSE.state;
+    check('a poisoned node snapshot does not throw on boot', !threw, threw && threw.stack);
+    check('only a cached node with a real key and coordinates survives',
+      !!NS && NS.nodes.length === 1 && NS.nodes[0].pk === PK2, NS && NS.nodes.length);
+    const n0 = NS && NS.nodes[0];
+    check('a cached node carries a string alias',
+      !!n0 && typeof n0.alias === 'string' && n0.alias === PK2.slice(0, 10), n0 && String(n0.alias));
+    check('a cached string channel count is not adopted', !!n0 && n0.channels === null, n0 && String(n0.channels));
+    check('a cached object capacity is not adopted', !!n0 && n0.capacity === null, n0 && String(n0.capacity));
+    check('a cached non-boolean tor flag is not adopted', !!n0 && n0.tor === false, n0 && String(n0.tor));
+    check('cached peers keep only their string entries',
+      !!n0 && Array.isArray(n0.peers) && n0.peers.length === 1 && n0.peers[0] === 'Alias-k', n0 && JSON.stringify(n0.peers));
+    check('cached numeric fields keep only finite counts',
+      !!n0 && n0.deg === 0 && n0.sockets === 0 && n0.firstSeen === 0 && n0.updatedAt === 0,
+      n0 && JSON.stringify({ deg: n0.deg, sockets: n0.sockets, firstSeen: n0.firstSeen }));
+    check('a cached ISO code is two upper-case letters', !!n0 && n0.iso === 'KO', n0 && n0.iso);
+    check('cached text fields are strings or empty',
+      !!n0 && n0.city === '' && n0.country === '' && n0.asOrg === '' && n0.channelsSrc === '',
+      n0 && JSON.stringify({ city: n0.city, country: n0.country, asOrg: n0.asOrg }));
+    check('a cached tag outside the known set is not adopted', !!n0 && n0.tag === 'cache', n0 && n0.tag);
+    check('only a link between two real, different keys survives the cache',
+      !!NS && NS.links.length === 1 && NS.links[0][0] === PK1 && NS.links[0][1] === PK2, NS && NS.links.length);
+    const PNP = sb.window.NODEPULSE;
+    if (PNP) {
+      PNP.layer('ln');
+      PNP.openNode(0);
+      const cardHTML = sb.els.card.innerHTML;
+      check('a cached node card prints no object and no NaN',
+        cardHTML.indexOf('[object Object]') < 0 && cardHTML.indexOf('NaN') < 0, cardHTML.slice(0, 160));
+    } else check('a cached node card prints no object and no NaN', false, 'no test hook');
+  }
+
+  /* ---- the price cache is re-typed too ----------------------------------- */
+  {
+    ls = new Map([['nodepulse.cache.v2', JSON.stringify({
+      t: Date.now(), tip: 812345,
+      diff: { difficultyChange: 1.5, remainingBlocks: '7', estimatedRetargetDate: { evil: 1 } },
+      fees: { fastestFee: 7, halfHourFee: '3', hourFee: { a: 1 } },
+      mem: { count: 5, vsize: 1000, totalFee: 3 },
+      countries: [{ iso: 'KR', count: 1, capacity: { a: 1 } }, { iso: 'US', count: 'x' }]
+    })]]);
+    const sb = makeSandbox({ bridge: false });
+    const c = vm.createContext(sb.sandbox);
+    const mode = fetchMode; fetchMode = 'fail';
+    let threw = null;
+    try {
+      for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], c, { filename: 'poison-price-' + i + '.js', timeout: 8000 });
+      await sleep(350);
+      runFrames(sb.rafQueue, 2);
+    } catch (e) { threw = e; }
+    fetchMode = mode;
+    const PS = sb.window.NODEPULSE && sb.window.NODEPULSE.state;
+    check('a poisoned price cache does not throw on boot', !threw, threw && threw.stack);
+    check('a cached retarget keeps only its own types',
+      !!PS && PS.diff && PS.diff.difficultyChange === 1.5 && PS.diff.remainingBlocks === null &&
+      PS.diff.estimatedRetargetDate === null, PS && JSON.stringify(PS.diff));
+    check('a cached fee row keeps only finite figures',
+      !!PS && PS.fees && PS.fees.fastestFee === 7 && PS.fees.halfHourFee === undefined && PS.fees.hourFee === undefined,
+      PS && JSON.stringify(PS.fees));
+    check('a cached country row needs a finite count',
+      !!PS && PS.countries.length === 1 && PS.countries[0].iso === 'KR' && PS.countries[0].capacity === 0,
+      PS && JSON.stringify(PS.countries));
+  }
+
+  /* ---- the L1 layer says which kind of answer it is showing -------------- */
+  {
+    ls = new Map();
+    const sb = makeSandbox({ bridge: false });
+    const c = vm.createContext(sb.sandbox);
+    let threw = null;
+    try {
+      for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], c, { filename: 'cors-' + i + '.js', timeout: 8000 });
+      await sleep(600);
+      runFrames(sb.rafQueue, 2);
+    } catch (e) { threw = e; }
+    const B = sb.window.NODEPULSE;
+    check('a browser boot does not throw', !threw, threw && threw.stack);
+    check('a browser that cannot read bitnodes is left with the snapshot',
+      !!B && B.state.l1.src === 'snapshot' && B.state.l1.why === 'cors' && B.state.l1Off === true,
+      B && (B.state.l1.src + '/' + B.state.l1.why + '/' + B.state.l1Off));
+    check('the row under the title marks the static snapshot',
+      /스냅샷/.test(sb.els.subrow.textContent) && /CORS/.test(sb.els.subrow.textContent), sb.els.subrow.textContent);
+    check('the legend marks static coordinates', /정적 스냅샷/.test(sb.els.legend.innerHTML), sb.els.legend.innerHTML.slice(0, 120));
+    if (B) B.panel(true);
+    check('the L1 tag is not LIVE in that browser', sb.els.l1Tag.textContent === 'SNAPSHOT', sb.els.l1Tag.textContent);
+    check('the L1 freshness row names the CORS block',
+      /CORS/.test(sb.els.pL1Fresh.innerHTML) && /브리지/.test(sb.els.pL1Fresh.innerHTML), sb.els.pL1Fresh.innerHTML.slice(0, 160));
+    check('the country split names its snapshot basis',
+      /스냅샷 기준/.test(sb.els.distTotal.textContent), sb.els.distTotal.textContent);
+
+    /* the same page with the native bridge is live, and says so */
+    check('a bridged L1 read is live and says so', S.l1.src === 'live' && S.l1.why === 'live', S.l1.src + '/' + S.l1.why);
+    NP.panel(true);
+    check('the live L1 freshness row says live', /실시간/.test(els.pL1Fresh.innerHTML), els.pL1Fresh.innerHTML.slice(0, 120));
+    check('the title row says live for a bridged read', /실시간/.test(els.subrow.textContent), els.subrow.textContent);
+    check('the legend carries no static marker when the dots are live',
+      !/정적 스냅샷/.test(els.legend.innerHTML), els.legend.innerHTML.slice(0, 120));
+    NP.panel(false);
+  }
+
+  /* ---- the shell back gesture closes the page's own layers first ---------- */
+  {
+    ls = new Map();
+    const sb = makeSandbox({ bridge: true });
+    const depths = [];
+    sb.window.NPBack = { setDepth(d) { depths.push(d); } };
+    const c = vm.createContext(sb.sandbox);
+    let threw = null;
+    try {
+      for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], c, { filename: 'back-' + i + '.js', timeout: 8000 });
+      await sleep(500);
+      runFrames(sb.rafQueue, 2);
+    } catch (e) { threw = e; }
+    const W = sb.window, B = W.NODEPULSE;
+    check('a sandbox with a back signal boots', !threw && !!B, threw && threw.stack);
+    if (B) {
+      B.openNode(0);
+      check('an open node card reports depth 2 to the shell', depths[depths.length - 1] === 2, depths.join(','));
+      check('the shell back call closes the card first',
+        W.NodepulseBack() === true && sb.els.modal.classList.contains('on') === false);
+      check('closing the card returns the depth to 0', depths[depths.length - 1] === 0, depths.join(','));
+      B.panel(true);
+      check('an open panel reports depth 1 to the shell', depths[depths.length - 1] === 1, depths.join(','));
+      check('the shell back call closes the panel next',
+        W.NodepulseBack() === true && B.state.panelOpen === false);
+      check('with nothing open the shell is allowed to leave the app', W.NodepulseBack() === false);
+    }
+  }
+
+  /* ---- landscape: the globe stops above the toast ------------------------ */
+  {
+    const g = NP.globe;
+    const hudH = els.hud.offsetHeight;
+    window.innerWidth = 800; window.innerHeight = 450;
+    window.dispatch('resize');
+    const toastTop = 450 - (hudH + 14 + 32);
+    check('a landscape globe stays above the toast',
+      g.cy + g.R <= toastTop + 0.5, 'bottom ' + (g.cy + g.R).toFixed(1) + ' vs toast top ' + toastTop);
+    check('the toast offset follows the measured HUD height',
+      doc.documentElement.style.getPropertyValue('--toast-bottom') === (hudH + 14) + 'px',
+      doc.documentElement.style.getPropertyValue('--toast-bottom'));
+    check('the hint rides above the toast on the same measure',
+      doc.documentElement.style.getPropertyValue('--hint-bottom') === (hudH + 62) + 'px',
+      doc.documentElement.style.getPropertyValue('--hint-bottom'));
+    check('the globe keeps a usable size in landscape', g.R >= 56 && g.R < 200, g.R.toFixed(1));
+    window.innerWidth = 400; window.innerHeight = 860;
+    window.dispatch('resize');
+    check('portrait keeps the globe above the toast too',
+      g.cy + g.R <= 860 - (hudH + 14 + 32) + 0.5, (g.cy + g.R).toFixed(1));
+  }
+
+  /* ---- the channels-geo graph path --------------------------------------- */
+  {
+    const r = NP.graph(CHGEO);
+    check('the channels-geo graph keeps its real shape',
+      r.nodes > 1000 && r.picked > 0 && r.picked <= 22 && r.links > 0,
+      JSON.stringify({ nodes: r.nodes, picked: r.picked, links: r.links }));
+    /* A wide ceiling: the parse and the pick are a few milliseconds of real work, and
+       this only has to catch a return of the old quadratic walk, not a slow machine. */
+    check('the graph path stays inside its budget', r.ms < 2000, r.ms + 'ms');
+    console.log('graph: ' + r.ms + 'ms for ' + CHGEO.length + ' rows → ' + r.nodes + ' nodes, ' +
+      r.picked + ' picked, ' + r.links + ' links');
+  }
+
+  /* ---- the application is one script block assembled from modules -------- */
+  {
+    const files = fs.readdirSync(path.join(ROOT, 'src', 'js')).sort();
+    check('the application is split into numbered modules',
+      files.length === 11 && files[0] === '00-core.js' && files[10] === '90-boot.js', files.join(','));
+    check('src/app.js is gone, so no second copy can drift', !fs.existsSync(path.join(ROOT, 'src', 'app.js')));
+    const appBlock = blockBodies[6] || '';
+    const notes = ['Core:', 'Network:', 'Market:', 'Bitcoin L1:', 'Lightning graph:', 'Saved answers:',
+      'Live feeds', 'UI painting:', 'Globe:', 'Cards and view state:', 'Boot:'];
+    check('every module is inside the one script block',
+      notes.every(k => appBlock.indexOf('/* ' + k) >= 0),
+      notes.filter(k => appBlock.indexOf('/* ' + k) < 0).join(','));
   }
 
   /* ---- report ---- */

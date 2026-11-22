@@ -1,7 +1,6 @@
 package com.jbitmstr.nodepulse;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Build;
@@ -19,6 +18,9 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import androidx.activity.ComponentActivity;
+import androidx.activity.OnBackPressedCallback;
+
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -27,7 +29,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -49,15 +53,25 @@ import java.util.zip.GZIPInputStream;
  * Security posture: the WebView may only ever show the bundled asset. File access, file-URL
  * access and universal access from file URLs are all off; the page reaches its JSON APIs
  * over https (mempool.space sends Access-Control-Allow-Origin: *) and, where CORS blocks it,
- * through the bridge, whose host allowlist is checked again on every redirect hop.
+ * through the bridge, whose host allowlist is checked again on every redirect hop and whose
+ * resolved addresses are checked again before a connection is opened.
+ *
+ * The back gesture belongs to the page while it has something open. A node card or the
+ * panel is a layer the user expects the back gesture to close, and the shell cannot see
+ * either of them, so the page reports how many it has open through NPBack.setDepth() and
+ * the callback below asks window.NodepulseBack() to close them.
  */
-public class MainActivity extends Activity {
+public class MainActivity extends ComponentActivity {
 
     private static final String APP_URL = "file:///android_asset/index.html";
     private static final int BG = 0xFF040914;
+    /** 0 nothing open, 1 the panel, 2 a node card on top of it (the page's own count). */
+    private static final int MAX_BACK_DEPTH = 2;
 
     private WebView web;
     private HttpBridge bridge;
+    private OnBackPressedCallback backCallback;
+    private volatile int backDepth = 0;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -72,9 +86,46 @@ public class MainActivity extends Activity {
         }
 
         installWebView();
+        installBackHandler();
         if (!restoreWebViewState(state)) {
             web.loadUrl(APP_URL);
         }
+    }
+
+    /**
+     * The back gesture, through the dispatcher instead of the deprecated
+     * onBackPressed() override. The page's layers come first: while a card or the panel is
+     * open the page closes it with window.NodepulseBack() and the shell does nothing else.
+     * With nothing open the WebView's history is tried, and when there is none the callback
+     * disables itself and hands the press back to the dispatcher, which finishes the
+     * activity — the documented way for a callback to let the platform have the press.
+     */
+    private void installBackHandler() {
+        backCallback = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                WebView v = web;
+                if (v == null) {
+                    finish();
+                    return;
+                }
+                if (backDepth > 0) {
+                    try {
+                        v.evaluateJavascript("window.NodepulseBack&&window.NodepulseBack()", null);
+                    } catch (Exception ignored) {
+                    }
+                    return;
+                }
+                if (v.canGoBack()) {
+                    v.goBack();
+                    return;
+                }
+                setEnabled(false);
+                getOnBackPressedDispatcher().onBackPressed();
+                setEnabled(true);
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(this, backCallback);
     }
 
     /**
@@ -116,8 +167,20 @@ public class MainActivity extends Activity {
 
         bridge = new HttpBridge(web);
         web.addJavascriptInterface(bridge, "NPBridge");
+        /* A fresh page has nothing open; the depth it reported before belongs to the
+           WebView that has just been replaced. */
+        backDepth = 0;
+        web.addJavascriptInterface(new BackSignal(), "NPBack");
 
         setContentView(web);
+    }
+
+    /** The page's own layer count, written through NPBack.setDepth(). */
+    final class BackSignal {
+        @JavascriptInterface
+        public void setDepth(int depth) {
+            backDepth = depth < 0 ? 0 : Math.min(MAX_BACK_DEPTH, depth);
+        }
     }
 
     /**
@@ -176,15 +239,6 @@ public class MainActivity extends Activity {
     }
 
     @Override
-    public void onBackPressed() {
-        if (web != null && web.canGoBack()) {
-            web.goBack();
-        } else {
-            super.onBackPressed();
-        }
-    }
-
-    @Override
     protected void onPause() {
         if (web != null) {
             web.onPause();
@@ -224,6 +278,15 @@ public class MainActivity extends Activity {
     }
 
     /**
+     * Whether a navigation to {@code url} must be refused. Both shouldOverrideUrlLoading()
+     * overloads answer exactly this, so the policy is here — one place, testable on the
+     * JVM without a WebView.
+     */
+    static boolean navigationBlocked(String url) {
+        return !isAppUrl(url);
+    }
+
+    /**
      * The app never leaves the bundled asset: no link, redirect or injected frame may
      * navigate the WebView to another file, content: or web page. A TLS error is a hard
      * stop, never a "continue anyway".
@@ -237,13 +300,13 @@ public class MainActivity extends Activity {
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
             Uri u = request == null ? null : request.getUrl();
-            return u == null || !isAppUrl(u.toString());
+            return u == null || navigationBlocked(u.toString());
         }
 
         @Override
         @SuppressWarnings("deprecation")
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
-            return !isAppUrl(url);
+            return navigationBlocked(url);
         }
 
         @Override
@@ -286,6 +349,11 @@ public class MainActivity extends Activity {
         private static final String UA = "NODEPULSE/1.1 (Android; +https://github.com/CoreJBH/nodepulse)";
         private static final int CONNECT_MS = 12000;
         private static final int READ_MS = 25000;
+        /* The request id is the page's own counter. Bounding it keeps the one value the
+           page contributes to the JavaScript call string (callScript) to a short, plain
+           token: digits are all this app sends, but letters, '_' and '-' are allowed so a
+           future caller is not forced through this file. */
+        private static final int MAX_ID_CHARS = 32;
         /* The body cap counts characters, and a character costs two bytes in the VM.
            3 M characters (6 MB) is above the largest answer this app reads — channels-geo
            is about 1.6 MB of JSON today. */
@@ -344,7 +412,9 @@ public class MainActivity extends Activity {
             pool.shutdownNow();
         }
 
-        private static boolean allowed(String url) {
+        /* Package-private so the JVM unit tests can hold the policy to its word; nothing
+           outside this file calls it. */
+        static boolean allowed(String url) {
             try {
                 URL u = new URL(url);
                 if (!"https".equalsIgnoreCase(u.getProtocol())) return false;
@@ -364,9 +434,95 @@ public class MainActivity extends Activity {
             }
         }
 
+        /**
+         * The shape of a request id the page may hand over: a short token of digits, ASCII
+         * letters, '_' or '-'. Anything else is refused before it can be quoted into a
+         * JavaScript call, and the page is not answered at all — it never sent this shape.
+         */
+        static boolean validId(String id) {
+            if (id == null || id.isEmpty() || id.length() > MAX_ID_CHARS) return false;
+            for (int i = 0; i < id.length(); i++) {
+                char c = id.charAt(i);
+                boolean ok = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z')
+                        || (c >= 'A' && c <= 'Z') || c == '_' || c == '-';
+                if (!ok) return false;
+            }
+            return true;
+        }
+
+        /**
+         * An address this bridge must never connect to: loopback, the unspecified address,
+         * link-local (169.254/16, fe80::/10), the private ranges (10/8, 172.16/12,
+         * 192.168/16, fc00::/7), multicast, and the carrier-grade NAT range 100.64/10. The
+         * host allowlist already names four public names; this is the second lock, for a
+         * resolution that has been hijacked or answered by a private resolver.
+         */
+        static boolean blockedAddress(InetAddress a) {
+            if (a == null) return true;
+            if (a.isAnyLocalAddress() || a.isLoopbackAddress() || a.isLinkLocalAddress()
+                    || a.isSiteLocalAddress() || a.isMulticastAddress()) return true;
+            byte[] b = a.getAddress();
+            if (b.length == 4) {
+                int b0 = b[0] & 0xff, b1 = b[1] & 0xff;
+                if (b0 == 0) return true;                                  // 0.0.0.0/8
+                if (b0 == 100 && b1 >= 64 && b1 <= 127) return true;       // 100.64/10
+            } else if (b.length == 16) {
+                if ((b[0] & 0xfe) == 0xfc) return true;                    // fc00::/7
+                boolean mapped = true;
+                for (int i = 0; i < 10; i++) {
+                    if (b[i] != 0) { mapped = false; break; }
+                }
+                if (mapped && b[10] == (byte) 0xff && b[11] == (byte) 0xff) {
+                    try {
+                        return blockedAddress(InetAddress.getByAddress(
+                                new byte[]{b[12], b[13], b[14], b[15]}));
+                    } catch (UnknownHostException e) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /**
+         * True when every address the host resolves to is public. A name that resolves to
+         * nothing usable, or to even one blocked address, is refused: a DNS answer is not a
+         * permission to reach the network this app cannot otherwise see.
+         */
+        static boolean hostSafe(String host) {
+            if (host == null || host.isEmpty()) return false;
+            try {
+                InetAddress[] all = InetAddress.getAllByName(host);
+                if (all == null || all.length == 0) return false;
+                for (InetAddress a : all) {
+                    if (blockedAddress(a)) return false;
+                }
+                return true;
+            } catch (UnknownHostException e) {
+                return false;
+            } catch (RuntimeException e) {
+                return false;
+            }
+        }
+
+        /**
+         * The next URL of a redirect, checked against the same allowlist as the request
+         * itself. A redirect is the one way an allowed host could hand this bridge a URL
+         * it would otherwise refuse, so the hop is checked before it is fetched.
+         */
+        static String nextHop(String base, String location) throws IOException {
+            if (location == null || location.isEmpty()) throw new IOException("redirect without location");
+            String next = new URL(new URL(base), location).toString();
+            if (!allowed(next)) throw new IOException("redirect blocked");
+            return next;
+        }
+
         @JavascriptInterface
         public void fetch(final String id, final String url) {
-            if (destroyed || id == null || url == null || !allowed(url)) {
+            /* An id outside the allowed shape is not answered at all: nothing is waiting
+               for it, and it is the one page-supplied value that reaches a JS call. */
+            if (!validId(id)) return;
+            if (destroyed || url == null || !allowed(url)) {
                 deliver(id, false, "");
                 return;
             }
@@ -394,9 +550,13 @@ public class MainActivity extends Activity {
             String url = raw;
             for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
                 if (!allowed(url)) throw new IOException("blocked host");
+                URL target = new URL(url);
+                /* The name is allowed; the addresses it currently resolves to must be
+                   public ones too. */
+                if (!hostSafe(target.getHost())) throw new IOException("blocked address");
                 HttpURLConnection c = null;
                 try {
-                    c = (HttpURLConnection) new URL(url).openConnection();
+                    c = (HttpURLConnection) target.openConnection();
                     c.setInstanceFollowRedirects(false);
                     c.setConnectTimeout(CONNECT_MS);
                     c.setReadTimeout(READ_MS);
@@ -406,9 +566,7 @@ public class MainActivity extends Activity {
                     c.setRequestProperty("Accept-Encoding", "gzip");
                     int code = c.getResponseCode();
                     if (code >= 300 && code < 400) {
-                        String loc = c.getHeaderField("Location");
-                        if (loc == null || loc.isEmpty()) throw new IOException("redirect without location");
-                        url = new URL(new URL(url), loc).toString();
+                        url = nextHop(url, c.getHeaderField("Location"));
                         continue;
                     }
                     if (code < 200 || code >= 300) throw new IOException("HTTP " + code);
