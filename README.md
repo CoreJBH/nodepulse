@@ -218,14 +218,16 @@ enabled, an edge-to-edge `#040914` dark system bar treatment, and the NodePulse 
 
 * **Package:** `com.jbitmstr.nodepulse`
 * **Min / target SDK:** 24 / 34
-* **Version:** 1.1.2 (`versionCode` 4)
+* **Version:** 1.1.3 (`versionCode` 5)
 
 **Locked down shell.** File access, content access, file-URL access and universal access
 from file URLs are all off; the only page the WebView can show is the bundled asset, a
 navigation anywhere else is refused, and a TLS error cancels instead of continuing. The
-page carries its own Content-Security-Policy (`default-src 'none'`; inline script/style,
-`data:` icons, and only the named https/wss hosts), cleartext HTTP is blocked at the
-manifest, and the release build is minified with R8.
+page carries its own Content-Security-Policy (`default-src 'none'`; every inline script and
+style block named by its SHA-256 hash, so no `'unsafe-inline'` is needed; `data:` icons, and
+only the named https/wss hosts), cleartext HTTP is blocked at the manifest, and the release
+build is minified with R8. `build.py` computes the hashes over the exact bytes it writes and
+fails the build if the policy it emitted does not name every block it produced.
 
 **Native HTTP bridge.** `bitnodes.io` answers without an `Access-Control-Allow-Origin`
 header, so a WebView `fetch` would be blocked by CORS — and the L1 layer is the primary
@@ -246,8 +248,9 @@ and on demand:
 2. `node test/headless.js` runs the offline verification harness.
 3. The built HTML is copied to `android/app/src/main/assets/index.html`.
 4. `gradle :app:lintDebug :app:testDebugUnitTest` checks the shell.
-5. `gradle assembleDebug assembleRelease` produces both APKs; the release one is signed and
-   minified.
+5. `gradle assembleDebug`, then `assembleRelease` when the signing secrets are present; the
+   release one is signed and minified, and the job stops instead of guessing when they are
+   not.
 6. The release APK is uploaded as the workflow artifact **`nodepulse-apk`** (file
    `nodepulse.apk`), the debug one as **`nodepulse-apk-debug`**.
 
@@ -260,20 +263,22 @@ and on demand:
 Install it on the phone (allow "install unknown apps" for the browser or file manager you
 open it with). A tag push (`v*`) attaches both APKs to that release.
 
-**Release signing.** If `NODEPULSE_KEYSTORE_BASE64`, `NODEPULSE_KEYSTORE_PASSWORD`,
-`NODEPULSE_KEY_ALIAS` and `NODEPULSE_KEY_PASSWORD` are set as repository secrets, CI signs
-with that long-lived key, so a new build installs over the previous one. Without them CI
-generates a throwaway key for the run: the APK still installs, but the next build has a
-different signing identity, so it needs an uninstall first. A local build can put the same
-four values in `android/keystore.properties` (git-ignored); with no key at all the release
-task falls back to debug signing.
+**Release signing fails closed.** A release APK is signed with the owner's long-lived key,
+read from `NODEPULSE_KEYSTORE_BASE64` / `NODEPULSE_KEYSTORE_PASSWORD` / `NODEPULSE_KEY_ALIAS`
+/ `NODEPULSE_KEY_PASSWORD` (repository secrets, decoded to a file for the build) or, locally,
+from `android/keystore.properties` (git-ignored). When any of them is missing there is no
+fallback: `assembleRelease` / `bundleRelease` stop before an APK exists and name what is
+missing, because an APK signed with the debug key installs but can never update a released
+one, and nothing about it says which key signed it. `assembleDebug`, `lintDebug` and the
+unit tests never touch the key. A `v*` tag needs the secrets — that workflow run fails
+rather than publishing a differently signed APK; a branch push builds only the debug APK.
 
 **Build locally.** With JDK 17 and the Android SDK installed:
 
 ```bash
 cd android
-gradle assembleDebug     # -> app/build/outputs/apk/debug/app-debug.apk
-gradle assembleRelease   # -> app/build/outputs/apk/release/app-release.apk
+gradle assembleDebug     # -> app/build/outputs/apk/debug/app-debug.apk (no key needed)
+gradle assembleRelease   # -> needs the four NODEPULSE_* signing values, or it stops
 ```
 
 ---

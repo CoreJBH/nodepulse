@@ -5,14 +5,16 @@ plugins {
     id("com.android.application")
 }
 
-/* Release signing.
+/* Release signing — fail closed.
  *
- * CI exports NODEPULSE_KEYSTORE / NODEPULSE_KEYSTORE_PASSWORD / NODEPULSE_KEY_ALIAS /
- * NODEPULSE_KEY_PASSWORD (a long-lived key decoded from repository secrets when the owner
- * has stored one, otherwise an ephemeral key generated for that run). A local build may put
- * the same four values in android/keystore.properties instead, which is git-ignored.
- * With neither, a release build falls back to the debug signing config so the task still
- * produces an installable APK. */
+ * The owner's long-lived key comes from NODEPULSE_KEYSTORE / NODEPULSE_KEYSTORE_PASSWORD /
+ * NODEPULSE_KEY_ALIAS / NODEPULSE_KEY_PASSWORD (CI repository secrets) or from
+ * android/keystore.properties (git-ignored, local). When any of the four is missing, a
+ * release packaging task stops with an error that names what is missing instead of
+ * producing an APK signed with the debug key: that APK installs, but it can never update
+ * the previous release, and nothing in its filename or manifest says which key signed it.
+ * Debug builds, lint and the unit tests never touch this.
+ */
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties().apply {
     if (keystorePropertiesFile.exists()) {
@@ -27,11 +29,16 @@ val releaseStoreFile = signingValue("NODEPULSE_KEYSTORE")
 val releaseStorePassword = signingValue("NODEPULSE_KEYSTORE_PASSWORD")
 val releaseKeyAlias = signingValue("NODEPULSE_KEY_ALIAS")
 val releaseKeyPassword = signingValue("NODEPULSE_KEY_PASSWORD")
-val hasReleaseSigning = releaseStoreFile != null &&
-    releaseStorePassword != null &&
-    releaseKeyAlias != null &&
-    releaseKeyPassword != null &&
-    file(releaseStoreFile).exists()
+
+val missingSigning = buildList {
+    if (releaseStoreFile == null) add("NODEPULSE_KEYSTORE (path to the release .jks/.keystore)")
+    if (releaseStorePassword == null) add("NODEPULSE_KEYSTORE_PASSWORD")
+    if (releaseKeyAlias == null) add("NODEPULSE_KEY_ALIAS")
+    if (releaseKeyPassword == null) add("NODEPULSE_KEY_PASSWORD")
+}
+val releaseStore = releaseStoreFile?.let { file(it) }
+val releaseStoreMissing = releaseStore != null && !releaseStore.exists()
+val hasReleaseSigning = missingSigning.isEmpty() && !releaseStoreMissing
 
 android {
     namespace = "com.jbitmstr.nodepulse"
@@ -41,15 +48,15 @@ android {
         applicationId = "com.jbitmstr.nodepulse"
         minSdk = 24
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.1.2"
+        versionCode = 5
+        versionName = "1.1.3"
         resourceConfigurations += listOf("en")
     }
 
     signingConfigs {
-        if (hasReleaseSigning) {
-            create("release") {
-                storeFile = file(releaseStoreFile!!)
+        create("release") {
+            if (hasReleaseSigning) {
+                storeFile = releaseStore
                 storePassword = releaseStorePassword
                 keyAlias = releaseKeyAlias
                 keyPassword = releaseKeyPassword
@@ -67,11 +74,8 @@ android {
             isMinifyEnabled = true
             isShrinkResources = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = if (hasReleaseSigning) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            // No fallback: an unsigned release is caught by the task-graph check below.
+            if (hasReleaseSigning) signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -90,4 +94,38 @@ tasks.register<Copy>("stageWebApp") {
     from(dist)
     into(layout.projectDirectory.dir("src/main/assets"))
     rename { "index.html" }
+}
+
+/* The gate. Only a task that packages a release needs the key, so assembleDebug,
+ * lintDebug and testDebugUnitTest run exactly as before; assembleRelease, bundleRelease
+ * and installRelease stop here, before any APK exists, when the key is not configured. */
+val releasePackagingTasks = setOf(
+    "packageRelease",
+    "assembleRelease",
+    "bundleRelease",
+    "installRelease",
+    "packageReleaseBundle",
+)
+
+gradle.taskGraph.whenReady {
+    val asked = allTasks.map { it.name }.filter { it in releasePackagingTasks }
+    if (asked.isEmpty() || hasReleaseSigning) return@whenReady
+    val missing = buildList {
+        addAll(missingSigning)
+        if (releaseStoreMissing) add("a readable keystore file at $releaseStoreFile")
+    }
+    throw GradleException(
+        "release signing is not configured, so the release tasks were stopped:\n" +
+            "  asked for: ${asked.joinToString(", ")}\n" +
+            "  missing: ${missing.joinToString(", ")}\n" +
+            "An APK signed with the debug key installs but can never update a released one, and\n" +
+            "nothing in it says which key signed it, so this build will not produce one.\n" +
+            "Set the four values as environment variables (CI: repository secrets) or put them in\n" +
+            "android/keystore.properties (git-ignored):\n" +
+            "  NODEPULSE_KEYSTORE=/path/to/release.jks\n" +
+            "  NODEPULSE_KEYSTORE_PASSWORD=…\n" +
+            "  NODEPULSE_KEY_ALIAS=…\n" +
+            "  NODEPULSE_KEY_PASSWORD=…\n" +
+            "For a local or debug build use :app:assembleDebug, which needs no key."
+    )
 }

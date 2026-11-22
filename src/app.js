@@ -122,10 +122,27 @@
   function setHTML(id, s) { var e = $(id); if (e && e.innerHTML !== s) e.innerHTML = s; }
   function mark(el, name, on) { if (!el) return; if (on) { el.classList.add(name); } else { el.classList.remove(name); } }
   function show(id, on) { var e = $(id); if (e) e.style.display = on ? '' : 'none'; }
+  /* Every answer from a mirror is parsed JSON, which may be any value: a proxy or a
+     captive portal can hand back a string, a number or an array where an object was
+     expected. These checks keep the paint path from walking into a primitive. */
+  function isObj(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
+  function isArr(v) { return Array.isArray(v); }
+
+  /* esc() covers the five characters that end an attribute or open a tag. Values are
+     written into text and into attributes, so the single quote is escaped too. */
   function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : '&quot;';
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : c === '"' ? '&quot;' : '&#39;';
     });
+  }
+
+  /* The panel bars: an inline style attribute is inline CSS, which the page's policy
+     no longer allows, so the fill width is a class from a 1 %-step grid instead
+     (.bar i.bw1 … .bw100 in app.css). The value itself stays computed from the API. */
+  function barClass(pct) {
+    var n = num(pct) ? Math.round(pct) : 0;
+    if (n < 1) return '';
+    return 'bw' + (n > 100 ? 100 : n);
   }
 
   /* ------------------------------------------------------------- formatting */
@@ -365,8 +382,10 @@
 
   function loadBlocks() {
     return request('/api/v1/blocks').then(function (arr) {
-      if (!arr || !arr.length) throw new Error('no blocks');
-      S.blocks = orderBlocks(arr.map(mapBlock)).slice(0, 8);
+      if (!isArr(arr)) throw new Error('bad blocks');
+      var list = arr.filter(function (b) { return isObj(b) && num(b.height); });
+      if (!list.length) throw new Error('no blocks');
+      S.blocks = orderBlocks(list.map(mapBlock)).slice(0, 8);
       if (S.tip === null) { S.tip = S.blocks[0].height; S.tipSeenAt = Date.now(); }
       trackChain(S.blocks);
       ok(); schedulePaint();
@@ -375,6 +394,7 @@
 
   function loadMem() {
     return request('/api/mempool').then(function (m) {
+      if (!isObj(m) || !num(m.count) || !num(m.vsize)) throw new Error('bad mempool');
       S.mem = { count: m.count, vsize: m.vsize, totalFee: m.total_fee };
       ok(); schedulePaint();
     });
@@ -382,7 +402,9 @@
 
   function loadRecentTxs() {
     return request('/api/mempool/recent').then(function (arr) {
-      S.recent = arr.slice(0, 10).map(function (t) {
+      if (!isArr(arr)) throw new Error('bad mempool recent');
+      S.recent = arr.filter(function (t) { return isObj(t) && typeof t.txid === 'string'; })
+        .slice(0, 10).map(function (t) {
         return { txid: t.txid, fee: t.fee, vsize: t.vsize, value: t.value, rate: t.vsize ? t.fee / t.vsize : null };
       });
       ok(); schedulePaint();
@@ -391,39 +413,43 @@
 
   function loadFees() {
     return request('/api/v1/fees/recommended').then(function (f) {
+      if (!isObj(f) || !num(f.fastestFee)) throw new Error('bad fees');
       S.fees = f; noteFee(f); ok(); schedulePaint();
     });
   }
 
   function loadHashrate() {
     return request('/api/v1/mining/hashrate/1w').then(function (h) {
+      if (!isObj(h)) throw new Error('bad hashrate');
       S.hr = h; ok(); schedulePaint();
     });
   }
 
   function loadDiff() {
     return request('/api/v1/difficulty-adjustment').then(function (d) {
+      if (!isObj(d)) throw new Error('bad difficulty');
       S.diff = d; ok(); schedulePaint();
     });
   }
 
   function loadPools() {
     return request('/api/v1/mining/pools/1w').then(function (p) {
-      if (!p || !p.pools || !p.pools.length) throw new Error('no pools');
+      if (!isObj(p) || !isArr(p.pools) || !p.pools.length) throw new Error('no pools');
       S.pools = p; S.poolsAt = Date.now(); schedulePaint();
     });
   }
 
   function loadLightning() {
     return request('/api/v1/lightning/statistics/latest').then(function (d) {
-      if (!d || !d.latest) throw new Error('no ln stats');
+      if (!isObj(d) || !isObj(d.latest)) throw new Error('no ln stats');
       S.ln = d.latest; S.lnAt = Date.now(); ok(); schedulePaint();
     });
   }
 
   function loadCountries() {
     return request('/api/v1/lightning/nodes/countries').then(function (arr) {
-      S.countries = arr || [];
+      if (!isArr(arr)) throw new Error('bad countries');
+      S.countries = arr.filter(function (c) { return isObj(c) && typeof c.iso === 'string'; });
       S.conts = aggregateContinents(S.countries);
       ok(); schedulePaint();
     });
@@ -442,10 +468,10 @@
       reachable: num(d.reachable) ? d.reachable : null,
       height: num(d.height) ? d.height : null,
       at: num(d.at) ? d.at : 0,
-      coords: d.coords || [],
-      platforms: d.platforms || null,
-      asns: d.asns || null,
-      vers: (d.vers && d.vers.length) ? d.vers : l1Versions(d),
+      coords: isArr(d.coords) ? d.coords : [],
+      platforms: isObj(d.platforms) ? d.platforms : null,
+      asns: isArr(d.asns) ? d.asns : null,
+      vers: (isArr(d.vers) && d.vers.length) ? d.vers : l1Versions(d),
       src: d.src || 'live',
       loadAt: Date.now()
     };
@@ -456,10 +482,10 @@
   }
 
   function l1Platforms(d) {
-    if (d.platforms && num(d.platforms.clearnet)) return d.platforms;
-    var tor = 0, i2p = 0, asns = d.asns || [];
+    if (isObj(d.platforms) && num(d.platforms.clearnet)) return d.platforms;
+    var tor = 0, i2p = 0, asns = isArr(d.asns) ? d.asns : [];
     asns.forEach(function (a) {
-      if (!a) return;
+      if (!isArr(a) || !a.length) return;
       if (a[0] === 'TOR') tor = a[1];
       else if (a[0] === 'I2P') i2p = a[1];
     });
@@ -469,15 +495,15 @@
 
   function l1Versions(d) {
     var total = num(d.total) ? d.total : 0;
-    if (d.ua && d.ua.length) {
-      return d.ua.slice(0, 6).map(function (r) {
+    if (isArr(d.ua) && d.ua.length) {
+      return d.ua.slice(0, 6).filter(isArr).map(function (r) {
         return { name: String(r[0]), pct: num(r[1]) ? r[1] : null };
       });
     }
-    if (d.versions && d.versions.length) {
+    if (isArr(d.versions) && d.versions.length) {
       var all = 0;
-      d.versions.forEach(function (v) { all += v[1] || 0; });
-      return d.versions.slice(0, 6).map(function (v) {
+      d.versions.forEach(function (v) { if (isArr(v)) all += v[1] || 0; });
+      return d.versions.slice(0, 6).filter(isArr).map(function (v) {
         return { name: String(v[0]), pct: all ? (v[1] / all * 100) : null };
       });
     }
@@ -503,8 +529,8 @@
     var top = getJSON(BIT_TOP, 16000).catch(function () { return null; });
     return Promise.all([coords, top]).then(function (res) {
       var c = res[0], t = res[1];
-      if (!c || !c.coordinates || !num(c.total_nodes)) throw new Error('bitnodes unavailable');
-      var tops = (t && t.top) || {};
+      if (!isObj(c) || !isArr(c.coordinates) || !num(c.total_nodes)) throw new Error('bitnodes unavailable');
+      var tops = (isObj(t) && isObj(t.top)) ? t.top : {};
       var d = {
         total: c.total_nodes,
         reachable: (c.metadata && c.metadata.reachable_nodes) || null,
@@ -600,8 +626,8 @@
       if (!e.country && n.country && n.country.en) e.country = n.country.en;
       if (!e.iso && n.iso_code) e.iso = n.iso_code;
     }
-    (conn || []).forEach(put);
-    (liq || []).forEach(put);
+    (isArr(conn) ? conn : []).forEach(put);
+    (isArr(liq) ? liq : []).forEach(put);
     return Object.keys(by).map(function (k) { return by[k]; });
   }
 
@@ -802,7 +828,7 @@
       request('/api/v1/lightning/nodes/rankings/liquidity').catch(noop)
     ]).then(function (res) {
       var rows = res[0];
-      if (!rows || !rows.length) throw new Error('empty channels-geo');
+      if (!isArr(rows) || !rows.length) throw new Error('empty channels-geo');
       var g = graphFrom(rows);
       var picked = pickChannelNodes(g);
       if (!picked.length) throw new Error('no node with channels');
@@ -820,6 +846,7 @@
         if (hit && num(hit.lat) && (now - (hit.t || 0)) < NODE_TTL) return function () { return Promise.resolve(); };
         return function () {
           return request('/api/v1/lightning/nodes/' + path).then(function (d) {
+            if (!isObj(d)) throw new Error('bad node');
             geoCache[n.pk] = {
               alias: d.alias || '',
               lat: d.latitude, lon: d.longitude,
@@ -923,23 +950,37 @@
 
   function wsUrl() { return 'wss://' + WS_HOSTS[S.wsHost % WS_HOSTS.length] + WS_PATH; }
 
+  /* One socket at a time. connectWS() is reachable from the retry timer, from the 45 s
+     watchdog tick and from a close that arrives late, and each of those used to open
+     another socket: the app then held two or three live feeds, and the loser's close
+     advanced the mirror and scheduled yet another connect. A socket that is still
+     connecting or already open is left alone, and every handler checks that its own
+     socket is still the current one before it touches the state or schedules a retry. */
   function connectWS() {
     if (!('WebSocket' in window)) { S.ws = 'off'; paintStatus(); return; }
-    try { ws = new WebSocket(wsUrl()); } catch (e) { S.ws = 'off'; scheduleWS(); return; }
+    if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
+    if (wsTimer) { clearTimeout(wsTimer); wsTimer = null; }
+    var sock;
+    try { sock = new WebSocket(wsUrl()); } catch (e) { S.ws = 'off'; scheduleWS(); return; }
+    ws = sock;
     S.ws = 'connecting';
     paintStatus();
-    ws.onopen = function () {
+    sock.onopen = function () {
+      if (ws !== sock) return;
       S.ws = 'open'; S.wsTries = 0; ok();
-      try { ws.send(JSON.stringify({ action: 'want', data: ['blocks', 'stats', 'mempool-blocks'] })); } catch (e) { }
+      try { sock.send(JSON.stringify({ action: 'want', data: ['blocks', 'stats', 'mempool-blocks'] })); } catch (e) { }
       paintStatus();
     };
-    ws.onmessage = function (ev) {
+    sock.onmessage = function (ev) {
+      if (ws !== sock) return;
       var m;
       try { m = JSON.parse(ev.data); } catch (e) { return; }
       handleWS(m);
     };
-    ws.onerror = function () { /* close follows */ };
-    ws.onclose = function () {
+    sock.onerror = function () { /* close follows */ };
+    sock.onclose = function () {
+      if (ws !== sock) return;                 // a stale socket closing late changes nothing
+      ws = null;
       S.ws = 'closed';
       S.wsHost = (S.wsHost + 1) % WS_HOSTS.length;   // next mirror answers the retry
       paintStatus();
@@ -961,44 +1002,53 @@
   }
 
   function handleWS(m) {
+    if (!isObj(m)) return;
     var touched = false;
-    if (m.mempoolInfo) {
+    if (isObj(m.mempoolInfo)) {
       S.mem = { count: m.mempoolInfo.size, vsize: m.mempoolInfo.bytes, totalFee: m.mempoolInfo.total_fee };
       touched = true;
     }
-    if (m.fees) { S.fees = m.fees; noteFee(m.fees); touched = true; }
-    if (m.da) { S.diff = m.da; touched = true; }
-    if (m.blocks && m.blocks.length) {
-      var list = orderBlocks(m.blocks.map(mapBlock)).slice(0, 8);
-      var top = list[0].height;
-      if (S.tip !== null && top > S.tip) blockEvent(top, list[0]);
-      S.tip = Math.max(S.tip || 0, top);
-      S.tipSeenAt = Date.now();
-      S.blocks = list;
-      trackChain(list);
-      touched = true;
+    if (isObj(m.fees)) { S.fees = m.fees; noteFee(m.fees); touched = true; }
+    if (isObj(m.da)) { S.diff = m.da; touched = true; }
+    if (isArr(m.blocks) && m.blocks.length) {
+      var list = orderBlocks(m.blocks.filter(function (b) { return isObj(b) && num(b.height); }).map(mapBlock)).slice(0, 8);
+      if (list.length) {
+        var top = list[0].height;
+        if (S.tip !== null && top > S.tip) blockEvent(top, list[0]);
+        S.tip = Math.max(S.tip || 0, top);
+        S.tipSeenAt = Date.now();
+        S.blocks = list;
+        trackChain(list);
+        touched = true;
+      }
     }
-    if (m.transactions && m.transactions.length) {
-      var add = m.transactions.map(function (t) {
+    if (isArr(m.transactions) && m.transactions.length) {
+      var add = m.transactions.filter(function (t) { return isObj(t) && typeof t.txid === 'string'; })
+        .map(function (t) {
         return { txid: t.txid, fee: t.fee, vsize: t.vsize, value: t.value, rate: num(t.rate) ? t.rate : (t.vsize ? t.fee / t.vsize : null) };
       });
-      var seen = Object.create(null);
-      add.forEach(function (t) { seen[t.txid] = 1; });
-      S.recent = add.concat(S.recent.filter(function (t) { return !seen[t.txid]; })).slice(0, 10);
-      touched = true;
+      if (add.length) {
+        var seen = Object.create(null);
+        add.forEach(function (t) { seen[t.txid] = 1; });
+        S.recent = add.concat(S.recent.filter(function (t) { return !seen[t.txid]; })).slice(0, 10);
+        touched = true;
+      }
     }
     /* mempool.space's own projection of the next blocks: each entry is the set of
        transactions that would fill one block, with its fee range and tx count. */
-    if (m['mempool-blocks'] && m['mempool-blocks'].length) {
-      S.mblocks = m['mempool-blocks'].map(function (b) {
-        var fr = b.feeRange || [];
+    if (isArr(m['mempool-blocks']) && m['mempool-blocks'].length) {
+      var mbs = m['mempool-blocks'].filter(isObj).map(function (b) {
+        var fr = isArr(b.feeRange) ? b.feeRange : [];
         return {
           nTx: b.nTx, vsize: b.blockVSize, size: b.blockSize, fees: b.totalFees,
           median: b.medianFee, lo: fr.length ? fr[0] : null, hi: fr.length ? fr[fr.length - 1] : null
         };
       });
-      S.mblocksAt = Date.now();
-      touched = true;
+      if (mbs.length) {
+        S.mblocks = mbs;
+        S.mblocksAt = Date.now();
+        touched = true;
+      }
     }
     if (touched) { ok(); schedulePaint(); }
   }
@@ -1267,7 +1317,7 @@
       var w = max ? (d.n / max * 100) : 0;
       out += '<div class="dist"><div class="dist-top"><span class="k">' + esc(contName(d.k)) + '</span>' +
         '<span class="v"><b>' + fmtInt(d.n) + '</b><span>' + pct.toFixed(1) + '%</span></span></div>' +
-        '<div class="bar"><i style="width:' + Math.max(1.5, w).toFixed(1) + '%"></i></div></div>';
+        '<div class="bar"><i class="' + barClass(Math.max(1.5, w)) + '"></i></div></div>';
     });
     setHTML('dist', out);
     if (S.layer === 'l1') {
@@ -1292,7 +1342,7 @@
       var name = v.name.length > 30 ? v.name.slice(0, 29) + '…' : v.name;
       out += '<div class="ver"><div class="ver-top"><span class="n">' + esc(name) + '</span>' +
         '<span class="p">' + pct.toFixed(2) + '%</span></div>' +
-        '<div class="bar"><i style="width:' + Math.max(1, max ? pct / max * 100 : 0).toFixed(1) + '%"></i></div></div>';
+        '<div class="bar"><i class="' + barClass(Math.max(1, max ? pct / max * 100 : 0)) + '"></i></div></div>';
     });
     setHTML('verList', out);
     txt('verSrc', S.l1 && S.l1.src === 'live' ? 'LIVE' : S.l1 && S.l1.src === 'cache' ? 'CACHE' : 'SNAPSHOT');
@@ -2457,7 +2507,7 @@
       '</div><button class="close" id="cardClose" aria-label="close">×</button></div>' +
       '<dl class="grid">' + cardRows(rows) + '</dl>' +
       peerHTML +
-      (aliasList ? '<div class="disc" style="margin-top:12px">' + aliasList + (cluster.nodes.length > 6 ? ' +' + (cluster.nodes.length - 6) : '') + '</div>' : '') +
+      (aliasList ? '<div class="disc tight">' + aliasList + (cluster.nodes.length > 6 ? ' +' + (cluster.nodes.length - 6) : '') + '</div>' : '') +
       '<div class="tip"><div class="t">' + L('cChainTip') + '</div>' +
       '<div class="h">' + esc(chainTipHash || '—') + '</div>' +
       '<div class="v">' + L('cHeight') + ' ' + (chainTipHeight === null ? '—' : fmtInt(chainTipHeight)) + ' · ' + esc(S.nodeSrc === 'seed' ? L('snap') : ago(S.nodeAt)) + '</div></div>' +

@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const crypto = require('crypto');
 
 const ROOT = path.resolve(__dirname, '..');
 const HTML = [
@@ -232,6 +233,30 @@ function runFrames(rafQueue, n, step) {
 const html = fs.readFileSync(HTML, 'utf8');
 check('single file has no external src', !/<script[^>]+src=/.test(html), 'script src found');
 check('single file has no external stylesheet/link', !/<link[^>]+href="http/.test(html), 'remote link found');
+
+/* The policy names each inline block by hash: nothing inline is allowed open, and an
+   injected block would have to match a hash that is already in the file. */
+const csp = (html.match(/http-equiv="Content-Security-Policy" content="([^"]*)"/) || [])[1] || '';
+const blockHashes = [];
+const blockBodies = [];
+for (const m of html.matchAll(/<(script|style)>([\s\S]*?)<\/\1>/g)) {
+  blockBodies.push(m[2]);
+  blockHashes.push("'sha256-" + crypto.createHash('sha256').update(m[2], 'utf8').digest('base64') + "'");
+}
+check('CSP names every inline script/style block by hash',
+  blockHashes.length === 7 && blockHashes.every(h => csp.indexOf(h) >= 0),
+  blockHashes.length + ' blocks, policy ' + (csp ? 'present' : 'missing'));
+check('CSP allows no unsafe-inline', csp.indexOf("'unsafe-inline'") < 0, csp.slice(0, 80));
+check('CSP names no host outside the five the app reads',
+  (csp.match(/https:\/\/[a-z.]+/g) || []).every(h => /bitnodes\.io|btcnodes\.io|mempool\.space|mempool\.emzy\.de|mempool\.ninja/.test(h)),
+  (csp.match(/https:\/\/[a-z.]+/g) || []).join(','));
+check('build has no inline style attribute', !/\sstyle="/.test(html), (html.match(/\sstyle="[^"]*"/) || [''])[0].slice(0, 60));
+check('build has no inline event handler attribute',
+  !/\son(click|error|load|mouseover|focus|blur|change|input|submit)="/.test(html));
+/* blocks 1..5 are the five embedded datasets: whatever string they carry, none of them
+   can close the script block or open a comment inside it */
+check('embedded datasets cannot close their script block',
+  blockBodies.slice(1, 6).every(b => !/<\/script/i.test(b) && !/<!--/.test(b)));
 check('title present', /<title>NodePulse/.test(html));
 check('no proximity-link label left', !/근접·예시|가까운 노드끼리|NODE LINK/.test(html), 'proximity link wording still in the build');
 check('legend names real lightning channels', /LIGHTNING CHANNEL/.test(html));
@@ -564,7 +589,7 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     agg.count.NA >= FIX.countries.filter(c => ['US', 'CA', 'MX'].indexOf(c.iso) >= 0).reduce((a, c) => a + c.count, 0), agg.count.NA);
   const bucketSum = Object.keys(agg.count).reduce((a, k) => a + agg.count[k], 0);
   check('continent buckets sum to the country total', bucketSum === agg.total, bucketSum + ' vs ' + agg.total);
-  check('north-america bar width proportional', /width:100\.0%/.test(distHTML), 'max bar not 100%');
+  check('north-america bar width proportional', /class="bw100"/.test(distHTML), 'max bar not full width');
   check('LN distribution total names the country count', els.distTotal.textContent.indexOf(String(FIX.countries.length)) > 0, els.distTotal.textContent);
   check('blocks list rendered', (els.listBlocks.innerHTML.match(/class="item"/g) || []).length === 8);
   check('tx list rendered at the same time as the block list (no tab switch)',
@@ -582,6 +607,16 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     els.note.innerHTML.indexOf('실제 공개 채널') > 0 &&
     els.note.innerHTML.indexOf(String(CHGEO.length).replace(/\B(?=(\d{3})+(?!\d))/g, ',')) > 0,
     els.note.innerHTML.slice(0, 160));
+
+  /* ---- a malformed push changes nothing ---- */
+  const snap = () => JSON.stringify({ tip: S.tip, mem: S.mem, fees: S.fees, recent: S.recent.length, blocks: S.blocks.length, mb: S.mblocks.length });
+  const beforeJunk = snap();
+  wsInstance.onmessage({ data: '"a string, not an object"' });
+  wsInstance.onmessage({ data: '[1,2,3]' });
+  wsInstance.onmessage({ data: 'null' });
+  wsInstance.deliver({ blocks: 'nope', fees: 'nope', transactions: 5, mempoolInfo: 7, da: [], 'mempool-blocks': {} });
+  wsInstance.deliver({ blocks: [1, 2, null], transactions: [{}, 'tx'], 'mempool-blocks': ['x'] });
+  check('a push that is not an object changes no state', beforeJunk === snap(), snap());
 
   /* ---- watchdog: clean state, then each alert ---- */
   /* settle on low fees and a fresh block, the state a healthy network is in */
@@ -716,6 +751,14 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   const second = wsList[wsList.length - 1];
   check('retry connects to the mirror', second && second !== wsInstance && second.url === 'wss://mempool.emzy.de/api/v1/ws',
     second && second.url);
+
+  /* ---- a socket that is no longer current cannot move the mirror or open a retry ---- */
+  const hostAfterRetry = S.wsHost;
+  wsInstance.close();                        // the first socket, already replaced
+  await sleep(150);
+  check('a stale socket closing late changes nothing',
+    S.wsHost === hostAfterRetry, S.wsHost + ' vs ' + hostAfterRetry);
+  check('a stale close opens no extra socket', wsList.length === 2, wsList.length);
 
   /* ---- failure mode: no network at all ----
      without the bridge and with every request failing, both layers still draw the

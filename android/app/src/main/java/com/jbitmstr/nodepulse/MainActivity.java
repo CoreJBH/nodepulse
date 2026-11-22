@@ -224,7 +224,8 @@ public class MainActivity extends Activity {
                 String host = u.getHost();
                 if (host == null) return false;
                 for (String h : HOSTS) {
-                    if (host.equals(h)) return true;
+                    // DNS names are case-insensitive, and URL does not normalise the host
+                    if (host.equalsIgnoreCase(h)) return true;
                 }
                 return false;
             } catch (Exception e) {
@@ -305,6 +306,21 @@ public class MainActivity extends Activity {
             return sb.toString();
         }
 
+        /**
+         * A JS string literal for {@code s}: JSONObject.quote() does the escaping, then
+         * U+2028 and U+2029 become \u2028 and \u2029. Both are line terminators to a
+         * JavaScript parser (only since ES2019 are they legal inside a string literal),
+         * and quote() leaves them raw, so an answer that carried one — an alias, a client
+         * version — used to turn the injected call into a syntax error on an older
+         * WebView and lose the data. JSON.parse() accepts the escapes, so the page sees
+         * exactly the same characters.
+         */
+        private static String jsStringLiteral(String s) {
+            String quoted = JSONObject.quote(s == null ? "" : s);
+            return quoted.replace(String.valueOf((char) 0x2028), "\\u2028")
+                    .replace(String.valueOf((char) 0x2029), "\\u2029");
+        }
+
         private void deliver(final String id, final boolean ok, final String body) {
             if (destroyed) return;
             final WebView w = web.get();
@@ -316,9 +332,9 @@ public class MainActivity extends Activity {
                     WebView v = web.get();
                     if (v == null) return;
                     String js = "window.NPBridgeOnData&&window.NPBridgeOnData("
-                            + JSONObject.quote(id == null ? "" : id) + ","
+                            + jsStringLiteral(id) + ","
                             + (ok ? "true" : "false") + ","
-                            + JSONObject.quote(body == null ? "" : body) + ")";
+                            + jsStringLiteral(body) + ")";
                     try {
                         v.evaluateJavascript(js, null);
                     } catch (Exception ignored) {

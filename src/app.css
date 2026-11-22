@@ -180,6 +180,110 @@ body.en .row .k em{display:none}
 .ver-top .p{color:var(--dim)}
 .ver .bar{margin-top:5px;height:3px}
 
+/* Fill widths for the distribution and client-version bars.
+   The CSP allows no inline style, so a bar carries a class from this 1 %-step grid
+   instead of an inline style attribute (see barClass() in app.js). */
+.bar i.bw1{width:1%}
+.bar i.bw2{width:2%}
+.bar i.bw3{width:3%}
+.bar i.bw4{width:4%}
+.bar i.bw5{width:5%}
+.bar i.bw6{width:6%}
+.bar i.bw7{width:7%}
+.bar i.bw8{width:8%}
+.bar i.bw9{width:9%}
+.bar i.bw10{width:10%}
+.bar i.bw11{width:11%}
+.bar i.bw12{width:12%}
+.bar i.bw13{width:13%}
+.bar i.bw14{width:14%}
+.bar i.bw15{width:15%}
+.bar i.bw16{width:16%}
+.bar i.bw17{width:17%}
+.bar i.bw18{width:18%}
+.bar i.bw19{width:19%}
+.bar i.bw20{width:20%}
+.bar i.bw21{width:21%}
+.bar i.bw22{width:22%}
+.bar i.bw23{width:23%}
+.bar i.bw24{width:24%}
+.bar i.bw25{width:25%}
+.bar i.bw26{width:26%}
+.bar i.bw27{width:27%}
+.bar i.bw28{width:28%}
+.bar i.bw29{width:29%}
+.bar i.bw30{width:30%}
+.bar i.bw31{width:31%}
+.bar i.bw32{width:32%}
+.bar i.bw33{width:33%}
+.bar i.bw34{width:34%}
+.bar i.bw35{width:35%}
+.bar i.bw36{width:36%}
+.bar i.bw37{width:37%}
+.bar i.bw38{width:38%}
+.bar i.bw39{width:39%}
+.bar i.bw40{width:40%}
+.bar i.bw41{width:41%}
+.bar i.bw42{width:42%}
+.bar i.bw43{width:43%}
+.bar i.bw44{width:44%}
+.bar i.bw45{width:45%}
+.bar i.bw46{width:46%}
+.bar i.bw47{width:47%}
+.bar i.bw48{width:48%}
+.bar i.bw49{width:49%}
+.bar i.bw50{width:50%}
+.bar i.bw51{width:51%}
+.bar i.bw52{width:52%}
+.bar i.bw53{width:53%}
+.bar i.bw54{width:54%}
+.bar i.bw55{width:55%}
+.bar i.bw56{width:56%}
+.bar i.bw57{width:57%}
+.bar i.bw58{width:58%}
+.bar i.bw59{width:59%}
+.bar i.bw60{width:60%}
+.bar i.bw61{width:61%}
+.bar i.bw62{width:62%}
+.bar i.bw63{width:63%}
+.bar i.bw64{width:64%}
+.bar i.bw65{width:65%}
+.bar i.bw66{width:66%}
+.bar i.bw67{width:67%}
+.bar i.bw68{width:68%}
+.bar i.bw69{width:69%}
+.bar i.bw70{width:70%}
+.bar i.bw71{width:71%}
+.bar i.bw72{width:72%}
+.bar i.bw73{width:73%}
+.bar i.bw74{width:74%}
+.bar i.bw75{width:75%}
+.bar i.bw76{width:76%}
+.bar i.bw77{width:77%}
+.bar i.bw78{width:78%}
+.bar i.bw79{width:79%}
+.bar i.bw80{width:80%}
+.bar i.bw81{width:81%}
+.bar i.bw82{width:82%}
+.bar i.bw83{width:83%}
+.bar i.bw84{width:84%}
+.bar i.bw85{width:85%}
+.bar i.bw86{width:86%}
+.bar i.bw87{width:87%}
+.bar i.bw88{width:88%}
+.bar i.bw89{width:89%}
+.bar i.bw90{width:90%}
+.bar i.bw91{width:91%}
+.bar i.bw92{width:92%}
+.bar i.bw93{width:93%}
+.bar i.bw94{width:94%}
+.bar i.bw95{width:95%}
+.bar i.bw96{width:96%}
+.bar i.bw97{width:97%}
+.bar i.bw98{width:98%}
+.bar i.bw99{width:99%}
+.bar i.bw100{width:100%}
+
 /* next blocks */
 .nb{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
 .nb .b{padding:8px 8px 7px;border-radius:10px;border:1px solid rgba(var(--ac),.18);background:linear-gradient(180deg,rgba(var(--ac),.09),rgba(var(--ac),.03))}
@@ -303,6 +407,7 @@ body.ln .card{background:linear-gradient(180deg, rgba(23,19,56,.98), rgba(11,9,3
 .disc{margin:14px 0 0;font-size:10px;line-height:1.62;color:var(--dim)}
 .disc b{color:var(--ink-soft);font-weight:500}
 .disc code{font-family:var(--mono);font-size:9px;color:var(--ink-soft)}
+.disc.tight{margin-top:12px}
 
 /* real-channel peer block in the node card */
 .peers{margin-top:14px;padding:11px 12px 10px;border-radius:11px;
@@ -388,3 +493,6 @@ body.ln .toast{background:rgba(18,14,44,.94)}
   .pill.pulse i{animation:none}
   .topbar,.panel,.toggle,.body{transition:none}
 }
+
+/* the <noscript> line: a class rather than a style attribute, for the same reason */
+.nojs{position:fixed;inset:auto 0 40% 0;text-align:center;color:#8fb8ee;font-family:monospace}
