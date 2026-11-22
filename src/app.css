@@ -491,7 +491,7 @@ body.ln .toast{background:rgba(18,14,44,.94)}
 }
 @media (prefers-reduced-motion:reduce){
   .pill.pulse i{animation:none}
-  .topbar,.panel,.toggle,.body{transition:none}
+  .topbar,.panel,.toggle,body{transition:none}
 }
 
 /* the <noscript> line: a class rather than a style attribute, for the same reason */

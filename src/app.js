@@ -198,6 +198,11 @@
     }
     return { v: (hs / 1e6).toFixed(2), u: 'MH/s' };
   }
+  /* A device clock that runs a little slow puts an API timestamp (a block, a mempool
+     answer) a few seconds in the future, and Date.now() - ms then comes out negative.
+     Every elapsed-time figure is clamped at zero here and at its call sites, so the UI
+     reads "0초 전" instead of "-3초 전" or the em dash that durSec() returns for a
+     negative second count. */
   function ago(ms) {
     if (!num(ms) || ms <= 0) return '—';
     var s = Math.max(0, (Date.now() - ms) / 1000), en = S.lang === 'en';
@@ -1402,7 +1407,8 @@
     var list = [], alerts = [], now = Date.now();
     var fresh = !stale();          // our own feed answered recently
     var b = S.blocks && S.blocks.length ? S.blocks[0] : null;
-    var gap = b && num(b.time) ? now / 1000 - b.time : null;
+    /* clamped: a slow phone clock must not turn a fresh block into a negative gap */
+    var gap = b && num(b.time) ? Math.max(0, now / 1000 - b.time) : null;
 
     if (gap === null || !fresh) {
       list.push({ tag: 'BLOCK', alert: false, text: L('wNoData') });
@@ -1790,7 +1796,7 @@
     if (!box || !S.blocks.length) { if (box) box.innerHTML = '<div class="item"><div class="l2">' + esc(L('loading')) + '</div></div>'; return; }
     var out = '';
     S.blocks.forEach(function (b) {
-      var elapsed = b.time ? durSec(Date.now() / 1000 - b.time) : '—';
+      var elapsed = num(b.time) ? durSec(Math.max(0, Date.now() / 1000 - b.time)) : '—';
       out += '<div class="item"><div class="l1"><span>#' + fmtInt(b.height) + '</span><span class="r">' + fmtInt(b.txs) + '</span></div>' +
         '<div class="l2"><span>' + fmtFixed(b.size / 1e6, 2) + 'M · ' + esc(elapsed) + (S.lang === 'en' ? '' : ' 전') + '</span>' +
         '<span>' + (b.medianFee != null ? fmtFixed(b.medianFee, 1) : '') + '</span></div>' +
@@ -2758,6 +2764,9 @@
         e.preventDefault();
       });
       function release(e) {
+        /* a pointer this globe never saw go down (it was dropped by resetTouch) owns no
+           part of the gesture: releasing it must not open a card */
+        if (!pointers[e.pointerId]) return;
         var wasDrag = dragMoved;
         if (pointers[e.pointerId]) delete pointers[e.pointerId];
         var keys = Object.keys(pointers);
@@ -2771,6 +2780,23 @@
           G.lastTouch = Date.now();
         }
       }
+      /* Two fingers down, then the page loses focus (the app is backgrounded, a call
+         arrives, the WebView hands focus to native): no pointerup ever follows, so the
+         old touch state stayed behind — a stale second pointer, a live pinch base, a
+         drag that never ended. The globe then ignored the next tap and kept re-scaling
+         from a distance it no longer knew. Drop the whole gesture instead. */
+      function resetTouch() {
+        pointers = {};
+        pinch = null;
+        G.dragging = false;
+        dragStart = null;
+        dragMoved = 0;
+        pinchHappened = false;
+      }
+      cv.addEventListener('touchcancel', resetTouch);
+      window.addEventListener('blur', resetTouch);
+      window.addEventListener('pagehide', resetTouch);
+      document.addEventListener('visibilitychange', function () { if (document.hidden) resetTouch(); });
       cv.addEventListener('pointerup', release);
       cv.addEventListener('pointercancel', release);
       cv.addEventListener('wheel', function (e) {

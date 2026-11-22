@@ -9,7 +9,7 @@
      computes over the exact bytes it has written, so no 'unsafe-inline' is needed and an
      injected block would have to match a hash that is already in the file. Nothing else
      is allowed: no frames, no forms, no plugins, no workers, no extra hosts. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-vy6I62cyBslfvwe+NkBWz2HlaD6O924N21j144tsZdE=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-bkjNx3ONVBF3BrTN9GJo/f81kvkzG+O8Op7FN5HWtxc='; style-src 'sha256-cmrz4C/bq+MMb5YzyCFQWmbVcMe2YXkwYRmuhmAkPsE='; img-src data:; connect-src https://bitnodes.io https://www.bitnodes.io https://btcnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-vy6I62cyBslfvwe+NkBWz2HlaD6O924N21j144tsZdE=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-tnYAIgQ6s2w8fEQwDKDgvAsqhWpqgLX/NQba1a5VjGY='; style-src 'sha256-STc3RB0tPADLJSrycqu9P407CIiLDvUnbU/wbczthVA='; img-src data:; connect-src https://bitnodes.io https://www.bitnodes.io https://btcnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
 <meta name="theme-color" content="#040914">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="NodePulse — 비트코인 L1 메인넷 실시간 감시. Bitnodes 풀노드 분포와 mempool.space 블록·멤풀·수수료를 실제 데이터로만 표시합니다.">
@@ -514,7 +514,7 @@ body.ln .toast{background:rgba(18,14,44,.94)}
 }
 @media (prefers-reduced-motion:reduce){
   .pill.pulse i{animation:none}
-  .topbar,.panel,.toggle,.body{transition:none}
+  .topbar,.panel,.toggle,body{transition:none}
 }
 
 /* the <noscript> line: a class rather than a style attribute, for the same reason */
@@ -859,6 +859,11 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     }
     return { v: (hs / 1e6).toFixed(2), u: 'MH/s' };
   }
+  /* A device clock that runs a little slow puts an API timestamp (a block, a mempool
+     answer) a few seconds in the future, and Date.now() - ms then comes out negative.
+     Every elapsed-time figure is clamped at zero here and at its call sites, so the UI
+     reads "0초 전" instead of "-3초 전" or the em dash that durSec() returns for a
+     negative second count. */
   function ago(ms) {
     if (!num(ms) || ms <= 0) return '—';
     var s = Math.max(0, (Date.now() - ms) / 1000), en = S.lang === 'en';
@@ -2063,7 +2068,8 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     var list = [], alerts = [], now = Date.now();
     var fresh = !stale();          // our own feed answered recently
     var b = S.blocks && S.blocks.length ? S.blocks[0] : null;
-    var gap = b && num(b.time) ? now / 1000 - b.time : null;
+    /* clamped: a slow phone clock must not turn a fresh block into a negative gap */
+    var gap = b && num(b.time) ? Math.max(0, now / 1000 - b.time) : null;
 
     if (gap === null || !fresh) {
       list.push({ tag: 'BLOCK', alert: false, text: L('wNoData') });
@@ -2451,7 +2457,7 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
     if (!box || !S.blocks.length) { if (box) box.innerHTML = '<div class="item"><div class="l2">' + esc(L('loading')) + '</div></div>'; return; }
     var out = '';
     S.blocks.forEach(function (b) {
-      var elapsed = b.time ? durSec(Date.now() / 1000 - b.time) : '—';
+      var elapsed = num(b.time) ? durSec(Math.max(0, Date.now() / 1000 - b.time)) : '—';
       out += '<div class="item"><div class="l1"><span>#' + fmtInt(b.height) + '</span><span class="r">' + fmtInt(b.txs) + '</span></div>' +
         '<div class="l2"><span>' + fmtFixed(b.size / 1e6, 2) + 'M · ' + esc(elapsed) + (S.lang === 'en' ? '' : ' 전') + '</span>' +
         '<span>' + (b.medianFee != null ? fmtFixed(b.medianFee, 1) : '') + '</span></div>' +
@@ -3419,6 +3425,9 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
         e.preventDefault();
       });
       function release(e) {
+        /* a pointer this globe never saw go down (it was dropped by resetTouch) owns no
+           part of the gesture: releasing it must not open a card */
+        if (!pointers[e.pointerId]) return;
         var wasDrag = dragMoved;
         if (pointers[e.pointerId]) delete pointers[e.pointerId];
         var keys = Object.keys(pointers);
@@ -3432,6 +3441,23 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
           G.lastTouch = Date.now();
         }
       }
+      /* Two fingers down, then the page loses focus (the app is backgrounded, a call
+         arrives, the WebView hands focus to native): no pointerup ever follows, so the
+         old touch state stayed behind — a stale second pointer, a live pinch base, a
+         drag that never ended. The globe then ignored the next tap and kept re-scaling
+         from a distance it no longer knew. Drop the whole gesture instead. */
+      function resetTouch() {
+        pointers = {};
+        pinch = null;
+        G.dragging = false;
+        dragStart = null;
+        dragMoved = 0;
+        pinchHappened = false;
+      }
+      cv.addEventListener('touchcancel', resetTouch);
+      window.addEventListener('blur', resetTouch);
+      window.addEventListener('pagehide', resetTouch);
+      document.addEventListener('visibilitychange', function () { if (document.hidden) resetTouch(); });
       cv.addEventListener('pointerup', release);
       cv.addEventListener('pointercancel', release);
       cv.addEventListener('wheel', function (e) {

@@ -167,15 +167,24 @@ visible, at under 1 % of the raw edge count.
   fill/stroke per alpha level instead of per dot, with the limb fade and pulse quantised
   to a few levels; geometry and colours are unchanged and the canvas state changes per
   frame drop from thousands to a few dozen.
+* **A slow phone clock never prints a negative age.** Block and cache timestamps come from
+  the server, so a device clock a few seconds behind makes `Date.now() - stamp` negative.
+  Every elapsed figure is clamped at zero — the block list reads `0초 전` instead of the
+  em dash a negative second count used to produce, and the watchdog gap never goes below
+  zero.
+* **A lost focus drops the gesture.** When the WebView loses focus mid-pinch (the app is
+  backgrounded, a call arrives) no `pointerup` follows; `touchcancel`, `blur`, `pagehide`
+  and a hidden page now clear the pointers, the pinch base and the unfinished drag, so the
+  globe keeps answering taps and never re-scales from a distance it no longer knows.
 
 ### 5. Zero-dependency build and an automated verification suite
 `build.py` inlines CSS, geometry, snapshots, application code, and the base64 app icon into
-one document — about 377 KB — with tokens that fail the build if any substitution is missed,
+one document — about 379 KB — with tokens that fail the build if any substitution is missed,
 and it refuses to emit a file that could break out of its own `<script>` block.
 
 | Harness | What it proves | Result |
 | --- | --- | --- |
-| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge (single-piece and chunked delivery, a lost chunk), snapshots, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads, a failed node-detail fetch, EN/KO | **269 / 269 assertions pass** |
+| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge (single-piece and chunked delivery, a lost chunk), snapshots, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads, a failed node-detail fetch, a clock running behind the API, a pinch dropped by a lost focus, EN/KO | **280 / 280 assertions pass** |
 | `test/fill-truth.js` | Rendered continent fill compared with the land polygons over 50 camera angles, 743 k sampled pixels | ≈ 0.4 % false-positive / 0.26 % false-negative, all on sub-pixel Antarctic coastline edges |
 | `test/perf.js` | Frame cadence at a 390×844 phone viewport, DPR clamped to 2, then with 4× CPU throttling | p50 16.7 ms (60 fps), p95 33.4 ms under throttle |
 | `test/offline.js` | Boot with every network route aborted: snapshot geometry, status disclosure, no JS errors | pass |
@@ -204,7 +213,7 @@ node --check src/app.js   # syntax gate
 **Test it.**
 
 ```bash
-node test/headless.js               # 269 assertions, no browser required
+node test/headless.js               # 280 assertions, no browser required
 python3 build.py && node test/fill-truth.js   # browser harness, needs Playwright
 node test/perf.js                   # frame-time probe
 ```
@@ -233,7 +242,7 @@ enabled, an edge-to-edge `#040914` dark system bar treatment, and the NodePulse 
 
 * **Package:** `com.jbitmstr.nodepulse`
 * **Min / target SDK:** 24 / 34
-* **Version:** 1.1.8 (`versionCode` 10)
+* **Version:** 1.1.9 (`versionCode` 11)
 
 **Locked down shell.** File access, content access, file-URL access and universal access
 from file URLs are all off; the only page the WebView can show is the bundled asset, a
@@ -293,6 +302,12 @@ and on demand:
    tag never publishes a debug-key build.
 6. On a tag the signed APK is uploaded as the workflow artifact **`nodepulse-apk`** (file
    `nodepulse.apk`); on a branch push the debug one is **`nodepulse-apk-debug`**.
+
+Every third-party action in the workflow is pinned to the commit its release tag pointed at
+(`actions/checkout@11d5960a…`, `actions/setup-java@cf277c60…`, `actions/setup-node@49933ea5…`,
+`gradle/actions/setup-gradle@ed408507…`, `actions/upload-artifact@ea165f8d…`,
+`softprops/action-gh-release@3bb12739…`), with the tag in a trailing comment: a tag can be
+moved to new code, a commit SHA cannot.
 
 Staging is also wired into the Gradle graph itself: `stageWebApp` is a dependency of
 `preBuild`, so a plain local `gradle assembleDebug` stages `dist/nodepulse.html` into the

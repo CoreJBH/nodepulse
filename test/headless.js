@@ -89,7 +89,9 @@ function makeDocument() {
     getElementById(id) { return els[id] || (els[id] = makeEl(id)); },
     querySelector() { return null; },
     querySelectorAll() { return []; },
-    addEventListener() { },
+    listeners: {},
+    addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); },
+    dispatch(type, ev) { (this.listeners[type] || []).forEach(f => f(ev || { target: this })); },
     createElement(tag) { return makeEl(tag); },
     body: makeEl('body')
   };
@@ -255,7 +257,13 @@ function makeWindow(docApi, els) {
   const rafQueue = [];
   const window = {
     innerWidth: 400, innerHeight: 860, devicePixelRatio: 2,
-    addEventListener() { }, removeEventListener() { },
+    listeners: {},
+    addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); },
+    removeEventListener(type, fn) {
+      const l = this.listeners[type];
+      if (l) { const i = l.indexOf(fn); if (i >= 0) l.splice(i, 1); }
+    },
+    dispatch(type, ev) { (this.listeners[type] || []).forEach(f => f(ev || { target: this })); },
     requestAnimationFrame: fn => { rafQueue.push(fn); return rafQueue.length; },
     cancelAnimationFrame() { },
     WebSocket: FakeWS,
@@ -319,6 +327,10 @@ check('CSP names no host outside the five the app reads',
   (csp.match(/https:\/\/[a-z.]+/g) || []).every(h => /bitnodes\.io|btcnodes\.io|mempool\.space|mempool\.emzy\.de|mempool\.ninja/.test(h)),
   (csp.match(/https:\/\/[a-z.]+/g) || []).join(','));
 check('build has no inline style attribute', !/\sstyle="/.test(html), (html.match(/\sstyle="[^"]*"/) || [''])[0].slice(0, 60));
+/* the reduced-motion rule used to name `.body`, a class nothing carries, so the body kept
+   its transition for a reader who asked for none */
+check('reduced-motion rule names body, not a .body class',
+  html.indexOf('.topbar,.panel,.toggle,body{transition:none}') >= 0 && !/\.body\{transition:none\}/.test(html));
 check('build has no inline event handler attribute',
   !/\son(click|error|load|mouseover|focus|blur|change|input|submit)="/.test(html));
 /* blocks 1..5 are the five embedded datasets: whatever string they carry, none of them
@@ -945,6 +957,30 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   check('reorg toast is shown', /REORG|리오그/.test(els.toast.textContent), els.toast.textContent);
   check('reorg is reported on the badge', els.watchTxt.textContent !== 'WDG 0', els.watchTxt.textContent);
 
+  /* ---- a slow device clock: the API's block timestamp sits a few seconds ahead ----
+     mempool.space stamps a block server-side and the phone's clock may run a little slow,
+     so Date.now() - timestamp comes out negative. The block row printed the em dash
+     durSec() returns for a negative second count ("— 전") and the watchdog a negative gap;
+     every elapsed figure is clamped at zero now and reads "0초 전". */
+  const skewed = JSON.parse(JSON.stringify(liveBlocks));
+  skewed[0].height = oldTip + 2;
+  skewed[0].id = '1'.repeat(64);
+  skewed[0].timestamp = Math.floor(Date.now() / 1000) + 5;
+  wsInstance.deliver({ blocks: skewed, fees: FIX.fees });
+  runFrames(rafQueue, 2);
+  await sleep(420);
+  runFrames(rafQueue, 2);
+  await sleep(80);
+  const skewHTML = els.listBlocks.innerHTML;
+  check('a block stamped ahead of the phone clock reads 0 seconds, not an em dash',
+    skewHTML.indexOf('0초 전') > 0 && skewHTML.indexOf('— 전') < 0, skewHTML.slice(0, 220));
+  check('no block age in the list is negative', !/-\d+\s*초 전/.test(skewHTML), skewHTML.slice(0, 220));
+  const wSkew = NP.watch();
+  check('a future block timestamp raises no block-delay alert',
+    wSkew.alerts.every(a => a.k !== 'gap'), wSkew.alerts.map(a => a.text).join(' | '));
+  check('the watchdog block row prints 0 seconds, not a negative or em-dash gap',
+    /0초/.test(els.watch.innerHTML) && !/-\d+\s*초/.test(els.watch.innerHTML), els.watch.innerHTML.slice(0, 220));
+
   /* back to clean data so the remaining checks are not polluted */
   wsInstance.deliver({ blocks: liveBlocks, fees: FIX.fees });
   S.reorgAt = 0;
@@ -1034,6 +1070,41 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   pxEv('pointerup', 2, pinchCluster.sx + 60, pinchCluster.sy + 60);
   pxEv('pointerup', 1, pinchCluster.sx, pinchCluster.sy);
   check('releasing a pinch opens no node card', !els.modal.classList.contains('on'));
+
+  /* ---- focus loss mid-pinch: no pointerup follows when the WebView loses focus (the app
+     is backgrounded, a call arrives, the window is sent to the back). The stale second
+     pointer, the live pinch base and the unfinished drag used to stay behind, so the next
+     tap was read against two old pointers and never opened the card. */
+  pxEv('pointerdown', 1, pinchCluster.sx, pinchCluster.sy);
+  pxEv('pointerdown', 2, pinchCluster.sx + 40, pinchCluster.sy + 40);
+  const zoomAtBlur = G.zoomT;
+  window.dispatch('blur', {});
+  pxEv('pointermove', 2, pinchCluster.sx + 400, pinchCluster.sy + 400);
+  check('losing focus drops the pinch instead of zooming from a stale base',
+    G.zoomT === zoomAtBlur, G.zoomT + ' vs ' + zoomAtBlur);
+  pxEv('pointerup', 2, pinchCluster.sx + 400, pinchCluster.sy + 400);
+  pxEv('pointerup', 1, pinchCluster.sx, pinchCluster.sy);
+  check('a pointerup for a dropped pointer opens no card', !els.modal.classList.contains('on'));
+  pxEv('pointerdown', 1, pinchCluster.sx, pinchCluster.sy);
+  pxEv('pointerup', 1, pinchCluster.sx, pinchCluster.sy);
+  check('after a lost focus mid-pinch the next tap opens the card again',
+    els.modal.classList.contains('on'));
+  els.modal.click();
+
+  /* the same reset for the touchcancel the platform reports */
+  pxEv('pointerdown', 1, pinchCluster.sx, pinchCluster.sy);
+  pxEv('pointerdown', 2, pinchCluster.sx + 30, pinchCluster.sy + 30);
+  els.globe.dispatch('touchcancel', {});
+  const zoomAtCancel = G.zoomT;
+  pxEv('pointermove', 2, pinchCluster.sx + 300, pinchCluster.sy + 300);
+  check('a touchcancel clears the pinch base too', G.zoomT === zoomAtCancel, G.zoomT + ' vs ' + zoomAtCancel);
+  pxEv('pointerup', 2, pinchCluster.sx + 300, pinchCluster.sy + 300);
+  pxEv('pointerup', 1, pinchCluster.sx, pinchCluster.sy);
+  check('a stray pointerup after a touchcancel opens no card', !els.modal.classList.contains('on'));
+  pxEv('pointerdown', 1, pinchCluster.sx, pinchCluster.sy);
+  pxEv('pointerup', 1, pinchCluster.sx, pinchCluster.sy);
+  check('the globe still answers a tap after a touchcancel', els.modal.classList.contains('on'));
+  els.modal.click();
 
   /* ---- language toggle ---- */
   NP.lang('en');
