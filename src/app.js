@@ -398,10 +398,19 @@
     });
   }
 
+  /* The two mempool feeds do not use the same unit for the same figure: REST
+     /api/mempool answers total_fee in satoshis, while the websocket push carries
+     mempoolInfo.total_fee in BTC. The HUD reads this field as BTC, so the REST value
+     is scaled once here; without it the fee line showed millions of BTC until the
+     first push replaced it. */
+  var SATS_PER_BTC = 1e8;
+  function toBtc(v) {
+    return num(v) && v >= 0 ? btcAmount(v / SATS_PER_BTC) : null;
+  }
   function loadMem() {
     return request('/api/mempool').then(function (m) {
       if (!isObj(m) || !num(m.count) || !num(m.vsize)) throw new Error('bad mempool');
-      S.mem = { count: m.count, vsize: m.vsize, totalFee: m.total_fee };
+      S.mem = { count: m.count, vsize: m.vsize, totalFee: toBtc(m.total_fee) };
       ok(); schedulePaint();
     });
   }
@@ -529,6 +538,19 @@
     return true;
   }
 
+  /* Bitnodes answers the coordinate grid and the ASN/client-version breakdown as two
+     separate snapshots. The grid is what most of the view needs, so a failure of the
+     top query alone must not blank the parts that are already known: the counts, the
+     clearnet/Tor/I2P split and the client versions stay as they were (from this
+     session, or from the last snapshot in the cache) until a later load works. */
+  function l1TopFallback() {
+    var prev = isObj(S.l1) ? S.l1 : null;
+    if (prev && (isArr(prev.asns) || isObj(prev.platforms) || (isArr(prev.vers) && prev.vers.length))) return prev;
+    var cached = recall(LS_CACHE + '.l1');
+    if (isObj(cached) && isObj(cached.d)) return cached.d;
+    return prev;
+  }
+
   function loadL1() {
     S.l1Tried = Date.now();
     var coords = getJSON(BIT_COORDS, 22000).catch(function () { return null; });
@@ -536,19 +558,21 @@
     return Promise.all([coords, top]).then(function (res) {
       var c = res[0], t = res[1];
       if (!isObj(c) || !isArr(c.coordinates) || !num(c.total_nodes)) throw new Error('bitnodes unavailable');
-      var tops = (isObj(t) && isObj(t.top)) ? t.top : {};
+      var tops = (isObj(t) && isObj(t.top)) ? t.top : null;
+      var prev = l1TopFallback() || {};
       var d = {
         total: c.total_nodes,
         reachable: (c.metadata && c.metadata.reachable_nodes) || null,
         height: c.latest_height,
         at: (c.timestamp || 0) * 1000,
         coords: c.coordinates,
-        asns: tops.top_asns || null,
-        ua: tops.top_user_agents || null,
+        asns: (tops && isArr(tops.top_asns)) ? tops.top_asns : (isArr(prev.asns) ? prev.asns : null),
+        ua: (tops && isArr(tops.top_user_agents)) ? tops.top_user_agents : (isArr(prev.ua) ? prev.ua : null),
         src: 'live'
       };
-      d.platforms = l1Platforms(d);
+      d.platforms = l1Platforms(d) || (isObj(prev.platforms) ? prev.platforms : null);
       d.vers = l1Versions(d);
+      if (!d.vers.length && isArr(prev.vers) && prev.vers.length) d.vers = prev.vers.slice(0, 6);
       applyL1(d);
       store(LS_CACHE + '.l1', { t: Date.now(), d: { total: d.total, reachable: d.reachable, height: d.height, at: d.at, coords: d.coords, asns: d.asns, ua: d.ua, platforms: d.platforms } });
     }).catch(function () {
@@ -827,7 +851,12 @@
     var cacheChanAt = num(cache.chanAt) ? cache.chanAt : cacheAt;
     if (!force && isArr(cache.nodes) && cache.nodes.length && isArr(cache.links) && cache.links.length &&
       (now - cacheAt) < NODE_TTL) {
+      /* A fresh snapshot is the whole answer: it is drawn, and the channel graph behind
+         it is less than six hours old. The old code drew it and then fetched
+         channels-geo, both rankings and every node detail again on every boot, so a
+         restart re-downloaded a 1.5 MB payload it already had. */
       applyNodes(cache.nodes, cache.links, 'live', cacheAt, { rows: num(cache.rows) ? cache.rows : 0, at: cacheChanAt });
+      return Promise.resolve();
     }
     var geoCache = Object.create(null);
     if (isObj(cache.geo)) {
@@ -944,12 +973,30 @@
       mblocks: S.mblocks, mblocksAt: S.mblocksAt, pools: S.pools, poolsAt: S.poolsAt
     });
   }
+  /* A ceiling for a mempool fee total in BTC. Every transaction waiting at once cannot
+     sum to more than a few hundred BTC even in a fee spike, while the same figure in
+     satoshis starts around 10^6, so this separates the two units with room on both sides.
+     1.1.4 and earlier cached whatever the REST feed sent (satoshis), and such a value is
+     dropped here rather than printed as BTC; the row is refilled by the next answer. */
+  var MAX_MEMPOOL_FEE_BTC = 1e5;
+  function btcAmount(v) {
+    return (num(v) && v >= 0 && v <= MAX_MEMPOOL_FEE_BTC) ? v : null;
+  }
+  function memFromCache(m) {
+    if (!isObj(m)) return null;
+    return {
+      count: num(m.count) ? m.count : null,
+      vsize: num(m.vsize) ? m.vsize : null,
+      totalFee: btcAmount(m.totalFee)
+    };
+  }
+
   function restoreCache() {
     var c = recall(LS_CACHE);
     if (!isObj(c)) return false;
     if (num(c.tip)) S.tip = c.tip;
     if (isArr(c.blocks)) S.blocks = c.blocks;
-    if (isObj(c.mem)) S.mem = c.mem;
+    if (isObj(c.mem)) S.mem = memFromCache(c.mem);
     if (isArr(c.recent)) S.recent = c.recent;
     if (isObj(c.fees)) S.fees = c.fees;
     if (isObj(c.hr)) S.hr = c.hr;
@@ -1022,7 +1069,7 @@
     if (!isObj(m)) return;
     var touched = false;
     if (isObj(m.mempoolInfo)) {
-      S.mem = { count: m.mempoolInfo.size, vsize: m.mempoolInfo.bytes, totalFee: m.mempoolInfo.total_fee };
+      S.mem = { count: m.mempoolInfo.size, vsize: m.mempoolInfo.bytes, totalFee: btcAmount(m.mempoolInfo.total_fee) };
       touched = true;
     }
     if (isObj(m.fees)) { S.fees = m.fees; noteFee(m.fees); touched = true; }

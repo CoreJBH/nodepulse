@@ -159,6 +159,8 @@ const localStorage = {
 
 /* --------------------------------------- native bridge (bitnodes fixtures) */
 let bridgeCalls = [];
+/* when true, the ASN / client-version snapshot fails while the coordinate grid answers */
+let bridgeFailTop = false;
 function makeBridge(window) {
   const coordsPayload = {
     timestamp: L1.capturedAt, total_nodes: L1.totalNodes, latest_height: L1.height,
@@ -174,7 +176,7 @@ function makeBridge(window) {
       bridgeCalls.push(url);
       let body = null;
       if (url.indexOf('field=coordinates') >= 0) body = JSON.stringify(coordsPayload);
-      else if (url.indexOf('field=top') >= 0) body = JSON.stringify(topPayload);
+      else if (url.indexOf('field=top') >= 0 && !bridgeFailTop) body = JSON.stringify(topPayload);
       setTimeout(() => {
         if (window.NPBridgeOnData) window.NPBridgeOnData(id, body !== null, body || '');
       }, 4);
@@ -321,6 +323,37 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     S.l1.vers.length > 0 && S.l1.vers[0].name === L1.userAgents[0][0] && Math.abs(S.l1.vers[0].pct - L1.userAgents[0][1]) < 1e-9,
     JSON.stringify(S.l1.vers[0]));
 
+  /* ---- one Bitnodes query failing keeps what the other one did not carry ----
+     The coordinate grid and the ASN/client-version snapshot arrive separately; a failed
+     top query used to replace the transport split and the version list with null/[] even
+     though the previous answer was still on screen. */
+  const l1Before = {
+    platforms: JSON.parse(JSON.stringify(S.l1.platforms)),
+    vers: JSON.parse(JSON.stringify(S.l1.vers)),
+    total: S.l1.total
+  };
+  bridgeFailTop = true;
+  await NP.loadL1();
+  await sleep(80);
+  runFrames(rafQueue, 1);
+  check('a failed top query keeps the clear-net/Tor/I2P split',
+    S.l1.platforms && S.l1.platforms.tor === l1Before.platforms.tor &&
+    S.l1.platforms.i2p === l1Before.platforms.i2p &&
+    S.l1.platforms.clearnet === l1Before.platforms.clearnet, JSON.stringify(S.l1.platforms));
+  check('a failed top query keeps the client versions',
+    S.l1.vers.length === l1Before.vers.length && S.l1.vers[0] && S.l1.vers[0].name === l1Before.vers[0].name,
+    JSON.stringify(S.l1.vers[0]));
+  check('a failed top query still refreshes the coordinate grid',
+    S.l1.src === 'live' && S.l1.total === l1Before.total && S.l1.coords.length === L1.coords.length,
+    S.l1.src + ' ' + S.l1.total + ' ' + S.l1.coords.length);
+  bridgeFailTop = false;
+  await NP.loadL1();
+  await sleep(80);
+  runFrames(rafQueue, 2);
+  check('the split is restored from the next good top query',
+    S.l1.platforms && S.l1.platforms.tor === l1Before.platforms.tor && S.l1.vers[0].name === l1Before.vers[0].name,
+    JSON.stringify(S.l1.platforms));
+
   const G = NP.globe;
   check('L1 globe is filled with real coordinates', G.clusters.length > 300 && G.clusters.length < L1.coords.length,
     G.clusters.length + ' cells from ' + L1.coords.length + ' coordinates');
@@ -362,6 +395,19 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     S.blocks.length + ' ' + (S.blocks[0] && S.blocks[0].height));
   check('mempool count/vsize mapped', S.mem && S.mem.count === FIX.mempool.count && S.mem.vsize === FIX.mempool.vsize,
     S.mem && JSON.stringify(S.mem));
+  /* REST /api/mempool reports total_fee in satoshis and the websocket in BTC: the HUD
+     reads it as BTC, so the REST number must be scaled once, not printed raw */
+  const feeBtc = FIX.mempool.total_fee / 1e8;
+  check('REST mempool total_fee is converted from satoshis to BTC',
+    S.mem && Math.abs(S.mem.totalFee - feeBtc) < 1e-12, S.mem && S.mem.totalFee + ' vs ' + feeBtc);
+  /* the fee row lives in the panel; open it for one paint and close it again */
+  NP.panel(true);
+  runFrames(rafQueue, 1);
+  check('panel fee row shows the BTC amount, never the satoshi figure',
+    els.pMem.innerHTML.indexOf(feeBtc.toFixed(4) + ' BTC fee') > 0 &&
+    els.pMem.innerHTML.indexOf(String(FIX.mempool.total_fee)) < 0,
+    els.pMem.innerHTML);
+  NP.panel(false);
   check('recent tx rate computed from fee/vsize',
     S.recent.length > 0 && Math.abs(S.recent[0].rate - FIX.recent[0].fee / FIX.recent[0].vsize) < 1e-9);
   check('fees mapped', S.fees && S.fees.fastestFee === FIX.fees.fastestFee, S.fees && S.fees.fastestFee);
@@ -859,6 +905,54 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   const GS = good.window.NODEPULSE && good.window.NODEPULSE.state;
   check('a well-formed cache is still restored', !!GS && GS.tip === 812345 && GS.mem && GS.mem.count === 1200 &&
     GS.fees && GS.fees.fastestFee === 7, GS && JSON.stringify({ tip: GS.tip, mem: GS.mem }));
+
+  /* ---- a fresh node snapshot is reused, not downloaded again ----
+     The channels-geo payload is ~1.5 MB; re-fetching it on every boot while the six-hour
+     cache is still inside its window was pure waste. */
+  const cachedNodes = JSON.parse(JSON.stringify(S.nodes));
+  const cachedLinks = JSON.parse(JSON.stringify(S.links));
+  ls = new Map([['nodepulse.nodes.v2', JSON.stringify({
+    t: Date.now(), geo: {}, nodes: cachedNodes, links: cachedLinks, rows: 4321, chanAt: Date.now()
+  })]]);
+  const geoCallsBefore = fetchLog.filter(u => u.indexOf('channels-geo') >= 0).length;
+  const warm = makeSandbox({ bridge: true });
+  const ctx5 = vm.createContext(warm.sandbox);
+  let warmThrew = null;
+  try {
+    for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctx5, { filename: 'warm-' + i + '.js', timeout: 8000 });
+    await sleep(400);
+    runFrames(warm.rafQueue, 2);
+  } catch (e) { warmThrew = e; }
+  check('a warm node cache boots without throwing', !warmThrew, warmThrew && warmThrew.stack);
+  const WS2 = warm.window.NODEPULSE && warm.window.NODEPULSE.state;
+  check('a fresh node snapshot is not downloaded again',
+    fetchLog.filter(u => u.indexOf('channels-geo') >= 0).length === geoCallsBefore,
+    (fetchLog.filter(u => u.indexOf('channels-geo') >= 0).length - geoCallsBefore) + ' extra downloads');
+  check('the cached node graph is drawn from the snapshot',
+    !!WS2 && WS2.nodeSrc === 'live' && WS2.nodes.length === cachedNodes.length && WS2.links.length === cachedLinks.length,
+    WS2 && (WS2.nodeSrc + ' ' + WS2.nodes.length + '/' + cachedLinks.length));
+  check('the cached channel row count is kept',
+    !!WS2 && WS2.chanRows === 4321, WS2 && WS2.chanRows);
+
+  /* ---- a fee figure cached by 1.1.4 was in satoshis; it must not be shown as BTC ---- */
+  ls = new Map([['nodepulse.cache.v2', JSON.stringify({
+    t: Date.now(), tip: 812345, blocks: [], recent: [],
+    mem: { count: 9, vsize: 1000, totalFee: 4121603 }, fees: null,
+    hr: null, diff: null, ln: null, lnAt: 0, countries: [], mblocks: [], mblocksAt: 0, pools: null, poolsAt: 0
+  })]]);
+  const satsCache = makeSandbox({ bridge: false });
+  const ctx6 = vm.createContext(satsCache.sandbox);
+  const modeBeforeSats = fetchMode;
+  fetchMode = 'fail';
+  try {
+    for (let i = 0; i < scripts.length; i++) vm.runInContext(scripts[i], ctx6, { filename: 'sats-' + i + '.js', timeout: 8000 });
+    await sleep(300);
+    runFrames(satsCache.rafQueue, 2);
+  } catch (e) { check('a satoshi-era cache boots', false, e && e.stack); }
+  fetchMode = modeBeforeSats;
+  const SC = satsCache.window.NODEPULSE && satsCache.window.NODEPULSE.state;
+  check('a cached satoshi fee is not adopted as a BTC amount',
+    !!SC && SC.mem && SC.mem.totalFee === null && SC.mem.count === 9, SC && SC.mem && JSON.stringify(SC.mem));
 
   /* ---- failure mode: no network at all ----
      without the bridge and with every request failing, both layers still draw the

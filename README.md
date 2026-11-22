@@ -160,7 +160,7 @@ and it refuses to emit a file that could break out of its own `<script>` block.
 
 | Harness | What it proves | Result |
 | --- | --- | --- |
-| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge, snapshots, mempool-blocks, all four watchdog alerts, mirror fallback, EN/KO | **188 / 188 assertions pass** |
+| `test/headless.js` | DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge, snapshots, mempool-blocks, all four watchdog alerts, mirror fallback, EN/KO | **199 / 199 assertions pass** |
 | `test/fill-truth.js` | Rendered continent fill compared with the land polygons over 50 camera angles, 743 k sampled pixels | ≈ 0.4 % false-positive / 0.26 % false-negative, all on sub-pixel Antarctic coastline edges |
 | `test/perf.js` | Frame cadence at a 390×844 phone viewport, DPR clamped to 2, then with 4× CPU throttling | p50 16.7 ms (60 fps), p95 33.4 ms under throttle |
 | `test/offline.js` | Boot with every network route aborted: snapshot geometry, status disclosure, no JS errors | pass |
@@ -189,7 +189,7 @@ node --check src/app.js   # syntax gate
 **Test it.**
 
 ```bash
-node test/headless.js               # 188 assertions, no browser required
+node test/headless.js               # 199 assertions, no browser required
 python3 build.py && node test/fill-truth.js   # browser harness, needs Playwright
 node test/perf.js                   # frame-time probe
 ```
@@ -218,7 +218,7 @@ enabled, an edge-to-edge `#040914` dark system bar treatment, and the NodePulse 
 
 * **Package:** `com.jbitmstr.nodepulse`
 * **Min / target SDK:** 24 / 34
-* **Version:** 1.1.4 (`versionCode` 6)
+* **Version:** 1.1.5 (`versionCode` 7)
 
 **Locked down shell.** File access, content access, file-URL access and universal access
 from file URLs are all off; the only page the WebView can show is the bundled asset, a
@@ -234,8 +234,12 @@ fails the build if the policy it emitted does not name every block it produced.
 **Native HTTP bridge.** `bitnodes.io` answers without an `Access-Control-Allow-Origin`
 header, so a WebView `fetch` would be blocked by CORS — and the L1 layer is the primary
 dataset. `MainActivity.HttpBridge` exposes `NPBridge.fetch(id, url)`, performs the GET on a
-small thread pool (`HttpURLConnection`, gzip, 12 s connect / 25 s read, 4 MiB cap) and calls
-`window.NPBridgeOnData(id, ok, body)` with the body unchanged. Hosts are whitelisted
+bounded `ThreadPoolExecutor` (two workers, one spare, eight queued requests, idle threads
+retired after 30 s; anything beyond that is refused at once so the page falls to the next
+mirror or snapshot) with `HttpURLConnection`, gzip, 12 s connect / 25 s read and a 3 M-character
+body cap, then calls `window.NPBridgeOnData(id, ok, body)` with the body unchanged. The
+`window.NPBridgeOnData(...)` call string is built on the fetching thread, so the UI thread only
+hands the finished string to the WebView. Hosts are whitelisted
 (`bitnodes.io`, `btcnodes.io`, `mempool.space`, `mempool.emzy.de`, `mempool.ninja`), a URL
 carrying `user:password@` is rejected, and
 redirects are followed by hand so every hop is checked against that same list, so the

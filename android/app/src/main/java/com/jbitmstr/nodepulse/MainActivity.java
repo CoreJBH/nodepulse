@@ -27,9 +27,12 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -203,15 +206,45 @@ public class MainActivity extends Activity {
         private static final String UA = "NODEPULSE/1.1 (Android; +https://github.com/CoreJBH/nodepulse)";
         private static final int CONNECT_MS = 12000;
         private static final int READ_MS = 25000;
-        private static final int MAX_BYTES = 4 * 1024 * 1024;
+        /* The body cap counts characters, and a character costs two bytes in the VM.
+           3 M characters (6 MB) is above the largest answer this app reads — channels-geo
+           is about 1.6 MB of JSON today — and small enough that the body, its quoted copy
+           and the script string built from it cannot fill a low-end device's heap. */
+        private static final int MAX_BODY_CHARS = 3 * 1024 * 1024;
         private static final int MAX_REDIRECTS = 5;
+        /* Two workers, one spare, eight waiting. A page never needs more than a handful of
+           concurrent GETs, and a request beyond this is refused at once so it falls to the
+           next mirror or to the bundled snapshot instead of piling up. */
+        private static final int POOL_CORE = 2;
+        private static final int POOL_MAX = 3;
+        private static final int POOL_QUEUE = 8;
+        private static final long POOL_KEEP_ALIVE_S = 30L;
 
         private final WeakReference<WebView> web;
-        private final ExecutorService pool = Executors.newFixedThreadPool(3);
+        /* Bounded on purpose. newFixedThreadPool(3) held an unbounded LinkedBlockingQueue:
+           every call the page made queued its own Runnable, and the thread that finished a
+           response kept a multi-megabyte body alive until the UI thread had posted it. A
+           ThreadPoolExecutor with a fixed-size ArrayBlockingQueue puts a ceiling on both
+           the queued work and the bodies waiting to be handed over. */
+        private final ThreadPoolExecutor pool = new ThreadPoolExecutor(
+                POOL_CORE, POOL_MAX, POOL_KEEP_ALIVE_S, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<Runnable>(POOL_QUEUE),
+                new ThreadFactory() {
+                    private final AtomicInteger seq = new AtomicInteger();
+
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        Thread t = new Thread(r, "nodepulse-http-" + seq.incrementAndGet());
+                        t.setDaemon(true);
+                        return t;
+                    }
+                });
         private volatile boolean destroyed = false;
 
         HttpBridge(WebView web) {
             this.web = new WeakReference<>(web);
+            // No request, no thread: an idle app holds none of the pool.
+            pool.allowCoreThreadTimeOut(true);
         }
 
         void shutdown() {
@@ -300,13 +333,17 @@ public class MainActivity extends Activity {
             String enc = c.getContentEncoding();
             InputStream in = (enc != null && enc.toLowerCase(Locale.ROOT).contains("gzip"))
                     ? new GZIPInputStream(raw) : raw;
-            StringBuilder sb = new StringBuilder(65536);
+            // Pre-sized from Content-Length when the server sends one, and never larger
+            // than the cap: a body that arrives in one piece then costs one allocation.
+            int hint = c.getContentLength();
+            int capacity = hint > 0 ? Math.min(hint + 1024, MAX_BODY_CHARS) : 65536;
+            StringBuilder sb = new StringBuilder(Math.max(capacity, 4096));
             try (BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
                 char[] buf = new char[8192];
                 int n;
                 while ((n = r.read(buf)) != -1) {
+                    if (sb.length() + n > MAX_BODY_CHARS) throw new IOException("response too large");
                     sb.append(buf, 0, n);
-                    if (sb.length() > MAX_BYTES) throw new IOException("response too large");
                 }
             }
             return sb.toString();
@@ -323,12 +360,25 @@ public class MainActivity extends Activity {
          */
         private static String jsStringLiteral(String s) {
             String quoted = JSONObject.quote(s == null ? "" : s);
-            return quoted.replace(String.valueOf((char) 0x2028), "\\u2028")
-                    .replace(String.valueOf((char) 0x2029), "\\u2029");
+            // replace() answers the same instance when nothing matches, so these two copies
+            // only happen for an answer that really carries a line separator — but check
+            // first anyway: on a large body the search is cheap and the copy is not.
+            String ls = String.valueOf((char) 0x2028);
+            String ps = String.valueOf((char) 0x2029);
+            if (quoted.indexOf(ls) >= 0) quoted = quoted.replace(ls, "\\u2028");
+            if (quoted.indexOf(ps) >= 0) quoted = quoted.replace(ps, "\\u2029");
+            return quoted;
         }
 
         private void deliver(final String id, final boolean ok, final String body) {
-            if (destroyed) return;
+            if (destroyed || id == null) return;
+            // The script string is built on the calling thread — a pool worker, or the
+            // WebView's JS thread on the refusal path — and the UI thread only hands the
+            // finished string over. Quoting a multi-megabyte body there was the ANR.
+            String js = callScript(id, ok, body);
+            if (js == null) js = callScript(id, false, "");   // too large to hand over
+            if (js == null) return;
+            final String script = js;
             final WebView w = web.get();
             if (w == null) return;
             w.post(new Runnable() {
@@ -337,16 +387,22 @@ public class MainActivity extends Activity {
                     if (destroyed) return;
                     WebView v = web.get();
                     if (v == null) return;
-                    String js = "window.NPBridgeOnData&&window.NPBridgeOnData("
-                            + jsStringLiteral(id) + ","
-                            + (ok ? "true" : "false") + ","
-                            + jsStringLiteral(body) + ")";
                     try {
-                        v.evaluateJavascript(js, null);
+                        v.evaluateJavascript(script, null);
                     } catch (Exception ignored) {
                     }
                 }
             });
+        }
+
+        /** The one-line call into the page, or null when the body cannot be handed over. */
+        private static String callScript(String id, boolean ok, String body) {
+            if (id == null) return null;
+            if (body != null && body.length() > MAX_BODY_CHARS) return null;
+            return "window.NPBridgeOnData&&window.NPBridgeOnData("
+                    + jsStringLiteral(id) + ","
+                    + (ok ? "true" : "false") + ","
+                    + jsStringLiteral(body) + ")";
         }
     }
 }
