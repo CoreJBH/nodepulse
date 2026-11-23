@@ -41,15 +41,15 @@ val releaseStoreMissing = releaseStore != null && !releaseStore.exists()
 val hasReleaseSigning = missingSigning.isEmpty() && !releaseStoreMissing
 
 android {
-    namespace = "com.jbitmstr.nodepulse"
+    namespace = "com.corejbh.nodepulse"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.jbitmstr.nodepulse"
+        applicationId = "com.corejbh.nodepulse"
         minSdk = 24
         targetSdk = 34
-        versionCode = 14
-        versionName = "1.1.12"
+        versionCode = 15
+        versionName = "1.1.13"
         resourceConfigurations += listOf("en")
     }
 

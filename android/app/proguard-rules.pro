@@ -4,9 +4,9 @@
 
 -keepattributes RuntimeVisibleAnnotations,AnnotationDefault
 
--keep class com.jbitmstr.nodepulse.MainActivity { *; }
--keep class com.jbitmstr.nodepulse.MainActivity$HttpBridge { *; }
--keep class com.jbitmstr.nodepulse.MainActivity$BackSignal { *; }
+-keep class com.corejbh.nodepulse.MainActivity { *; }
+-keep class com.corejbh.nodepulse.MainActivity$HttpBridge { *; }
+-keep class com.corejbh.nodepulse.MainActivity$BackSignal { *; }
 -keepclassmembers class * {
     @android.webkit.JavascriptInterface <methods>;
 }

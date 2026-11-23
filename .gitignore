@@ -10,6 +10,12 @@ android/app/build/
 android/local.properties
 android/app/src/main/assets/index.html
 android/keystore.properties
+# Release signing: the key, its passwords and any copy of the keystore stay out of the
+# repository. keystore/nodepulse-release.jks is the owner's long-lived key (RSA 4096,
+# 10000 days); losing it means every later APK is a different app to Android.
+keystore/
+*.jks
+*.keystore
 
 # OS noise
 .DS_Store

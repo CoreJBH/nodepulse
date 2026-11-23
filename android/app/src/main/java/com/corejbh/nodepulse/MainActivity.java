@@ -1,4 +1,4 @@
-package com.jbitmstr.nodepulse;
+package com.corejbh.nodepulse;
 
 import android.annotation.SuppressLint;
 import android.net.Uri;

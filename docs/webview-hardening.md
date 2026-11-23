@@ -7,7 +7,7 @@ the migration would change — so the next round can take it up without re-deriv
 
 ## What the shell is now
 
-* `MainActivity` (`android/app/src/main/java/com/jbitmstr/nodepulse/MainActivity.java`)
+* `MainActivity` (`android/app/src/main/java/com/corejbh/nodepulse/MainActivity.java`)
   extends `ComponentActivity` and holds one `WebView`.
 * The page is loaded from `file:///android_asset/index.html`. Every navigation away from
   that exact URL is refused by `shouldOverrideUrlLoading`, file and content access are off,

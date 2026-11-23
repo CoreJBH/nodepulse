@@ -432,7 +432,7 @@ check('inline script blocks', scripts.length === 6, scripts.length);
    review asked for and the headless build cannot see. The chunk-boundary rule itself is
    exercised for real by HttpBridgeChunkTest on the JVM (:app:testDebugUnitTest). */
 {
-  const java = fs.readFileSync(path.join(ROOT, 'android', 'app', 'src', 'main', 'java', 'com', 'jbitmstr', 'nodepulse', 'MainActivity.java'), 'utf8');
+  const java = fs.readFileSync(path.join(ROOT, 'android', 'app', 'src', 'main', 'java', 'com', 'corejbh', 'nodepulse', 'MainActivity.java'), 'utf8');
   const gradle = fs.readFileSync(path.join(ROOT, 'android', 'app', 'build.gradle.kts'), 'utf8');
   check('the bridge allowlist is the four hosts the page reads',
     /"bitnodes\.io"[\s\S]{0,80}"mempool\.space"[\s\S]{0,40}"mempool\.emzy\.de"[\s\S]{0,40}"mempool\.ninja"/.test(java) &&
@@ -452,10 +452,10 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     /recoverFromRendererGone\(\)[\s\S]{0,600}?installWebView\(\)/.test(java));
   check('the release signature is v2 only',
     /enableV1Signing = false/.test(gradle) && !/enableV1Signing = true/.test(gradle));
-  check('the version bumped to 1.1.12 (versionCode 14)',
-    /versionCode = 14/.test(gradle) && /versionName = "1\.1\.12"/.test(gradle));
+  check('the version bumped to 1.1.13 (versionCode 15)',
+    /versionCode = 15/.test(gradle) && /versionName = "1\.1\.13"/.test(gradle));
   check('the unit test that walks the chunk boundaries is in the tree',
-    fs.existsSync(path.join(ROOT, 'android', 'app', 'src', 'test', 'java', 'com', 'jbitmstr', 'nodepulse', 'HttpBridgeChunkTest.java')) &&
+    fs.existsSync(path.join(ROOT, 'android', 'app', 'src', 'test', 'java', 'com', 'corejbh', 'nodepulse', 'HttpBridgeChunkTest.java')) &&
     /testImplementation\("junit:junit:4\.13\.2"\)/.test(gradle));
   /* v1.1.12: the back gesture, the id shape and the address guard. */
   check('the shell registers an OnBackPressedCallback instead of overriding onBackPressed()',
@@ -481,7 +481,7 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     /static String nextHop\(String base, String location\)/.test(java) &&
     /url = nextHop\(url, c\.getHeaderField\("Location"\)\)/.test(java));
   check('the policy tests are in the tree',
-    fs.existsSync(path.join(ROOT, 'android', 'app', 'src', 'test', 'java', 'com', 'jbitmstr', 'nodepulse', 'HttpBridgePolicyTest.java')));
+    fs.existsSync(path.join(ROOT, 'android', 'app', 'src', 'test', 'java', 'com', 'corejbh', 'nodepulse', 'HttpBridgePolicyTest.java')));
   check('the Android shell uses androidx.activity, and the project says so',
     /implementation\("androidx\.activity:activity:1\.9\.3"\)/.test(gradle) &&
     /android\.useAndroidX=true/.test(fs.readFileSync(path.join(ROOT, 'android', 'gradle.properties'), 'utf8')));
@@ -1712,7 +1712,7 @@ check('inline script blocks', scripts.length === 6, scripts.length);
      never delivered an L1 answer. The JS floor is read from the Java source here, so the
      two sides cannot drift apart unnoticed. */
   {
-    const java = fs.readFileSync(path.join(ROOT, 'android', 'app', 'src', 'main', 'java', 'com', 'jbitmstr', 'nodepulse', 'MainActivity.java'), 'utf8');
+    const java = fs.readFileSync(path.join(ROOT, 'android', 'app', 'src', 'main', 'java', 'com', 'corejbh', 'nodepulse', 'MainActivity.java'), 'utf8');
     const connect = Number((java.match(/CONNECT_MS\s*=\s*(\d+)/) || [])[1]);
     const read = Number((java.match(/READ_MS\s*=\s*(\d+)/) || [])[1]);
     check('the native bridge timeouts are declared', connect > 0 && read > 0, connect + ' + ' + read);

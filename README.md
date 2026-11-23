@@ -280,9 +280,20 @@ The same single file ships as a native Android app: a minimal `WebView` shell
 enabled, an edge-to-edge `#040914` dark system bar treatment, and the NodePulse icon as
 `ic_launcher` / `ic_launcher_round` (legacy mipmaps plus an adaptive icon).
 
-* **Package:** `com.jbitmstr.nodepulse`
+* **Package:** `com.corejbh.nodepulse`
 * **Min / target SDK:** 24 / 34
-* **Version:** 1.1.12 (`versionCode` 14)
+* **Version:** 1.1.13 (`versionCode` 15)
+
+`v1.1.13` carries the shell under the owner's own package name (`com.corejbh.nodepulse`
+instead of `com.jbitmstr.nodepulse`). Android treats a new `applicationId` as a new app, so
+this build installs **beside** 1.1.12 rather than over it; what the old build saved on the
+phone stays with it, and uninstalling it later removes that data. The page, the bridge and
+the policy are unchanged.
+
+Release APKs are signed with the project's long-lived key (`CN=NodePulse, O=CoreJBH, C=KR`,
+RSA 4096, valid to 2054). The key and its passwords live outside the repository
+(`keystore/`, `android/keystore.properties`, both git-ignored) and must be backed up: an APK
+signed by another key cannot update one signed by this one.
 
 **Locked down shell.** File access, content access, file-URL access and universal access
 from file URLs are all off; the only page the WebView can show is the bundled asset, a
