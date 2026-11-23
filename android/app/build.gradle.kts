@@ -40,6 +40,15 @@ val releaseStore = releaseStoreFile?.let { file(it) }
 val releaseStoreMissing = releaseStore != null && !releaseStore.exists()
 val hasReleaseSigning = missingSigning.isEmpty() && !releaseStoreMissing
 
+/* A builder that signs the artifact with its own key asks for an unsigned release
+ * APK explicitly: -Pnodepulse.unsignedRelease=true. F-Droid builds assembleRelease
+ * in a checkout that has no keystore and signs the APK it gets with the F-Droid
+ * key, so for that builder the missing key is not an error. Nothing infers it from
+ * the absence of a key, the default stays strict, and the debug key is still never
+ * used: an unsigned build produces app-release-unsigned.apk and nothing else. */
+val unsignedReleaseRequested =
+    providers.gradleProperty("nodepulse.unsignedRelease").orNull?.equals("true", ignoreCase = true) == true
+
 android {
     namespace = "com.corejbh.nodepulse"
     compileSdk = 34
@@ -137,7 +146,7 @@ val releasePackagingTasks = setOf(
 
 gradle.taskGraph.whenReady {
     val asked = allTasks.map { it.name }.filter { it in releasePackagingTasks }
-    if (asked.isEmpty() || hasReleaseSigning) return@whenReady
+    if (asked.isEmpty() || hasReleaseSigning || unsignedReleaseRequested) return@whenReady
     val missing = buildList {
         addAll(missingSigning)
         if (releaseStoreMissing) add("a readable keystore file at $releaseStoreFile")
@@ -154,6 +163,8 @@ gradle.taskGraph.whenReady {
             "  NODEPULSE_KEYSTORE_PASSWORD=…\n" +
             "  NODEPULSE_KEY_ALIAS=…\n" +
             "  NODEPULSE_KEY_PASSWORD=…\n" +
-            "For a local or debug build use :app:assembleDebug, which needs no key."
+            "For a local or debug build use :app:assembleDebug, which needs no key.\n" +
+            "A builder that signs the artifact with its own key (F-Droid) passes\n" +
+            "-Pnodepulse.unsignedRelease=true and gets an unsigned release APK."
     )
 }

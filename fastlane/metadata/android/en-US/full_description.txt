@@ -1,0 +1,17 @@
+NodePulse is a map and a live monitor of the Bitcoin network, drawn from what the network itself reports.
+
+Bitcoin L1, the default layer, shows the reachable full-node network as the Bitnodes crawler sees it: node count, the clear-net / Tor / I2P split, country and continent spread, client versions, and one dot per coordinate the crawler geolocated. Beside it, the chain tip, mempool pressure, the fee market and the next-block fee projection, read from mempool.space.
+
+Lightning is one tap away: up to 22 nodes sampled from the real channel graph, one arc per open channel between the drawn dots, with its own colour so the two layers never blur into one.
+
+Every number and every line on the globe is a value the network actually reported. Nothing is generated, interpolated from a model or placed for visual balance. The L1 layer draws no links at all, because Bitnodes publishes no per-node peer graph; and Tor and I2P nodes carry no coordinates, so they are counted in the totals and the transport split but not placed on the globe.
+
+A watchdog watches while the app is open: the age of the last block, a fee spike, a mining pool's share of the week, a hash change at a height already seen. It reports what changed instead of alerting for the sake of an alert.
+
+The globe is drawn with the Canvas 2D API: drag to rotate, scroll or pinch to zoom. The whole app is one self-contained document with no framework, no bundler, no package manager, no CDN and no external image or font request. The interface is in English and Korean, and the choice is remembered.
+
+No accounts, no analytics, no crash reporting, no advertising, no trackers, no Google Play Services. NodePulse makes HTTPS and WebSocket requests to the public endpoints it names (mempool.space, with mempool.emzy.de and mempool.ninja as fallbacks, and Bitnodes) and to nothing else.
+
+Data sources: mempool.space and Bitnodes. NodePulse is an independent visualiser and is not affiliated with or endorsed by either project.
+
+NodePulse is free software under the MIT license.

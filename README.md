@@ -559,3 +559,6 @@ disclose throttling and outages rather than to hide them.
 * **[@JBITmstr](https://github.com/JBITmstr)** — Creator, product direction & design
 * **Gilbert ([Pickle](https://pickle.com))** — AI co-builder (implementation, 3D globe rendering & CI)
 
+## License
+
+MIT for the code in this repository (see [LICENSE](LICENSE)). The NodePulse name and icon belong to the project owner.

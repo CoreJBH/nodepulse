@@ -1,0 +1,14 @@
+First F-Droid build.
+
+* The package is com.corejbh.nodepulse, the project owner's own name. A build
+  under the earlier package (com.jbitmstr.nodepulse) stays installed beside this
+  one; uninstall it once you no longer need what it saved.
+* Bitcoin L1 layer: the reachable full-node network as the Bitnodes crawler sees
+  it, with block height, mempool, the fee market and the next-block fee
+  projection from mempool.space.
+* Lightning layer: up to 22 nodes from the real channel graph, one arc per open
+  channel.
+* English and Korean interface, remembered between launches.
+* The shell keeps the 1.1.12 hardening: the WebView opens the bundled page and
+  nothing else, file and content access are off, and mixed content is never
+  allowed.
