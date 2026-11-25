@@ -31,8 +31,8 @@ that draws every frame with the Canvas 2D API.
 | **Bitcoin L1** (default) | every unique coordinate the Bitnodes crawler geolocated, one dot per 3° cell | `bitnodes.io/api/v1/snapshots/latest/?field=coordinates` |
 | **Lightning** | up to 22 nodes sampled from the real channel graph, one arc per open channel between drawn dots | `mempool.space/api/v1/lightning/channels-geo` |
 
-The switcher sits under the title (`BITCOIN L1 | LIGHTNING`); the `EN / KO` button next to it
-switches language, and both choices are remembered.
+The switcher sits under the title (`BITCOIN L1 | LIGHTNING`), and the chosen layer is
+remembered.
 
 Each layer carries its own palette, so the globe you are looking at is readable at a glance:
 **Bitcoin L1** keeps the original cyan / deep-blue identity (`#38bdf8` on `#040914`), and
@@ -92,12 +92,11 @@ is generated, interpolated from a model, or placed for visual balance.
   the timestamp of what is being shown.
 * **A static answer says it is static, and says why.** The L1 layer is in one of three
   states — a live Bitnodes read, a saved answer, or the bundled build-time snapshot — and
-  three places on screen name it: the row under the title (`… · 실시간` / `… · 저장본` /
-  `… · 스냅샷 · CORS`), the panel's *L1 freshness* row, and the globe legend. In a plain
+  three places on screen name it: the row under the title (`… · live` / `… · cached` /
+  `… · snapshot · CORS`), the panel's *L1 freshness* row, and the globe legend. In a plain
   browser the state is fixed: `bitnodes.io` sends no `Access-Control-Allow-Origin`, so the
   read cannot succeed however good the network is. The page makes one attempt, stops the L1
-  poll for the session and prints `정적 스냅샷 · 브라우저 CORS 차단` (static snapshot ·
-  browser CORS block) with the note that the Android app reads it live through its native
+  poll for the session and prints `static snapshot · browser CORS block` with the note that the Android app reads it live through its native
   bridge — a frozen picture never passes for a live network. The country split is the
   build-time snapshot in every case and is labelled with its capture date wherever it is
   drawn.
@@ -197,7 +196,7 @@ byte-for-byte identical.
   frame drop from thousands to a few dozen.
 * **A slow phone clock never prints a negative age.** Block and cache timestamps come from
   the server, so a device clock a few seconds behind makes `Date.now() - stamp` negative.
-  Every elapsed figure is clamped at zero — the block list reads `0초 전` instead of the
+  Every elapsed figure is clamped at zero — the block list reads `0s ago` instead of the
   em dash a negative second count used to produce, and the watchdog gap never goes below
   zero.
 * **A lost focus drops the gesture.** When the WebView loses focus mid-pinch (the app is
@@ -217,7 +216,7 @@ drift from. `python3 build.py --check` compiles the assembled code with `node --
 
 | Harness | What it proves | Result |
 | --- | --- | --- |
-| `test/headless.js` | Builds `dist/nodepulse.html` and the `--test` build, then a DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge (single-piece and chunked delivery, a lost chunk, the timeout floor against the native one, one bridge attempt after three failed mirrors), snapshots, the browser-only Bitnodes stop, a cached answer kept out of LIVE, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads (including a string count in the country, transport-split and version rows), a failed node-detail fetch, a clock running behind the API, a pinch dropped by a lost focus, a five-second frame's inertia, a held reconnect behind a hidden page, an offline phone that asks no host, EN/KO through the real data-i18n nodes, a cache poisoned field by field (a string channel count, an object capacity, a string Tor flag, an object alias, a number in the peers list, a junk retarget date), the CORS-blocked browser's static-snapshot labelling, the shell back call closing the card and then the panel, and an 800×450 landscape layout | **403 / 403 assertions pass** |
+| `test/headless.js` | Builds `dist/nodepulse.html` and the `--test` build, then a DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge (single-piece and chunked delivery, a lost chunk, the timeout floor against the native one, one bridge attempt after three failed mirrors), snapshots, the browser-only Bitnodes stop, a cached answer kept out of LIVE, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads (including a string count in the country, transport-split and version rows), a failed node-detail fetch, a clock running behind the API, a pinch dropped by a lost focus, a five-second frame's inertia, a held reconnect behind a hidden page, an offline phone that asks no host, the English-only source and build, a cache poisoned field by field (a string channel count, an object capacity, a string Tor flag, an object alias, a number in the peers list, a junk retarget date), the CORS-blocked browser's static-snapshot labelling, the shell back call closing the card and then the panel, and an 800×450 landscape layout | **398 / 398 assertions pass** |
 | `HttpBridgePolicyTest.java` | The bridge's policy on the JVM: the request-id shape, the four-host allowlist (scheme, credentials, port, lookalike names), a redirect to another host or to plain http refused while a hop inside the allowlist is followed, loopback/link-local/private/CGNAT/multicast/unspecified/IPv6-unique-local addresses refused, and the navigation policy two `shouldOverrideUrlLoading` overloads answer | `:app:testDebugUnitTest`, 10 tests |
 | `HttpBridgeChunkTest.java` | The 32 K chunk boundaries `HttpBridge` hands a body over with, walked at limits 1–9 over emoji and flag text: no chunk ends in a lone high surrogate or starts with a lone low one, and the parts join back into the body | `:app:testDebugUnitTest`, 7 tests |
 | `test/fill-truth.js` | Rendered continent fill compared with the land polygons over 50 camera angles, 743 k sampled pixels | ≈ 0.4 % false-positive / 0.26 % false-negative, all on sub-pixel Antarctic coastline edges |
@@ -514,7 +513,7 @@ gradle assembleRelease   # -> app/build/outputs/apk/release/, needs the four NOD
 src/
   index.template.html      document shell: head, metadata, inline icon slots, both layers
   app.css                  layout, panels, typography
-  js/00-core.js            constants, the two-language string table, DOM/format helpers, state
+  js/00-core.js            constants, the string table, DOM/format helpers, state
   js/10-net.js             the native bridge and the three-mirror walk
   js/20-market.js          mempool.space REST loaders
   js/30-l1.js              the Bitnodes answer, its freshness, transport split, country table
@@ -523,7 +522,7 @@ src/
   js/50-live.js            one socket at a time, pushed payloads, the watchdog
   js/60-ui.js              status pills, HUD, panel, data footnote, toast
   js/70-render.js          Canvas 2D globe, palettes, fill, hit test, pointers
-  js/80-view.js            node card, layer and language switching, back depth
+  js/80-view.js            node card, layer switching, back depth
   js/90-boot.js            refresh cadence, bindings, boot (closes the IIFE)
   data/                    world geometry, country table, real node + channel + L1 snapshots
 assets/                    app icon (64/180/192/512), README screenshots

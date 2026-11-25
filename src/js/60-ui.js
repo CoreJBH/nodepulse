@@ -135,7 +135,7 @@
     var avg = hashParts(hrAvg);
     var ph = $('pHash');
     if (ph) ph.innerHTML = esc(cur.v) + '<span class="u">' + esc(cur.u || '') + '</span>' +
-      (avg.u ? '<small>' + (S.lang === 'en' ? '1w avg ' : '1주 평균 ') + esc(avg.v) + ' ' + esc(avg.u) + '</small>' : '');
+      (avg.u ? '<small>1w avg ' + esc(avg.v) + ' ' + esc(avg.u) + '</small>' : '');
 
     var pm = $('pMem');
     if (pm) {
@@ -154,7 +154,7 @@
       if (S.diff && num(S.diff.difficultyChange)) {
         var sign = S.diff.difficultyChange >= 0 ? '+' : '';
         pd.innerHTML = esc(sign + S.diff.difficultyChange.toFixed(2)) + '<span class="u">%</span><small>' +
-          fmtInt(S.diff.remainingBlocks) + (S.lang === 'en' ? ' blocks left · ' : ' 블록 남음 · ') + dateOf(S.diff.estimatedRetargetDate).slice(0, 10) + '</small>';
+          fmtInt(S.diff.remainingBlocks) + ' blocks left · ' + dateOf(S.diff.estimatedRetargetDate).slice(0, 10) + '</small>';
       } else pd.textContent = '—';
     }
 
@@ -189,7 +189,7 @@
     var pl = $('pLN');
     if (pl) {
       pl.innerHTML = S.ln && num(S.ln.node_count)
-        ? fmtInt(S.ln.node_count) + '<small>' + (S.lang === 'en' ? 'as of ' : '기준 ') + dateOf(S.ln.added).slice(0, 10) + ' · mempool.space</small>'
+        ? fmtInt(S.ln.node_count) + '<small>as of ' + dateOf(S.ln.added).slice(0, 10) + ' · mempool.space</small>'
         : '—';
     }
     var pl2 = $('pLNCap');
@@ -232,10 +232,10 @@
     setHTML('dist', out);
     if (S.layer === 'l1') {
       var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
-      txt('distTotal', fmtInt(total) + ' · ' + (agg.countries || 0) + (S.lang === 'en' ? ' countries' : '개국') +
+      txt('distTotal', fmtInt(total) + ' · ' + (agg.countries || 0) + ' countries' +
         (s && s.capturedAt ? ' · ' + L('snapBasis') + ' ' + dateOf(s.capturedAt * 1000).slice(0, 10) : ''));
     } else {
-      txt('distTotal', fmtInt(total) + ' · ' + S.countries.length + (S.lang === 'en' ? ' countries' : '개국'));
+      txt('distTotal', fmtInt(total) + ' · ' + S.countries.length + ' countries');
     }
   }
 
@@ -275,7 +275,7 @@
     });
     out += '</div>';
     setHTML('nextBlocks', out);
-    txt('nextTotal', S.mblocks.length + ' ' + (S.lang === 'en' ? 'blocks queued' : '블록 대기') +
+    txt('nextTotal', S.mblocks.length + ' blocks queued' +
       (S.mblocksAt ? ' · ' + ago(S.mblocksAt) : ''));
   }
 
@@ -302,23 +302,19 @@
      read, a cached Bitnodes answer (localStorage, served when the live request failed),
      or the bundled snapshot. The old two-state wording printed "the built-in snapshot"
      for the cache case too — true of neither the numbers nor the timestamp shown. */
-  function l1NowClause(l1, snapAt, en) {
-    if (l1 && l1.src === 'live') return en ? ' (live now)' : '에서 지금 실시간으로 읽었습니다';
+  function l1NowClause(l1, snapAt) {
+    if (l1 && l1.src === 'live') return ' (live now)';
     if (l1 && l1.src === 'cache') {
       var at = num(l1.at) ? dateOf(l1.at) : '—';
-      return en
-        ? ' — currently the cached Bitnodes answer of ' + at + ', because the live request did not answer'
-        : '에서 읽으며, 지금은 저장해 둔 Bitnodes 응답(' + at + ')을 표시 중입니다(실시간 요청이 답하지 않았습니다)';
+      return ' — currently the cached Bitnodes answer of ' + at + ', because the live request did not answer';
     }
-    return en
-      ? ' — currently the built-in snapshot ' + snapAt + ', because the live request did not answer'
-      : '에서 읽으며, 지금은 실시간 요청이 답하지 않아 내장 스냅샷(' + snapAt + ')을 표시 중입니다';
+    return ' — currently the built-in snapshot ' + snapAt + ', because the live request did not answer';
   }
 
-  function l1PointsClause(l1, en) {
-    if (l1 && l1.src === 'live') return en ? 'live' : '실시간';
-    if (l1 && l1.src === 'cache') return en ? 'cached answer' : '저장본';
-    return en ? 'snapshot' : '스냅샷';
+  function l1PointsClause(l1) {
+    if (l1 && l1.src === 'live') return 'live';
+    if (l1 && l1.src === 'cache') return 'cached answer';
+    return 'snapshot';
   }
 
   function paintNote() {
@@ -327,30 +323,17 @@
     var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
     var l1 = S.l1;
     var snapAt = s && s.capturedAt ? dateOf(s.capturedAt * 1000).slice(0, 16) : '—';
-    if (S.lang === 'en') {
-      e.innerHTML =
-        '<b>DATA</b> Bitcoin mainnet values are mempool.space REST + WebSocket responses; L1 full-node values are the Bitnodes crawler export (bitnodes.io/api/v1).<br>' +
-        '· <b>Bitnodes is the primary L1 source</b>: the reachable node count, the clear-net/Tor/I2P split, the client versions and the unique coordinates on the globe are read from <code>snapshots/latest/?field=coordinates</code> and <code>?field=top</code>' +
-        l1NowClause(l1, snapAt, true) + '.<br>' +
-        '· The country split (' + (s ? s.countries.length : 0) + ' countries) is the Bitnodes snapshot captured ' + snapAt + ' with ' + fmtInt(s ? s.totalNodes : null) +
-        ' nodes; Bitnodes exposes per-node country only through its paginated node list, which is too heavy to pull on a phone, so this panel names that snapshot instead of hiding it.<br>' +
-        '· Globe points: ' + (l1 ? fmtInt(l1.coords.length) : '0') + ' unique coordinates Bitnodes geolocated (' + l1PointsClause(l1, true) + '). Tor and I2P nodes carry no coordinates, so they are not placed, and no link is drawn between nodes: Bitnodes publishes no peer graph.<br>' +
-        '· Values the crawler cannot know (per-node latency, uptime, disk size, per-node height) are never shown or guessed.<br>' +
-        '· Next blocks are mempool.space\'s own projection of the transactions that would fill each of the coming blocks, with the reported fee range and tx count.<br>' +
-        '· Watchdog thresholds: no block for ' + (WD_BLOCK_SEC / 60) + ' min, fastest fee ≥ ' + WD_FEE_SPIKE + ' sat/vB or 3× the 10-minute minimum, one pool above ' + Math.round(WD_POOL_SHARE * 100) + '% of the week\'s blocks, or a block hash change at an already-seen height.<br>' +
-        '· Lightning layer: the node sample is picked from the <code>lightning/channels-geo</code> graph (' + fmtInt(S.chanRows) + ' real open channels) completed with <code>nodes/{pubkey}</code>, and every arc is one of those rows; no proximity link exists.';
-      return;
-    }
     e.innerHTML =
-      '<b>DATA</b> 비트코인 메인넷 값은 mempool.space REST + WebSocket 응답값이고, L1 풀노드 값은 Bitnodes 크롤러 export(bitnodes.io/api/v1)입니다.<br>' +
-      '· <b>L1의 1차 출처는 Bitnodes</b>입니다: 도달 가능 노드 수, 클리어넷/Tor/I2P 비중, 클라이언트 버전, 지구본 좌표는 <code>snapshots/latest/?field=coordinates</code>와 <code>?field=top</code>' +
-      l1NowClause(l1, snapAt, false) + '.<br>' +
-      '· 국가 분포(' + (s ? s.countries.length : 0) + '개국)는 ' + snapAt + ' Bitnodes 스냅샷(' + fmtInt(s ? s.totalNodes : null) + ' 노드) 값입니다. Bitnodes는 노드별 국가를 페이지 목록으로만 공개해 휴대폰에서 전부 받아오기엔 무겁기 때문에, 이 항목만 스냅샷 기준임을 숨기지 않고 적습니다.<br>' +
-      '· 지구본 지점 ' + (l1 ? fmtInt(l1.coords.length) : '0') + '곳은 Bitnodes가 좌표를 확인한 서로 다른 위치입니다(' + l1PointsClause(l1, false) + '). Tor·I2P 노드는 좌표가 없어 배치하지 않고, 노드 사이에 선은 그리지 않습니다 — Bitnodes는 노드별 연결 그래프를 공개하지 않습니다.<br>' +
-      '· 크롤러가 알 수 없는 값(노드별 지연시간·가동시간·디스크 용량·개별 높이)은 표시하지도 추정하지도 않습니다.<br>' +
-      '· 다음 블록은 mempool.space가 계산한 예측으로, 앞으로의 블록을 채울 트랜잭션 묶음의 수수료 범위와 트랜잭션 수입니다.<br>' +
-      '· 감시 기준: ' + (WD_BLOCK_SEC / 60) + '분 이상 새 블록 없음, 최속 수수료 ' + WD_FEE_SPIKE + ' sat/vB 이상 또는 10분 최저의 3배, 한 채굴 풀이 주간 블록의 ' + Math.round(WD_POOL_SHARE * 100) + '% 초과, 이미 본 높이의 블록 해시 변경(리오그).<br>' +
-      '· 라이트닝 레이어: 노드 표본은 <code>lightning/channels-geo</code>가 보고한 실제 공개 채널 ' + fmtInt(S.chanRows) + '개 그래프에서 뽑고 <code>nodes/{pubkey}</code>로 보완했으며, 모든 호가 그 채널 행 중 하나입니다 — 근접·임의로 이은 선은 없습니다.';
+      '<b>DATA</b> Bitcoin mainnet values are mempool.space REST + WebSocket responses; L1 full-node values are the Bitnodes crawler export (bitnodes.io/api/v1).<br>' +
+      '· <b>Bitnodes is the primary L1 source</b>: the reachable node count, the clear-net/Tor/I2P split, the client versions and the unique coordinates on the globe are read from <code>snapshots/latest/?field=coordinates</code> and <code>?field=top</code>' +
+      l1NowClause(l1, snapAt) + '.<br>' +
+      '· The country split (' + (s ? s.countries.length : 0) + ' countries) is the Bitnodes snapshot captured ' + snapAt + ' with ' + fmtInt(s ? s.totalNodes : null) +
+      ' nodes; Bitnodes exposes per-node country only through its paginated node list, which is too heavy to pull on a phone, so this panel names that snapshot instead of hiding it.<br>' +
+      '· Globe points: ' + (l1 ? fmtInt(l1.coords.length) : '0') + ' unique coordinates Bitnodes geolocated (' + l1PointsClause(l1) + '). Tor and I2P nodes carry no coordinates, so they are not placed, and no link is drawn between nodes: Bitnodes publishes no peer graph.<br>' +
+      '· Values the crawler cannot know (per-node latency, uptime, disk size, per-node height) are never shown or guessed.<br>' +
+      '· Next blocks are mempool.space\'s own projection of the transactions that would fill each of the coming blocks, with the reported fee range and tx count.<br>' +
+      '· Watchdog thresholds: no block for ' + (WD_BLOCK_SEC / 60) + ' min, fastest fee ≥ ' + WD_FEE_SPIKE + ' sat/vB or 3× the 10-minute minimum, one pool above ' + Math.round(WD_POOL_SHARE * 100) + '% of the week\'s blocks, or a block hash change at an already-seen height.<br>' +
+      '· Lightning layer: the node sample is picked from the <code>lightning/channels-geo</code> graph (' + fmtInt(S.chanRows) + ' real open channels) completed with <code>nodes/{pubkey}</code>, and every arc is one of those rows; no proximity link exists.';
   }
 
   function paintBlocks() {
@@ -360,7 +343,7 @@
     S.blocks.forEach(function (b) {
       var elapsed = num(b.time) ? durSec(Math.max(0, Date.now() / 1000 - b.time)) : '—';
       out += '<div class="item"><div class="l1"><span>#' + fmtInt(b.height) + '</span><span class="r">' + fmtInt(b.txs) + '</span></div>' +
-        '<div class="l2"><span>' + fmtFixed(b.size / 1e6, 2) + 'M · ' + esc(elapsed) + (S.lang === 'en' ? '' : ' 전') + '</span>' +
+        '<div class="l2"><span>' + fmtFixed(b.size / 1e6, 2) + 'M · ' + esc(elapsed) + '</span>' +
         '<span>' + (b.medianFee != null ? fmtFixed(b.medianFee, 1) : '') + '</span></div>' +
         '<div class="hash">' + esc(shortHash(b.id, 18, 6)) + (b.pool ? ' · ' + esc(b.pool) : '') + '</div></div>';
     });

@@ -28,8 +28,6 @@
     var b1 = $('layerL1'), b2 = $('layerLN');
     if (b1) b1.addEventListener('click', function () { setLayer('l1'); });
     if (b2) b2.addEventListener('click', function () { setLayer('ln'); });
-    var lb = $('langBtn');
-    if (lb) lb.addEventListener('click', function () { S.lang = S.lang === 'en' ? 'ko' : 'en'; applyLang(); });
     var wp = $('watchPill');
     if (wp) {
       function openWatch() {
@@ -92,7 +90,6 @@
        network answers: the Bitnodes snapshot for L1, the channel snapshot for LN */
     applySnapshotL1('boot');
     applySeed();
-    applyLang();
     setLayer(S.layer);
     tickClock();
     every(1000, tickClock);
@@ -142,7 +139,6 @@
       openNode: function (i) { var c = Globe.state.clusters[i]; if (c) showNodeCard(c); },
       conts: aggregateContinents,
       layer: function (l) { if (l) setLayer(l); return S.layer; },
-      lang: function (l) { if (l) { S.lang = l; applyLang(); } return S.lang; },
       loadL1: loadL1,
       bridge: function () { return BR.on; },
       bridgeMs: function () { return BRIDGE_MS; },

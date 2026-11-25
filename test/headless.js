@@ -122,13 +122,6 @@ function makeDocument() {
      above. Every one of them answered null before, so Globe.layout() fell back to its
      defaults in every test and paint() never relaid the globe out. */
   const sized = (id, h) => { const el = els[id]; el.offsetHeight = h; return el; };
-  /* applyLang() rewrites these nodes in place; without them that loop never ran. */
-  const i18n = {};
-  ['utc', 'kHeight', 'secL1', 'secVer', 'kPlat'].forEach(k => {
-    const el = makeEl('i18n-' + k);
-    el.setAttribute('data-i18n', k);
-    i18n[k] = el;
-  });
   const doc = {
     readyState: 'complete',
     hidden: false,
@@ -141,14 +134,14 @@ function makeDocument() {
       if (sel === '.subrow') return sized('subrow', 18);
       return null;
     },
-    querySelectorAll(sel) { return sel === '[data-i18n]' ? Object.keys(i18n).map(k => i18n[k]) : []; },
+    querySelectorAll() { return []; },
     listeners: {},
     addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); },
     dispatch(type, ev) { (this.listeners[type] || []).forEach(f => f(ev || { target: this })); },
     createElement(tag) { return makeEl(tag); },
     body: makeEl('body')
   };
-  return { doc, els, i18n };
+  return { doc, els };
 }
 
 /* ------------------------------------------------------------------ fetch */
@@ -333,7 +326,7 @@ function makeWindow(docApi, els) {
 }
 
 function makeSandbox({ bridge = true, fetchImpl = fakeFetch, online = true } = {}) {
-  const { doc, els, i18n } = makeDocument();
+  const { doc, els } = makeDocument();
   const window = makeWindow(doc, els);
   if (bridge) window.NPBridge = makeBridge(window);
   const sandbox = {
@@ -348,7 +341,7 @@ function makeSandbox({ bridge = true, fetchImpl = fakeFetch, online = true } = {
   if (online !== true) sandbox.navigator = { onLine: online };
   sandbox.globalThis = sandbox;
   sandbox.self = window;
-  return { sandbox, window, els, doc, i18n, rafQueue: window._raf };
+  return { sandbox, window, els, doc, rafQueue: window._raf };
 }
 
 function runFrames(rafQueue, n, step) {
@@ -412,13 +405,19 @@ check('build has no inline event handler attribute',
 check('embedded datasets cannot close their script block',
   blockBodies.slice(1, 6).every(b => !/<\/script/i.test(b) && !/<!--/.test(b)));
 check('title present', /<title>NodePulse/.test(html));
-check('no proximity-link label left', !/근접·예시|가까운 노드끼리|NODE LINK/.test(html), 'proximity link wording still in the build');
+check('no proximity-link label left', !/NODE LINK/.test(html), 'proximity link wording still in the build');
 check('legend names real lightning channels', /LIGHTNING CHANNEL/.test(html));
 /* the globe is solid: a channel or coastline on the far hemisphere is never stroked
    through the body (these two colours were the only far-side passes) */
 check('no far-side channel or coastline pass in the build',
   !/rgba\(90,150,235,0\.075\)/.test(html) && !/rgba\(90,150,230,0\.07\)/.test(html));
-check('L1 layer is the default view', /<body class="l1">/.test(html), 'body class');
+check('L1 layer is the default view', /<body class="l1 en">/.test(html), 'body class');
+check('the page declares English', /<html lang="en">/.test(html), 'document language');
+/* The app is English only: no second string table, no language button and no Hangul is
+   left in the page that ships. */
+check('the build is English only',
+  !/[\uac00-\ud7af]/.test(html) && html.indexOf('data-i18n') < 0 && html.indexOf('langBtn') < 0,
+  (html.match(/[^\n]{0,30}[\uac00-\ud7af][^\n]{0,30}/) || [''])[0]);
 check('native bridge hooks are in the build', /NPBridgeOnData/.test(html) && /NPBridge/.test(html));
 check('bitnodes endpoints are in the build', /bitnodes\.io/.test(html) && /field=coordinates/.test(html) && /field=top/.test(html));
 check('all three websocket mirrors are in the build',
@@ -488,7 +487,7 @@ check('inline script blocks', scripts.length === 6, scripts.length);
 }
 
 (async function main() {
-  const { sandbox, window, els, i18n, rafQueue, doc } = makeSandbox({ bridge: true });
+  const { sandbox, window, els, rafQueue, doc } = makeSandbox({ bridge: true });
   const ctx = vm.createContext(sandbox);
   for (let i = 0; i < scripts.length; i++) {
     try {
@@ -957,7 +956,7 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   check('panel mempool row has MB + TX', /MB/.test(els.pMem.innerHTML) && /TX/.test(els.pMem.innerHTML), els.pMem.innerHTML);
   check('panel fee row from API', els.pFee.innerHTML.indexOf('7.5') === 0, els.pFee.innerHTML);
   check('panel difficulty row shows %', els.pDiff.innerHTML.indexOf('%') > 0, els.pDiff.innerHTML);
-  check('panel lightning stats date shown', /기준 \d{4}-\d{2}-\d{2}/.test(els.pLN.innerHTML), els.pLN.innerHTML);
+  check('panel lightning stats date shown', /as of \d{4}-\d{2}-\d{2}/.test(els.pLN.innerHTML), els.pLN.innerHTML);
   const distHTML = els.dist.innerHTML;
   check('continent bars rendered (6 buckets)', (distHTML.match(/class="dist"/g) || []).length === 6, (distHTML.match(/class="dist"/g) || []).length);
   const agg = NP.conts(FIX.countries);
@@ -982,7 +981,7 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   check('next-block panel shows the waiting block count',
     els.nextTotal.textContent.indexOf(String(FIX.mempoolBlocks.length)) === 0, els.nextTotal.textContent);
   check('panel footnote states real channels',
-    els.note.innerHTML.indexOf('실제 공개 채널') > 0 &&
+    els.note.innerHTML.indexOf('real open channels') > 0 &&
     els.note.innerHTML.indexOf(String(CHGEO.length).replace(/\B(?=(\d{3})+(?!\d))/g, ',')) > 0,
     els.note.innerHTML.slice(0, 160));
 
@@ -1113,14 +1112,14 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   let w4 = NP.watch();
   check('a new hash at an already-seen height is a reorg', w4.alerts.some(a => a.k === 'reorg'),
     w4.alerts.map(a => a.text).join(' | '));
-  check('reorg toast is shown', /REORG|리오그/.test(els.toast.textContent), els.toast.textContent);
+  check('reorg toast is shown', /reorg/i.test(els.toast.textContent), els.toast.textContent);
   check('reorg is reported on the badge', els.watchTxt.textContent !== 'WDG 0', els.watchTxt.textContent);
 
   /* ---- a slow device clock: the API's block timestamp sits a few seconds ahead ----
      mempool.space stamps a block server-side and the phone's clock may run a little slow,
      so Date.now() - timestamp comes out negative. The block row printed the em dash
-     durSec() returns for a negative second count ("— 전") and the watchdog a negative gap;
-     every elapsed figure is clamped at zero now and reads "0초 전". */
+     durSec() returns for a negative second count ("—") and the watchdog a negative gap;
+     every elapsed figure is clamped at zero now and reads "0s". */
   const skewed = JSON.parse(JSON.stringify(liveBlocks));
   skewed[0].height = oldTip + 2;
   skewed[0].id = '1'.repeat(64);
@@ -1132,13 +1131,13 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   await sleep(80);
   const skewHTML = els.listBlocks.innerHTML;
   check('a block stamped ahead of the phone clock reads 0 seconds, not an em dash',
-    skewHTML.indexOf('0초 전') > 0 && skewHTML.indexOf('— 전') < 0, skewHTML.slice(0, 220));
-  check('no block age in the list is negative', !/-\d+\s*초 전/.test(skewHTML), skewHTML.slice(0, 220));
+    skewHTML.indexOf(' · 0s</span>') > 0, skewHTML.slice(0, 220));
+  check('no block age in the list is negative', !/-\d+s<\/span>/.test(skewHTML), skewHTML.slice(0, 220));
   const wSkew = NP.watch();
   check('a future block timestamp raises no block-delay alert',
     wSkew.alerts.every(a => a.k !== 'gap'), wSkew.alerts.map(a => a.text).join(' | '));
   check('the watchdog block row prints 0 seconds, not a negative or em-dash gap',
-    /0초/.test(els.watch.innerHTML) && !/-\d+\s*초/.test(els.watch.innerHTML), els.watch.innerHTML.slice(0, 220));
+    /0s\b/.test(els.watch.innerHTML) && !/-\d+\s*s\b/.test(els.watch.innerHTML), els.watch.innerHTML.slice(0, 220));
 
   /* back to clean data so the remaining checks are not polluted */
   wsInstance.deliver({ blocks: liveBlocks, fees: FIX.fees });
@@ -1156,10 +1155,10 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   check('card shows node alias', card.indexOf(first.alias.split('&')[0].slice(0, 6)) >= 0, first.alias);
   check('card shows coordinates', card.indexOf(first.lat.toFixed(4)) >= 0, first.lat);
   check('card shows CHAIN TIP', card.indexOf('CHAIN TIP') > 0 && card.indexOf(S.blocks[0].id) > 0);
-  check('card avoids invented metrics', !/지연시간\s*\d|가동시간\s*\d|GB<\/dd>/.test(card), 'invented metric found');
-  check('card states API-only disclaimer', card.indexOf('표시하지 않습니다') > 0);
+  check('card avoids invented metrics', !/latency\s*\d|uptime\s*\d|GB<\/dd>/i.test(card), 'invented metric found');
+  check('card states API-only disclaimer', card.indexOf('are not shown') > 0);
   check('card lists real peers', card.indexOf('REAL CHANNELS') > 0, card.slice(0, 80));
-  check('card shows the channels-geo channel count for the node', card.indexOf('지도 채널') > 0);
+  check('card shows the channels-geo channel count for the node', card.indexOf('Mapped channels') > 0);
   const peerNames = first.peers || [];
   check('node peers are real channels-geo peers', peerNames.length > 0 &&
     peerNames.some(a => CHGEO.some(r => (r[0] === first.pk && r[5] === a) || (r[4] === first.pk && r[1] === a))),
@@ -1205,8 +1204,8 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   const l1card = els.card.innerHTML;
   check('L1 card open on a coordinate cell', els.modal.classList.contains('on') && l1card.indexOf('BITCOIN L1') > 0);
   check('L1 card shows the cell coordinate', l1card.indexOf(G.clusters[0].pts[0][0].toFixed(4)) > 0, l1card.slice(0, 120));
-  check('L1 card states there is no peer graph', l1card.indexOf('P2P') > 0 || l1card.indexOf('연결 그래프') > 0);
-  check('L1 card does not invent disk or uptime', !/(GB<\/dd>|가동시간<\/dt>|디스크<\/dt>|uptime<\/dt>)/i.test(l1card), 'invented field');
+  check('L1 card states there is no peer graph', l1card.indexOf('peer graph') > 0);
+  check('L1 card does not invent disk or uptime', !/(GB<\/dd>|uptime<\/dt>)/i.test(l1card), 'invented field');
 
   /* ---- a two-finger pinch release must not open a node card ----
      The globe only saw dragMoved from the single-finger phase, so letting go of a zoom
@@ -1265,57 +1264,42 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   check('the globe still answers a tap after a touchcancel', els.modal.classList.contains('on'));
   els.modal.click();
 
-  /* ---- language toggle ---- */
-  NP.lang('en');
+  /* ---- English only ---- */
+  NP.layer('l1');
   await sleep(500);
-  check('language switch sets the document language', sandbox.document.documentElement.getAttribute('lang') === 'en',
-    sandbox.document.documentElement.getAttribute('lang'));
   check('English panel footnote', els.note.innerHTML.indexOf('Bitnodes is the primary L1 source') > 0, els.note.innerHTML.slice(0, 120));
-  check('English L1 legeind', els.legend.innerHTML.indexOf('FULL NODE LOCATION') > 0, els.legend.innerHTML);
+  check('English L1 legend', els.legend.innerHTML.indexOf('FULL NODE LOCATION') > 0, els.legend.innerHTML);
   check('English legend + footnote are both applied', els.note.innerHTML.indexOf('Bitnodes is the primary L1 source') > 0 && els.legend.innerHTML.indexOf('L1 FULL NODE') > 0);
-  check('language button offers the other language', els.langBtn.textContent === 'KO', els.langBtn.textContent);
 
-  /* ---- i18n: the node card carries no hardcoded Korean once the language is English ---- */
-  NP.lang('en');
-  await sleep(200);
+  /* ---- the node card carries no second-language counter or unit ---- */
   NP.layer('ln');
   await sleep(60);
   const manyAt = -1;   /* the captured sample has no multi-node cell; the cluster row is
                           covered by the source guard below instead */
-  NP.lang('ko');
-  await sleep(120);
-  if (manyAt >= 0) {
-    NP.openNode(manyAt);
-    const koMany = els.card.innerHTML;
-    check('Korean cluster row uses Korean units', koMany.indexOf('개 노드') > 0 && /\d+개/.test(koMany), koMany.slice(0, 120));
-  }
-  NP.lang('en');
-  await sleep(120);
   NP.openNode(manyAt >= 0 ? manyAt : 0);
   const enCard = els.card.innerHTML;
   check('English node card uses English labels', enCard.indexOf('Sockets') > 0 && enCard.indexOf('Channels') > 0, enCard.slice(0, 120));
-  check('English node card has no Korean counter or unit left',
-    !/\d+개|개 노드|채널/.test(enCard), (enCard.match(/[^<>]{0,20}(?:\d+개|개 노드|채널)[^<>]{0,20}/) || [''])[0]);
+  check('English node card has no Hangul left',
+    !/[\uac00-\ud7af]/.test(enCard), (enCard.match(/[^<>]{0,20}[\uac00-\ud7af][^<>]{0,20}/) || [''])[0]);
   if (manyAt >= 0) check('English cluster row uses English units', enCard.indexOf(' nodes · ') > 0, enCard.slice(0, 120));
+  els.modal.click();
 
-  /* ---- i18n: every L() key exists in both dictionaries, and the strings this release
-     moved out of the code are gone from the source ---- */
+  /* ---- every L() key exists in the string table, and no second language or language
+     switch is left in the source ---- */
   const appSrc = appSource();
   const strBlock = appSrc.slice(appSrc.indexOf('var STR = {'), appSrc.indexOf('function L(k)'));
-  const koBlock = strBlock.slice(strBlock.indexOf('ko: {'), strBlock.indexOf('en: {'));
-  const enBlock = strBlock.slice(strBlock.indexOf('en: {'));
   const keysUsed = [...new Set([...appSrc.matchAll(/\bL\('([A-Za-z0-9_]+)'\)/g)].map(m => m[1]))];
-  const missingKo = keysUsed.filter(k => !new RegExp('(^|[\\s{,])' + k + ':').test(koBlock));
-  const missingEn = keysUsed.filter(k => !new RegExp('(^|[\\s{,])' + k + ':').test(enBlock));
-  check('every L() key is defined in Korean and English', keysUsed.length > 40 &&
-    missingKo.length === 0 && missingEn.length === 0, missingKo.concat(missingEn).join(','));
-  check('no hardcoded Korean pool / cluster / socket unit is left in the source',
-    appSrc.indexOf("' (1주 '") < 0 && appSrc.indexOf("+ '개' +") < 0 && appSrc.indexOf("' nodes · '") < 0,
-    'hardcoded unit found');
+  const missingEn = keysUsed.filter(k => !new RegExp('(^|[\\s{,])' + k + ':').test(strBlock));
+  check('every L() key is defined in the string table', keysUsed.length > 40 && missingEn.length === 0, missingEn.join(','));
+  check('no language switch is left in the source',
+    appSrc.indexOf('STR.ko') < 0 && appSrc.indexOf('applyLang') < 0 && appSrc.indexOf('langBtn') < 0 &&
+    appSrc.indexOf('data-i18n') < 0 && appSrc.indexOf('S.lang') < 0,
+    'language switch found');
+  check('the source carries no Hangul', !/[\uac00-\ud7af]/.test(appSrc),
+    (appSrc.match(/[^\n]*[\uac00-\ud7af][^\n]*/) || [''])[0].slice(0, 80));
   NP.layer('l1');
-  NP.lang('ko');
   await sleep(500);
-  check('Korean footnote restored', els.note.innerHTML.indexOf('Bitnodes') > 0 && /[가-힣]/.test(els.note.innerHTML));
+  check('the footnote stays English', els.note.innerHTML.indexOf('Bitnodes') > 0 && !/[\uac00-\ud7af]/.test(els.note.innerHTML));
 
   /* ---- websocket mirror fallback ---- */
   const hostBefore = S.wsHost;
@@ -1751,7 +1735,7 @@ check('inline script blocks', scripts.length === 6, scripts.length);
      with the snapshot's capture date instead of the answer's own. */
   {
     S.l1.src = 'cache';
-    NP.lang('en');
+    NP.layer('l1');
     await sleep(450);
     runFrames(rafQueue, 1);
     check('EN footnote names the cached Bitnodes answer for a cached source',
@@ -1763,24 +1747,12 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     check('EN globe-points line says the answer is cached',
       els.note.innerHTML.indexOf('unique coordinates Bitnodes geolocated (cached answer)') > 0,
       els.note.innerHTML.slice(0, 400));
-    NP.lang('ko');
-    await sleep(450);
-    runFrames(rafQueue, 1);
-    check('KO footnote names the cached Bitnodes answer for a cached source',
-      els.note.innerHTML.indexOf('저장해 둔 Bitnodes 응답(') > 0,
-      els.note.innerHTML.slice(0, 200));
-    check('KO footnote no longer calls a cached answer the built-in snapshot',
-      els.note.innerHTML.indexOf('내장 스냅샷') < 0,
-      els.note.innerHTML.slice(0, 200));
-    check('KO globe-points line says the answer is cached',
-      els.note.innerHTML.indexOf('서로 다른 위치입니다(저장본)') > 0,
-      els.note.innerHTML.slice(0, 400));
     S.l1.src = 'live';
-    NP.lang('ko');
+    NP.layer('l1');
     await sleep(450);
     runFrames(rafQueue, 1);
     check('a live source is labelled live again',
-      els.note.innerHTML.indexOf('에서 지금 실시간으로 읽었습니다') > 0,
+      els.note.innerHTML.indexOf(' (live now)') > 0,
       els.note.innerHTML.slice(0, 200));
   }
 
@@ -1930,16 +1902,6 @@ check('inline script blocks', scripts.length === 6, scripts.length);
       v2.every(x => x.pct === null || isFinite(x.pct)) && Math.abs(v2[2].pct - 200 / 3) < 1e-9, JSON.stringify(v2));
   }
 
-  /* ---- the page rewriting the visible labels it is told to rewrite ---- */
-  {
-    NP.lang('en');
-    check('applyLang rewrites the data-i18n nodes', i18n.kHeight.textContent === 'Block height', i18n.kHeight.textContent);
-    check('every data-i18n node got the English text',
-      i18n.utc.textContent === 'CURRENT TIME (UTC)' && i18n.secL1.textContent.length > 0, i18n.utc.textContent);
-    NP.lang('ko');
-    check('switching back rewrites them again', i18n.kHeight.textContent === '블록 높이', i18n.kHeight.textContent);
-  }
-
   /* ---- a dead network: three mirrors, then one bridge attempt, not three ---- */
   {
     const mode = fetchMode;
@@ -2008,8 +1970,8 @@ check('inline script blocks', scripts.length === 6, scripts.length);
       JSON.stringify(OFF.state.l1.platforms));
     check('offline L1 globe still draws those coordinates',
       OFF.nodes().length > 300 && OFF.links().length === 0, OFF.nodes().length + '/' + OFF.links().length);
-    check('offline panel labels the snapshot', off.els.note.innerHTML.indexOf('내장 스냅샷') > 0 ||
-      off.els.note.innerHTML.indexOf('스냅샷') > 0, off.els.note.innerHTML.slice(0, 100));
+    check('offline panel labels the snapshot', off.els.note.innerHTML.indexOf('built-in snapshot') > 0,
+      off.els.note.innerHTML.slice(0, 100));
     const OFF_LN = (() => { OFF.layer('ln'); return OFF; })();
     check('offline globe has the lightning node sample', OFF_LN.state.nodes.length === NODESEED.nodes.length, OFF_LN.state.nodes.length);
     const offLinks = OFF_LN.channels().links;
@@ -2165,22 +2127,22 @@ check('inline script blocks', scripts.length === 6, scripts.length);
       !!B && B.state.l1.src === 'snapshot' && B.state.l1.why === 'cors' && B.state.l1Off === true,
       B && (B.state.l1.src + '/' + B.state.l1.why + '/' + B.state.l1Off));
     check('the row under the title marks the static snapshot',
-      /스냅샷/.test(sb.els.subrow.textContent) && /CORS/.test(sb.els.subrow.textContent), sb.els.subrow.textContent);
-    check('the legend marks static coordinates', /정적 스냅샷/.test(sb.els.legend.innerHTML), sb.els.legend.innerHTML.slice(0, 120));
+      /SNAPSHOT/.test(sb.els.subrow.textContent) && /CORS/.test(sb.els.subrow.textContent), sb.els.subrow.textContent);
+    check('the legend marks static coordinates', /static snapshot/.test(sb.els.legend.innerHTML), sb.els.legend.innerHTML.slice(0, 120));
     if (B) B.panel(true);
     check('the L1 tag is not LIVE in that browser', sb.els.l1Tag.textContent === 'SNAPSHOT', sb.els.l1Tag.textContent);
     check('the L1 freshness row names the CORS block',
-      /CORS/.test(sb.els.pL1Fresh.innerHTML) && /브리지/.test(sb.els.pL1Fresh.innerHTML), sb.els.pL1Fresh.innerHTML.slice(0, 160));
+      /CORS/.test(sb.els.pL1Fresh.innerHTML) && /bridge/.test(sb.els.pL1Fresh.innerHTML), sb.els.pL1Fresh.innerHTML.slice(0, 160));
     check('the country split names its snapshot basis',
-      /스냅샷 기준/.test(sb.els.distTotal.textContent), sb.els.distTotal.textContent);
+      /snapshot/.test(sb.els.distTotal.textContent), sb.els.distTotal.textContent);
 
     /* the same page with the native bridge is live, and says so */
     check('a bridged L1 read is live and says so', S.l1.src === 'live' && S.l1.why === 'live', S.l1.src + '/' + S.l1.why);
     NP.panel(true);
-    check('the live L1 freshness row says live', /실시간/.test(els.pL1Fresh.innerHTML), els.pL1Fresh.innerHTML.slice(0, 120));
-    check('the title row says live for a bridged read', /실시간/.test(els.subrow.textContent), els.subrow.textContent);
+    check('the live L1 freshness row says live', /live/.test(els.pL1Fresh.innerHTML), els.pL1Fresh.innerHTML.slice(0, 120));
+    check('the title row says live for a bridged read', /LIVE/.test(els.subrow.textContent), els.subrow.textContent);
     check('the legend carries no static marker when the dots are live',
-      !/정적 스냅샷/.test(els.legend.innerHTML), els.legend.innerHTML.slice(0, 120));
+      !/static snapshot/.test(els.legend.innerHTML), els.legend.innerHTML.slice(0, 120));
     NP.panel(false);
   }
 

@@ -196,22 +196,16 @@
 
   /* -------------------------------------------------------- continents ---- */
   var CONT_ORDER = ['NA', 'EU', 'AS', 'SA', 'OC', 'AF', 'OT'];
-  var CONT_KO = { NA: '북미', EU: '유럽', AS: '아시아', SA: '남미', OC: '오세아니아', AF: '아프리카', OT: '기타' };
   var CONT_EN = { NA: 'North America', EU: 'Europe', AS: 'Asia', SA: 'South America', OC: 'Oceania', AF: 'Africa', OT: 'Other' };
-  function contName(k) { return S.lang === 'en' ? (CONT_EN[k] || k) : (CONT_KO[k] || k); }
+  function contName(k) { return CONT_EN[k] || k; }
 
   function contOf(iso) {
     var meta = (typeof COUNTRY_META !== 'undefined' && COUNTRY_META.cont) ? COUNTRY_META.cont : {};
     return meta[String(iso || '').toUpperCase()] || 'OT';
   }
-  function countryKo(iso, fallback) {
-    var ko = (typeof COUNTRY_META !== 'undefined' && COUNTRY_META.ko) ? COUNTRY_META.ko : {};
-    return ko[String(iso || '').toUpperCase()] || fallback || '';
-  }
   function countryName(iso, fallback) {
     var names = (typeof L1_SNAPSHOT !== 'undefined' && L1_SNAPSHOT.countryNames) ? L1_SNAPSHOT.countryNames : {};
-    var en = names[String(iso || '').toUpperCase()] || fallback || iso || '';
-    return S.lang === 'en' ? en : (countryKo(iso, en) || en);
+    return names[String(iso || '').toUpperCase()] || fallback || iso || '';
   }
   function aggregateContinents(list) {
     var acc = {}, total = 0, cap = {};

@@ -119,12 +119,6 @@ body.ln .topbar{background:linear-gradient(180deg, rgba(22,18,54,.97), rgba(11,9
 }
 .lay.on{color:#eaf7ff;background:rgba(var(--ac),.24);border-color:rgba(var(--ac),.5);box-shadow:0 0 14px rgba(var(--ac),.22)}
 body.ln .lay.on{color:#f3eeff}
-.lng{
-  flex:0 0 auto;cursor:pointer;border-radius:8px;padding:5px 9px;
-  border:1px solid rgba(var(--ac),.28);background:rgba(var(--ac),.05);
-  font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:rgb(var(--ac2));
-}
-.lng:hover{background:rgba(var(--ac),.13)}
 .subrow{
   padding:8px 13px 10px 58px;font-family:var(--mono);font-size:8.5px;letter-spacing:.18em;
   color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis

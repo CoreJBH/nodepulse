@@ -21,8 +21,8 @@
 (function () {
   'use strict';
 
-/* Core: the page-level constants, the two-language string table, the DOM and text
-   helpers, the number formatters and the one live state object every other module reads. */
+/* Core: the page-level constants, the string table, the DOM and text helpers, the number
+   formatters and the one live state object every other module reads. */
 
   var DEG = Math.PI / 180, TAU = Math.PI * 2;
   var API_HOSTS = ['https://mempool.space', 'https://mempool.emzy.de', 'https://mempool.ninja'];
@@ -34,7 +34,7 @@
   var CH_PATH = '/api/v1/lightning/channels-geo';
   var LS_CACHE = 'nodepulse.cache.v2';
   var LS_NODES = 'nodepulse.nodes.v2';   // lightning node sample + real channels between them
-  var LS_PREF = 'nodepulse.pref.v1';     // layer + language
+  var LS_PREF = 'nodepulse.pref.v1';     // layer
   var NODE_TTL = 6 * 3600 * 1000;
   var L1_TTL = 5 * 60 * 1000;
   var POOL_TTL = 30 * 60 * 1000;
@@ -70,48 +70,8 @@
     WS_CONNECT_MS = window.NP_WS_CONNECT_MS;
   }
 
-  /* ------------------------------------------------------------------ i18n */
+  /* --------------------------------------------------------------- strings */
   var STR = {
-    ko: {
-      utc: '현재 시각 (UTC)', state: '상태',
-      secNet: 'BITCOIN MAINNET · 실시간', secL1: 'BITCOIN L1 · 풀노드', secLN: 'LIGHTNING · MEMPOOL.SPACE',
-      kHeight: '블록 높이', kMem: '멤풀', kFee: '최속 수수료', kHash: '해시레이트', kDiff: '다음 난이도 조정',
-      kL1: '도달 가능 풀노드', kPlat: '접속망', kL1H: '크롤러 기준 높이', kL1At: '측정 시각',
-      kL1Fresh: 'L1 실시간성',
-      kLN: '라이트닝 노드', kLNCap: '채널 · 용량',
-      secDistL1: '대륙별 L1 노드 분포', secDistLN: '대륙별 라이트닝 노드 분포',
-      secVer: '클라이언트 버전', secNext: '다음 블록 · NEXT BLOCKS', secWatch: '네트워크 감시 · WATCHDOG',
-      secLedger: '최근 블록 · 최근 트랜잭션', hBlocks: '최근 블록', hTxs: '최근 트랜잭션',
-      loading: '불러오는 중…', syncing: '실시간 동기화', polling: '폴링 갱신', retry: '연결 재시도 중',
-      live: '실시간', snap: '내장 스냅샷', cache: '저장본', none: '—',
-      fLive: '실시간 · Bitnodes', fLiveNote: '좌표 · 전송망 · 버전을 지금 읽었습니다',
-      fCache: '저장본', fCacheNote: '실시간 요청이 답하지 않아 저장해 둔 답을 표시',
-      fCors: '정적 스냅샷 · 브라우저 CORS 차단', fCorsNote: 'bitnodes.io가 CORS 헤더를 보내지 않아 브라우저에서는 읽을 수 없습니다 · Android 앱은 브리지로 실시간',
-      fSnap: '정적 스냅샷', fSnapNote: '실시간 요청을 기다리는 중이거나 답하지 않았습니다',
-      snapBasis: '스냅샷 기준',
-      legL1static: '좌표 · 정적 스냅샷', subSnap: '스냅샷', subCache: '저장본', subLive: '실시간',
-      subL1: 'FULL NODE NETWORK · BITNODES', subLN: 'LIGHTNING CHANNEL GRAPH · MEMPOOL.SPACE',
-      legL1dot: 'L1 풀노드 위치 (Bitnodes)', legL1note: 'Tor·I2P 노드는 좌표 없음', legLNdot: 'LIGHTNING NODE',
-      legLNline: 'LIGHTNING CHANNEL (실측)',
-      hint: 'DRAG TO ROTATE · SCROLL / PINCH TO ZOOM',
-      pOpen: '실시간 네트워크 패널 열기', pClose: '실시간 네트워크 패널 닫기',
-      nextWaiting: '블록 분량 대기', nextNone: 'mempool-blocks 대기 중 — WebSocket 연결되면 표시됩니다',
-      nextBlock: '다음', nextFee: 'sat/vB',
-      wOkChain: '체인 정상', wOkGap: '마지막 블록', wOkFee: '수수료 정상', wOkPool: '채굴 풀 집중도',
-      wGap: '블록 지연', wFee: '수수료 급등', wPool: '채굴 풀 집중', wReorg: '리오그 감지',
-      wNoData: '감시 데이터 대기 중', poolSpan: '1주', poolBlocks: '블록',
-      tNewBlock: 'NEW BLOCK', tReorg: 'REORG 감지', tSnap: '비트노즈 스냅샷 표시 중 · 갱신 중',
-      tCached: '저장된 마지막 데이터 표시 중 · 갱신 중',
-      cCoord: '좌표', cCell: '격자 내 위치', cCountry: '국가', cPlace: '지역', cSrc: '출처', cSnapAt: '기준 시각',
-      cChainTip: 'CHAIN TIP · 네트워크 공통', cHeight: '높이', cWhere: '위치',
-      cL1Note: '이 지점은 Bitnodes가 좌표를 보고한 실제 노드 위치입니다. Bitnodes는 노드별 P2P 연결 그래프를 공개하지 않으므로 지구본에 연결선은 그리지 않습니다. 지연시간·가동시간·디스크 용량처럼 크롤러가 알 수 없는 값도 표시하지 않습니다.',
-      cLNNote: '표시 값은 mempool.space Lightning API 응답 그대로입니다(별칭·국가·도시·좌표·채널·용량·AS·관측 시각). 지연시간, 가동시간, 디스크 용량, 개별 노드의 동기화 높이처럼 API가 제공하지 않는 항목은 표시하지 않습니다. CHAIN TIP은 이 노드가 보고한 값이 아니라 네트워크 공통 현재 tip입니다. 노드 사이의 호는 lightning/channels-geo에 실린 실제 공개 채널이며, 근접 추정으로 이은 선은 없습니다.',
-      cPeers: 'REAL CHANNELS · 실제 채널 상대', cMapCh: '지도 채널', cCh: '채널', cCap: '용량', cAS: 'AS 조직',
-      cSock: '소켓', cFirst: '최초 관측', cUpd: '최근 갱신', cCluster: '클러스터', cCells: '곳',
-      sockUnit: '개', unitNodes: '개 노드', unitCh: ' 채널', cClose: '닫기', ariaL1: '비트코인 L1 풀노드 지구본', ariaLN: '라이트닝 채널 지구본',
-      noteL1a: 'BITNODES · L1 풀노드', noteL1b: '국가 분포 · 내장 스냅샷', noteL1c: '지구본 지점',
-      apl: '접속망', ua: '클라이언트'
-    },
     en: {
       utc: 'CURRENT TIME (UTC)', state: 'STATUS',
       secNet: 'BITCOIN MAINNET · LIVE', secL1: 'BITCOIN L1 · FULL NODES', secLN: 'LIGHTNING · MEMPOOL.SPACE',
@@ -153,7 +113,7 @@
       apl: 'transport', ua: 'clients'
     }
   };
-  function L(k) { var t = STR[S.lang] || STR.ko; return t[k] !== undefined ? t[k] : (STR.ko[k] !== undefined ? STR.ko[k] : k); }
+  function L(k) { return STR.en[k] !== undefined ? STR.en[k] : k; }
 
   /* ------------------------------------------------------------------ dom */
   function $(id) { return document.getElementById(id); }
@@ -226,23 +186,22 @@
   /* A device clock that runs a little slow puts an API timestamp (a block, a mempool
      answer) a few seconds in the future, and Date.now() - ms then comes out negative.
      Every elapsed-time figure is clamped at zero here and at its call sites, so the UI
-     reads "0초 전" instead of "-3초 전" or the em dash that durSec() returns for a
+     reads "0s ago" instead of "-3s ago" or the em dash that durSec() returns for a
      negative second count. */
   function ago(ms) {
     if (!num(ms) || ms <= 0) return '—';
-    var s = Math.max(0, (Date.now() - ms) / 1000), en = S.lang === 'en';
-    if (s < 60) return Math.floor(s) + (en ? 's ago' : '초 전');
-    if (s < 3600) return Math.floor(s / 60) + (en ? 'm ago' : '분 전');
-    if (s < 86400) return Math.floor(s / 3600) + (en ? 'h ago' : '시간 전');
-    return Math.floor(s / 86400) + (en ? 'd ago' : '일 전');
+    var s = Math.max(0, (Date.now() - ms) / 1000);
+    if (s < 60) return Math.floor(s) + 's ago';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+    return Math.floor(s / 86400) + 'd ago';
   }
   function durSec(sec) {
     if (!num(sec) || sec < 0) return '—';
-    var en = S.lang === 'en';
-    if (sec < 60) return Math.floor(sec) + (en ? 's' : '초');
-    if (sec < 3600) return Math.floor(sec / 60) + (en ? 'm' : '분');
-    if (sec < 86400) return Math.floor(sec / 3600) + (en ? 'h ' : '시간 ') + Math.floor((sec % 3600) / 60) + (en ? 'm' : '분');
-    return Math.floor(sec / 86400) + (en ? 'd ' : '일 ') + Math.floor((sec % 86400) / 3600) + (en ? 'h' : '시간');
+    if (sec < 60) return Math.floor(sec) + 's';
+    if (sec < 3600) return Math.floor(sec / 60) + 'm';
+    if (sec < 86400) return Math.floor(sec / 3600) + 'h ' + Math.floor((sec % 3600) / 60) + 'm';
+    return Math.floor(sec / 86400) + 'd ' + Math.floor((sec % 86400) / 3600) + 'h';
   }
   function dateOf(v) {
     var d;
@@ -271,7 +230,7 @@
     nodes: [], links: [], nodeSrc: 'none', nodeAt: 0,
     chanRows: 0, chanAt: 0,
     lastOk: 0, ws: 'idle', wsTries: 0, wsHost: 0, fail: 0, panelOpen: false,
-    layer: 'l1', lang: 'ko',
+    layer: 'l1',
     l1: null, l1Tried: 0, l1Off: false,
     mblocks: [], mblocksAt: 0,
     pools: null, poolsAt: 0,

@@ -44,7 +44,7 @@ public class HttpBridgePolicyTest {
         assertFalse(MainActivity.HttpBridge.validId("1);alert(1);//"));
         assertFalse(MainActivity.HttpBridge.validId("1\n2"));
         assertFalse(MainActivity.HttpBridge.validId("a".repeat(33)));
-        assertFalse(MainActivity.HttpBridge.validId("한글"));
+        assertFalse(MainActivity.HttpBridge.validId("héllo"));
     }
 
     /* ---- the host allowlist ------------------------------------------------------- */

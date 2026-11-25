@@ -95,7 +95,7 @@
     var n = cluster.nodes[0];
     var many = cluster.nodes.length > 1;
     var continent = contName(contOf(n.iso));
-    var place = [n.city, S.lang === 'en' ? n.country : countryName(n.iso, n.country)].filter(Boolean).join(' · ');
+    var place = [n.city, n.country].filter(Boolean).join(' · ');
     var chainTipHash = null, chainTipHeight = S.tip;
     if (S.blocks && S.blocks.length) chainTipHash = S.blocks[0].id;
 
@@ -137,7 +137,7 @@
       '<p class="disc">' + esc(L('cLNNote')) + '</p>';
   }
 
-  /* ------------------------------------------------------------- layer/i18n */
+  /* ------------------------------------------------------------- layer */
   function setLayer(layer) {
     if (layer !== 'l1' && layer !== 'ln') return;
     S.layer = layer;
@@ -163,33 +163,10 @@
     schedulePaint();
   }
 
-  function applyLang() {
-    document.body.classList.toggle('en', S.lang === 'en');
-    if (document.documentElement && document.documentElement.setAttribute) {
-      document.documentElement.setAttribute('lang', S.lang === 'en' ? 'en' : 'ko');
-    }
-    var nodes = document.querySelectorAll ? document.querySelectorAll('[data-i18n]') : [];
-    for (var i = 0; i < nodes.length; i++) {
-      var k = nodes[i].getAttribute('data-i18n');
-      if (k) nodes[i].textContent = L(k);
-    }
-    txt('langBtn', S.lang === 'en' ? 'KO' : 'EN');
-    txt('subrow', subrowText());
-    txt('distTitle', S.layer === 'l1' ? L('secDistL1') : L('secDistLN'));
-    txt('hint', L('hint'));
-    paintLegend();
-    var tg = $('toggle');
-    if (tg) tg.setAttribute('aria-label', S.panelOpen ? L('pClose') : L('pOpen'));
-    noteDirty = true;
-    storePref();
-    schedulePaint();
-  }
-
-  function storePref() { store(LS_PREF, { layer: S.layer, lang: S.lang }); }
+  function storePref() { store(LS_PREF, { layer: S.layer }); }
   function loadPref() {
     var p = recall(LS_PREF);
     if (!p) return;
-    if (p.lang === 'en' || p.lang === 'ko') S.lang = p.lang;
     if (p.layer === 'l1' || p.layer === 'ln') S.layer = p.layer;
   }
 
