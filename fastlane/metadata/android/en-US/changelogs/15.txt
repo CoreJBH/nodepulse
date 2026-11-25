@@ -8,7 +8,7 @@ First F-Droid build.
   projection from mempool.space.
 * Lightning layer: up to 22 nodes from the real channel graph, one arc per open
   channel.
-* English and Korean interface, remembered between launches.
+* English interface only: the page ships one language and has no switch.
 * The shell keeps the 1.1.12 hardening: the WebView opens the bundled page and
   nothing else, file and content access are off, and mixed content is never
   allowed.
