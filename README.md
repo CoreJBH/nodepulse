@@ -473,10 +473,10 @@ and on demand:
 
 1. `python3 build.py` builds the single-file app and `python3 build.py --check` compiles the
    assembled application code.
-2. `node test/cluster.js` runs the clustering engine's suite and `node test/headless.js` the
-   offline verification harness. The workflow step that runs both is written in this tree;
-   a GitHub App cannot push a file under `.github/workflows/`, so that one line lands with
-   the owner's next commit.
+2. `node test/headless.js` runs the offline verification harness. `node test/cluster.js`
+   (the clustering engine's suite) runs from the same checkout, and adding it beside that
+   line is a one-line edit under `.github/workflows/` — which a GitHub App cannot push, so
+   it lands with the owner's next commit.
 3. The built HTML is copied to `android/app/src/main/assets/index.html`.
 4. `gradle :app:lintDebug :app:testDebugUnitTest` checks the shell.
 5. The four signing secrets are read. Without them a `v*` tag stops here, before anything is
