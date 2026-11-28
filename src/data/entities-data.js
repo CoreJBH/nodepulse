@@ -2,13 +2,14 @@
 
    Every address here is confirmed twice: a public source names it (a government, the
    exchange itself, a court record, the chain itself, or a named analytics attribution)
-   and mempool.space's address API was read for its balance. Nothing is guessed; an
+   and the mempool.space address API was read for its balance. Nothing is guessed; an
    address whose public listing could not be found is left out, and the entity's `extra`
-   field says so. Verification run 2026-11-28 04:56 UTC at block 977,898.
+   field says so. Verification run 2026-11-28 08:54:43 UTC at block 977916.
 
    Shape:  { v, at, block, price, priceAt, tracked, list: [entity] }
            entity  = { id, name, category, icon, badge, evidence, live, description,
-                       extra, est, addresses: [address], total }
+                       extra, est, coverage, reportedSats, reportedNote,
+                       addresses: [address], total }
            address = { address, label, sats, p2pkSats?, source, note, live }
 
    `category` is PERSON | CORP | GOV | OTHER (the five filter chips add ALL). `icon` picks
@@ -17,6 +18,12 @@
    settles it) | attributed (an analytics label, not proof of ownership). `sats` is the
    balance the verification read and `total` is the sum of the addresses actually listed —
    never an entity's whole holding, which every card says in words.
+
+   `coverage` is full when the listed addresses are the entity's published set, and partial
+   when the entity holds coins at addresses it does not publish (an ETF custodied across
+   thousands of Coinbase addresses, a company that never disclosed a wallet). A partial card
+   prints only the tracked subset and may carry `reportedSats`: the figure the entity's own
+   filing reports, shown beside the tracked one, never added to it.
 
    The block-1 Satoshi address is the one adjusted figure: its 50 BTC P2PK coinbase is
    still unspent but is not in the address statistics, so `sats` carries the corrected
@@ -29,16 +36,7433 @@
 
    build.py inlines this file and also writes dist/entities.json, the same payload the app
    tries to refresh from https://corejbh.github.io/nodepulse/entities.json. `v` is the
-   payload version: v2 added `est`, and a table saved under v1 is replaced by it rather
-   than kept, so a page that adopted the older file picks up the estimate. */
+   payload version: v2 added `est`, and v3 replaced the 20-entry table with the verified
+   set below, so a table saved under an older version is replaced rather than kept. */
 var ENTITIES = {
-  "v": 2,
-  "at": "2026-11-28T04:56:00Z",
-  "block": 977898,
-  "price": 59700,
-  "priceAt": "2026-11-28T05:10:00Z",
-  "tracked": 101365115607770,
+  "v": 3,
+  "at": "2026-11-28T08:54:43Z",
+  "block": 977916,
+  "price": 59501,
+  "priceAt": "2026-11-28T08:54:43Z",
+  "tracked": 240476303703372,
   "list": [
+    {
+      "id": "binance",
+      "name": "Binance",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Proof of Reserves",
+      "evidence": "official",
+      "live": true,
+      "description": "The largest exchange reserve on chain. Binance publishes its BTC proof-of-reserves addresses every quarter; the wallets below are those disclosures plus the BTCB reserve that backs its wrapped token.",
+      "extra": "Sources: Binance quarterly proof-of-reserves (68 BTC addresses), the BTCB reserve announced on the Binance blog, and the Binance Pool reward address. Balances were read from mempool.space.",
+      "est": null,
+      "coverage": "full",
+      "addresses": [
+        {
+          "address": "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo",
+          "label": "Proof-of-reserves wallet",
+          "sats": 24859759296803,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3M219KR5vEneNb47ewrPfWyb5jQ2DjxRP6",
+          "label": "Proof-of-reserves wallet",
+          "sats": 16487839644777,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3LYJfcfHPXYJreMsASk2jkn69LWEYKzexb",
+          "label": "Proof-of-reserves wallet",
+          "sats": 6820000614890,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PJiGp2yDLvUgqeBsuZVCBADArNsk6XEiw",
+          "label": "Proof-of-reserves wallet",
+          "sats": 4132858287232,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3LQUu4v9z6KNch71j7kbj8GPeAGUo1FW6a",
+          "label": "Proof-of-reserves wallet",
+          "sats": 3792707838102,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3FHNBLobJnbCTFTVakh5TXmEneyf5PT61B",
+          "label": "Proof-of-reserves wallet",
+          "sats": 3127535273631,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "34HpHYiyQwg69gFmCq2BGHjF1DZnZnBeBP",
+          "label": "Proof-of-reserves wallet",
+          "sats": 1630662958750,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12VuUfQHTGqWDvBzm8TBad1mZBm4hjGEzN",
+          "label": "Proof-of-reserves wallet",
+          "sats": 1211627886626,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PPWMe42cywnM61nVatkmiggwdRQYLiCyS",
+          "label": "Proof-of-reserves wallet",
+          "sats": 38943246760,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Pzaqw98PeRfyHypfqyEgg5yycJRsENrE7",
+          "label": "Proof-of-reserves wallet",
+          "sats": 1080299963672,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q5n5dy7jgqhmpnmx44d3780qefzaphjreds0z9y",
+          "label": "Proof-of-reserves wallet",
+          "sats": 14141702470,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q5qvs2dzzydqt4ygfn0k0ertjnv8ctytgcdz7l0",
+          "label": "Proof-of-reserves wallet",
+          "sats": 173102992389,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q78ufzeu8w8fwvxuphrdlg446xhyptf28fkatu5",
+          "label": "Proof-of-reserves wallet",
+          "sats": 493760,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DEuKerATHWRfyB14s6QCt4LPkfCTx4zaW",
+          "label": "Proof-of-reserves wallet",
+          "sats": 327872142135,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qdtmav38lca8yu3rrcknnqx5242cckgxqws7m72",
+          "label": "Proof-of-reserves wallet",
+          "sats": 132497063122,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KuPikhUYtHz3fmSQ2UvotpUuN672NuEcm",
+          "label": "Proof-of-reserves wallet",
+          "sats": 405334931223,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q5rsc4uscnmemlwru8xsys26k3xgxewqfnf3k7j",
+          "label": "Proof-of-reserves wallet",
+          "sats": 30099989858,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q32lyrhp9zpww22phqjwwmelta0c8a5q990ghs6",
+          "label": "Proof-of-reserves wallet",
+          "sats": 534896465674,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qq393eyjh8hdjvcchy0mxquhh9wx8h3kzlkchfs",
+          "label": "Proof-of-reserves wallet",
+          "sats": 41185313,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qm34lsc65zpw79lxes69zkqmk6ee3ewf0j77s3h",
+          "label": "Proof-of-reserves wallet",
+          "sats": 551596960,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1p7x4aaws8t8cmmccu39kun6cajglx6ntuta7lhyxjt2cwrw4k89zqn0wley",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qquax5zzensg9mkejdgq3q3h76v34cug96zk0f6",
+          "label": "Proof-of-reserves wallet",
+          "sats": 47023053449,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q7t9fxfaakmtk8pj7tdxjvwsng6y9x76czuaf5h",
+          "label": "Proof-of-reserves wallet",
+          "sats": 627200013539,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "36oiSkAi1VVuUpfdv8E2V5fZ2EarHRJpis",
+          "label": "Proof-of-reserves wallet",
+          "sats": 777,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3Nm3c4gqVmvCmeP1sYvDchbb1r4QMu6emn",
+          "label": "Proof-of-reserves wallet",
+          "sats": 2334298709,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3HkgC2R5PhqyXy6RVFyemvxN1VuFbQiQ5V",
+          "label": "Proof-of-reserves wallet",
+          "sats": 10556,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3HkPQSi1xso1Zh1EeqLjkMpura63fr5HRn",
+          "label": "Proof-of-reserves wallet",
+          "sats": 21568708379,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3KRduELtTmxBtqYpZviPysXoJDxdtdxFLZ",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3AtnehKDkFPC1bKvdrEVPSRGCtxQH8F1R8",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3Kyo49ThRZPMukuYqPgqPejYeUpHvkA1EM",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3AeUiDpPPUrUBS377584sFCpx8KLfpX9Ry",
+          "label": "Proof-of-reserves wallet",
+          "sats": 46751318115,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3FJ9hQuRtzy7pCqKHjeBGRDcY3fJbhHYXD",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "32KqbtrRVxC6GLUJgJhVQtFTaCdq4GrgBb",
+          "label": "Proof-of-reserves wallet",
+          "sats": 765,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3NjHh71XgjikBoTNYdWgXiNeZcLaKNThgb",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3AQ8bAh88TQU7JV1H3ovXrwsuV6s3zYZuN",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "39884E3j6KZj82FK4vcCrkUvWYL5MQaS3v",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3NPL82eaehTFh4r3StpHqVQBTnZJFaGsyy",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3EVVc8e2rxwUuERtdJCduWig8DnpsUqyA6",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "378GLcve92X2Q4UrCyoMFDL5k5QrzeG7JN",
+          "label": "Proof-of-reserves wallet",
+          "sats": 546,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "32bhzEniykYRFADVaRM5PYswsjC23cxtes",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3NXCvmLGz9SxYi6TnjbBQfQMcwiZ1iQETa",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3F9CGMu7JSJnMHA8jFM2KgxuH6hhxtvENP",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3Q6ZCgJ3e4shasccLHen1VNUpReZTsjmsR",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "31jUs8yQNVc9p6YuUPctWCkdhH7u8UiUba",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3LcgLHzTvjLKBixBvkKGiadtiw2GBSKKqH",
+          "label": "Proof-of-reserves wallet",
+          "sats": 199979781890,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "32BgTv3NSYbMsBTwDbNNN2GKZPCTJSkqDv",
+          "label": "Proof-of-reserves wallet",
+          "sats": 700,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3JqPhvKkAPcFB3oLELBT7z2tQdjpnxuDi9",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3M3EtJGx5Dy9nCATLDhyRCrKGc38QC9z2e",
+          "label": "Proof-of-reserves wallet",
+          "sats": 1092,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BzYxZXkdpkrFTWzKkWGRoWXJMuN2Ko621",
+          "label": "Proof-of-reserves wallet",
+          "sats": 1900,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "395vnFScKQ1ay695C6v7gf89UzoFpx3WuJ",
+          "label": "Proof-of-reserves wallet",
+          "sats": 175853040482,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3QK5vQ9hucSg8ZC8Vizq83qEWeHFLAWMud",
+          "label": "Proof-of-reserves wallet",
+          "sats": 546,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3CySuFKbBS29M7rE5iJakZRNqb3msMeFoN",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3HdGoUTbcztBnS7UzY4vSPYhwr424CiWAA",
+          "label": "Proof-of-reserves wallet",
+          "sats": 199991709124,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3E97AjYaCq9QYnfFMtBCYiCEsN956Rvpj2",
+          "label": "Proof-of-reserves wallet",
+          "sats": 21804,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3F1ZmTDAv6q3xrnT3tpm55DkCDzxhstU2Z",
+          "label": "Proof-of-reserves wallet",
+          "sats": 3911899505,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3JFJPpH8Chwo7CDbyYQ4XcfgcjEP1FGRMJ",
+          "label": "Proof-of-reserves wallet",
+          "sats": 19394849519,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3PXBET2GrTwCamkeDzKCx8DeGDyrbuGKoc",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qlupspe4hp6sxef2fp7n0w9y4x447ysclk4xg30",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qz5ke3yaknfew84am42n6uarqtdzty9pdc897mu",
+          "label": "Proof-of-reserves wallet",
+          "sats": 373730013,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qaasqn8dnjmntv8pm79grnq3phe8wyvtr8tegv5",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qgwzwar5utq93mztvvat0xek66uys74cxffm8ek",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qm0u3v3uxz8sudsaf53e9r7drqkgrw00l4ktez8",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qqce0hewpndu6amflycv4g9wfdafdph23ltjymm",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qxrakjkn9eedkex9gdfmmx45ggjk9h9m9u7ajqq",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/binance-por",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 66145156015557
+    },
+    {
+      "id": "us-government",
+      "name": "U.S. Government",
+      "category": "GOV",
+      "icon": "gov",
+      "badge": "Seized funds",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Bitcoin held by U.S. federal agencies from seizures. Two wallets dominate: the 94,643 BTC recovered from the 2016 Bitfinex hack and the 69,370 BTC seized from James Zhong's Silk Road theft.",
+      "extra": "Arkham puts total U.S. government holdings at ~325,400 BTC. The verified addresses here hold what the public record supports; the Oct 2025 Prince Group forfeiture (127,271 BTC) is at custody addresses DOJ has not published, and the 25 wallets named in the complaint (listed, currently 0) held it before the 2024 consolidation. A further ~33,000 BTC sits in agency wallets that analytics firms track but do not name.",
+      "est": null,
+      "coverage": "partial",
+      "reportedSats": 32544700000000,
+      "reportedNote": "Arkham attributes ~325,447 BTC to the U.S. government (Oct 2025). The tracked addresses below are what public records support; the 127,271 BTC Prince Group forfeiture sits at unpublished custody addresses.",
+      "addresses": [
+        {
+          "address": "bc1qazcm763858nkj2dj986etajv6wquslv8uxwczt",
+          "label": "Seized funds",
+          "sats": 9464348826145,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qa5wkgaew2dkv56kfvj49j0av5nml45x9ek9hz6",
+          "label": "Seized funds",
+          "sats": 6937018476959,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HQ3Go3ggs8pFnXuHVHRytPCq5fGG8Hbhx",
+          "label": "Seized funds",
+          "sats": 1550213,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qd46j77pkp5vdxraf8tw5l6xs36dlygdx2rt9ly",
+          "label": "Seized funds",
+          "sats": 950000339099,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qffyax9rrxmqyq8xwjkzrrqwqjp3ppz5a4665f9",
+          "label": "Seized funds",
+          "sats": 909900284401,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qkmk4v2xn29yge68fq6zh7gvfdqrvpq3v3p3y0s",
+          "label": "Seized funds",
+          "sats": 1846,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qukqenm2t85dhdta9glqehllglxznsu4qyxn079",
+          "label": "Seized funds",
+          "sats": 911190947354,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qxkhwkn623l5lg4rx9vx8cujmleaga0eg6wc7p6",
+          "label": "Seized funds",
+          "sats": 979999221794,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qxlth5har0qasqvattsjvgp80st2x402u5shuud",
+          "label": "Seized funds",
+          "sats": 1050000588575,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3Pja5FPK1wFB9LkWWJai8XYL1qjbqqT9Ye",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3FrM1He2ZDbsSKmYpEZQNGjFTLMgCZZkaf",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3B1u4PsuFzww1P8if5jYmitXxpMs2EMSqt",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3JJ8b7voMPSPChHazdHkrZMqxC7Cb4vNk2",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3PWNGS2357TnjRX7FpewqR3e3qsWwpFrJH",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "34Jpa4Eu3ApoPVUKNTN2WeuXVVq1jzxgPi",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "338uPVW8drux5gSemDS4gFLSGrSfAiEvpX",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3J4sTPyD1g6KvNUSJxjwLs4iaPeDPqxUZr",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "33uEsaGLcF9H46Dvzx1kMnuMCQ13ndkAjV",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3KabDvdetZXDHNm9HXowLc9SppiSXKn7UU",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "38Md7BghVmV7XUUT1Vt9CvVcc5ssMD6ojt",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3GaB3nRWA1PLc3XQkkbpVtFwYYZEuMxD4i",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "32i6n2vXhjvJg1vniURFy7A5VK6eG6oDgg",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3HuUiXmKN3beQSoM97kWjK1fesWWJvKvaZ",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "34MFtk9iMxYcUPZWXHfiGfqz4o7X3kpJbV",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3LjTXe31gepN8nW3AZyKpyD2QwbtmfjNwm",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3MHa8JJ3bu8j3x3iQHhqsrZvk1EjBQmC78",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3AWpzKtkHfWsiv9RGXKA3Z8951LefsUGXQ",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "34KYo7VdVr5CJ7m4hYhH9RpwqXhbsTrw4T",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3DdFSGcXaP2rZ9CaL3tjnqRARvQ5K3VW4a",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "39B6oSa58qNpFMGpuowtRHAYp3fM4ghXRq",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3NmHmQte2rP8pS54U3B8LPYQKkpG1pFF69",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BA3PEF4BMoy9y3kdMRUdMhL8Gp24vikhF",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "389JrNcn8trYgYi2EtHi4X7bTCqtVbep86",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "339khCuymVi4FKbW9hCHkH3CQwdopXiTvA",
+          "label": "Seized funds",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 21202460236386
+    },
+    {
+      "id": "bitfinex",
+      "name": "Bitfinex",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Self-published",
+      "evidence": "official",
+      "live": true,
+      "description": "Bitfinex publishes its cold and hot wallets in its own GitHub repository. The analysis tags that follow the self-published list are marked as attributions, not proofs.",
+      "est": null,
+      "coverage": "full",
+      "addresses": [
+        {
+          "address": "1Kr6QSydW9bFQG1mXiPNNu6WpJGmUa9i1g",
+          "label": "Self-published wallet",
+          "sats": 102401988273,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqjwvw97",
+          "label": "Self-published wallet",
+          "sats": 15701008337263,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q8taf2eca7pn9wu4czt8fgftqm288xtfxdyt33syzxuexxty733xsszghzk",
+          "label": "Self-published wallet",
+          "sats": 3080000005496,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "38nvB8P9QXjyLNva8CQ2AiAR35Sq1qaf2a",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3D2oetdNuZUqQHPJmcMDDHYoqkyNVsFk9r",
+          "label": "Self-published wallet",
+          "sats": 15395293,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NZcj9Gqtj21q4XPdZYMx43HhJyPjE6GqM",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "144GDgUDzXaJ21N2PEPc5p5MoC93HRxMnP",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1263CRwhYA4Zr3cWcGhpgrZ7NxBXtJckYH",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15TDuCRg8WDtTRgAJ7qDbZ6Ti2Xfuo6uHY",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1N3KQgjiFJvXgBxuFVYHAHZucGi2E4GjGG",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MfSReRd9cFqgjQokaBd4orVumTtkofNCM",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1J9MmJRT7V1J2aDrRASeHjQ4ZjdNkFr6nC",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FuQJJnaB86xwdvq1Ym1ZoQ9QMd2Jp3k7L",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1EQx3uFJ2mjUbRYXctLGAjyVgyjG1HUoe6",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1J5MsCwT5YKoHAuqHVWb14VE1t1xHTnDoD",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "129PwdRGQFMR5gukoYxg6tC39Pt4pbkJmW",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BU5HnbJPcnPQe7UwtwDUVgBP6ZHw4igBd",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FEEqQD5ywT8Zc18sn83fmyjoJ4b6Px39D",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LuEiKiAeG9C63nYFHeL1qmF4axpNC4UpL",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1N8bJ6TtE78p4Ndb4mhaUDbPfdWN5R1C9U",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16Kk6VcnaQ8egMCd14kj1uoNYgr7sYA8Uc",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JN1Wh8ZRXhXLRUd4G3DRPdB2ENUxjgybN",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "182zWc6esnddFziXKYSghtfudBjWCMw3R4",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17EWHhgADrrmp72uFDAPVq2Uq8tjtfZA4D",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1H38LeQyeMTYzQ7EB8dk93JSbRHpk3BTnv",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "183AQLFgcd9BzL7FWq5zG2VTqxY9Kwrd6X",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PhaGG5G4rQehbQ3ADPDafzb4k1Rqc8Vxv",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12naiaUEEUxxTqNHiWQzEGw6rZw2jxEwM2",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Hg1UQa4YPfjg2fJfRFPJaga4oQDPbp2Aa",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19ST9AzbVGUYWDEeXVokjZuL1CGqSD3Tky",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DXzLBVorDzKcs62WSfnT82FNiVDpTzK5w",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1M16QJirV8Bh6CJZzchd4MJTNV1yoJypom",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16wKtMtDd2VonNMBWWNadpbKzYwLFxQBk5",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Dg3w4dTeGQyaB3YFRGcJXNGGmBCineJ9W",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1ijgcG1TbVzUrrEeDh7NebgqD4dMZ6HNH",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1L1tsMoGWSa7aXsgCLYAkjhcF9x7gTUdfu",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LjAgCpGgH8pgVAXG9ducGkqscksmtbKpf",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17BNXWntqr33wxnahfhyibVojGwR4pwosA",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16etdj8TEq8ULNmHuEbTRCn6nUzpLBmJ72",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FtBzZXwv79n6imv2ZYCVitHP9cUAvcFst",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "121WemtSLVnUw9x56j551eWrFSMYkfwDsi",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "129kpgKfDhZoPhHWxvxHWbmdspSE3cymrL",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19WyjFkW7Dr5MEStCZvjKKuZpDKn5uvKA6",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13q4QLxY6FUtfF4iKF3ob91E98vp33wi5k",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1D47azPbPQgZ8o8UHHm93HoN9TUKTi6XJT",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CVFgQicRdQJXJXNpjqv3n1rMM68nYzJKM",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FTCqXQXWxrimMdMz7G6TcTLPEbhrSmppR",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16cpxrn1rqLKHFU3eSfvzbJ9x46C3EJSCT",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16Ui18tTrtrDqBRCwJHVGYEJcCJ3nYLhsq",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13NMmG8LAxv9zeLMqfPd5FUMStqBnmYnRb",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19Hy6b1y5BzqeUWsWtFYBEWmngjHUsDuLg",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1A1oMLxK2U5YWUVHsGbG6XNki93Z9Ma3EP",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Ks86zFM9vaJCKyaFzEDVLpDQnQsb4JZp1",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MtoL23AkRqATW2P7m1D9Zvq4ZyZbK2W4y",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PzDcKHymNVrrrZSgTWjah5xxn46cF1N2e",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "142YzyKDvkK45UhZhYSJUrMpuYDpvExnXh",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BMxeo4P9igtD1FmrcxobozHqCQ3vumMxv",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Ka4ymoXhQn5gEJf25w4CHVpW8kKSgMSzv",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "185kDcyhwAdjSK7bEiEtEwy9oDE3NdLgrz",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15s2FhAARJmvefbs4wQfsZ5AWnA86oBdgC",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "157KT7K9YiRiykyLwfaYuLhswTUQGJ3e9m",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PDhmGT9DcPSHCSbjWogALd2aa9jf3h9xw",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17Mvfow7Lg2eV6gJEqYnqAZWgD1Wuhmr1h",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CWXx5GSy8LtLYxG5oDf2ksCJct8pAPZwx",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CLkuUHe2horwSASH2NXH6ZkE46vGzLqDS",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PaQAQDotHSLDPDNYb4sz2E51fzV2wD9v4",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HM4ZTVKgQWAMsjY7EpAbaDu1xkvvMJb2k",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12cehAd1GW2WtWf13CMFkJmrPkmNbmk1HQ",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1e3c2gTsHJae1H2SMaX61DATyb4GJuvht",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DqyCfpSWypezz6K1hR5q4J88kmVdfuosg",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1EHEaMS3kcBU5TAmZeY4TPhSJvN7zA1C3R",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DB4oPzgbZPc7HxEDBbU7n7nPAuzTs4UdR",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1C43o77tt79Uvk4m4GNgjXFepugUAo6ucy",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1exnxRTBvNLkgAqzDhr3imv3nDf3cnc4d",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1AgBJFiKa5h2bqLsPzjiqamms8FZuoW5Np",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1N2PtLHdqX72LZG9mdrUQUJeBeB9cyhwWu",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12ttX3cgAPNaVR2dvvaidVuBoQwUTVTGBf",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FrrnuxxEsLBmQuH2kddq8qiDJYqgoNsHn",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17NNUM6F1SBDuyT7QWQ95UPExSiw1Bu176",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1H1xCcPu6mecQuj56bdkPcMrXw8unkczBm",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1AAtwiQXh65tznUyCVKXgz7At2Txd7pfbz",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "126VVSWbUJLSzoTucVhgZcyVceSQVedNFH",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17AUH9DLNsnwU6iVSg9sZiKjz6Wj1BRRdB",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CoRrwRq26AVyVdkSL85pugRPMtUqYu4Xw",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CsUoqhahrjohiDfP1BRpbWS8NP7XK8vBU",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Q4TVaCiaPmZGycEU36TCeW1P5EcepvwVX",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BL2M7WfLQaZh9jMr6YHWGJSR3TS9UF43U",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CKKkHeHCPuSP95ZuoRPb5zYSFXvZaTr6u",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19qWt3hDWQ5Yz2GFRqPoSox1wpUFFWr9HV",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15juA3e4gPAQnyEHfpBod6at268gBK5YDp",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HCavJtzjeywHFtTBUTmPRtmy77ijpLzLJ",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JckXAHkfP46EWC2Ch812qyuJWh2RMEfGS",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1ByesZydmHHUEdPypEhozQUhEc1HCqFp6C",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JCdovKuuHCBEYX7sAZaWH91PrYerncR2E",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KnmcaS4LgvuVGqXctS4NmH4a8Y3WidFXK",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PYJ6RAQ3QjCHc66Bh5HmuA7CvsXvZbFyX",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19iKwBrEaXd5jt5BpUhfZBP8xkRVWniUft",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LNJCSjcUSYddHTKNXeYbVEcj4Us84QVsA",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MP4G9qDpCCkkpx4vLSJtKbPQiC3DSHZKf",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17hiFN2AX4no86Nmug8rXupq6WmRsadBYJ",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PYXEJi9jVtBLLF19vWeZ3mWxw6ebDHm9u",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14YNXDsvQeEPsLtnH1QdvfzCTEk7Zag9U6",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LFCStWP4Ei9bWFTaTsGw6bQAaJQipaMGJ",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1J31KGfUEY6w4ipbGgvUmA9e3Gbn2YHB1p",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1k24fFuhjzHbaRQJ1kFRyoQ1tEBHgCcQJ",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Ho9TGLQNRs8RyhWDLEUhJyGjL5YzSm3K8",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BY3eVyj46FWaYnk96QrWeewjjfxeRSHBG",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DubPhHnnT3wBWCqcCms9sAnkf2R2rhx9K",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LFtSKP5r6Cew5T8vE57c4J2fgDwxYYMGJ",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16VzuNA9V2qoUUpC3ezY6J9EvzeEfpfk65",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Gj3zQSQFhJDhZ9RB4Ahxu3EaNzhAKyAKM",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13Zn8xTmUxniBn7Gi7icFn3Jb3gDcQoceC",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "184znXx6GyUpgez7fCuVWGbrrC4wnu5DMH",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DioF2aNptVyLzhQLCdavXrDSZ5S8RDHV9",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14eWmAjkWXKttXnZXjjvreXywKaWeTBYN8",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12adZPDwoZKD98kohtW7xgBtjewyYm9RE2",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HbkEBGwybr4yV747GtfBjGuuiCuMV5xKQ",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15gLUJE9z6UvJX31PSvGeGDUfWapkAhrFT",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1862zZxRs9wpXzWvgmooL9JD7mEB76NzAQ",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15zqqz4WFirpgJbkLba1LVZQubNPartGoL",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12ukF8dAh8GDRvSXfWrewox9bfonkyeou7",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DFe1uK76K6PgicwL76AimLohhPRkUJKpj",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1N5KJzAkDMCxU2qtLnhtMnfMNEqWofUE7x",
+          "label": "Self-published wallet",
+          "sats": 0,
+          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 18883425726325
+    },
+    {
+      "id": "kraken",
+      "name": "Kraken",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Proof of Reserves",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Kraken publishes its proof-of-reserves balances and custody addresses. The unconfirmed tag is kept in the label where the address rests on a single analytics source.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q0ymzksy046tv4z88ts5nmu7s574umnwmdev3rt",
+          "label": "Proof-of-reserves wallet",
+          "sats": 6065750689040,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qukw69mjxwp30adfqddv6gcyva26laxz562rhlk",
+          "label": "Proof-of-reserves wallet",
+          "sats": 3046660270721,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qvc23fm8trvsqrkdrd8438ff44h9zs32l9ep4qc",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qvzgrkefd8v536de2vqhx4d25e5rly7lgk3p2vp",
+          "label": "Proof-of-reserves wallet",
+          "sats": 945672735737,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qx9n80t5q7tfmutzaj0ramzzzsvtveara68zntc",
+          "label": "Proof-of-reserves wallet",
+          "sats": 1635283058808,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qy3uw2kk45uj9vsy52rjfhydm2tnd6hreu8vha3",
+          "label": "Proof-of-reserves wallet",
+          "sats": 3948418214217,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qycwwauu2p059tnypzctvfrq34nszgeqfkyhlm7",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1AnwDVbwsLBVwRfqN2x9Eo4YEJSPXo2cwG",
+          "label": "Proof-of-reserves wallet",
+          "sats": 50122,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14eQD1QQb8QFVG8YFwGz7skyzsvBLWLwJS",
+          "label": "Proof-of-reserves wallet",
+          "sats": 120010,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Kd6zLb9iAjcrgq8HzWnoWNVLYYWjp3swA",
+          "label": "Proof-of-reserves wallet",
+          "sats": 42069,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17CzhFvGwH6TT46JtzhnhMpTw4mHYpEGCR",
+          "label": "Proof-of-reserves wallet",
+          "sats": 23930,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1A7znRYE24Z6K8MCAKXLmEvuS5ixzvUrjH",
+          "label": "Proof-of-reserves wallet",
+          "sats": 12288,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PNJfc9MzeBGV1UAjegqhFJb3erejqKHCi",
+          "label": "Proof-of-reserves wallet",
+          "sats": 10846,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16iqmhUox1Vh8yjR71SyuYRfP8oRwXspW9",
+          "label": "Proof-of-reserves wallet",
+          "sats": 11972,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12fXB6sBJCGbmf7XhRvTXMDCu91329aven",
+          "label": "Proof-of-reserves wallet",
+          "sats": 11505,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19Wa69eDP1F6J2Segjsd8co7bVjdLFeL2n",
+          "label": "Proof-of-reserves wallet",
+          "sats": 10958,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12gr1kbYQU2M81QBUQ5uAdwA9jKT6oDwx5",
+          "label": "Proof-of-reserves wallet",
+          "sats": 30073,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18EtP9azZCFZgjdNdTSurtNEWF8AEjj8Cs",
+          "label": "Proof-of-reserves wallet",
+          "sats": 108832,
+          "source": "https://www.kraken.com/proof-of-reserves",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 15641785401128
+    },
+    {
+      "id": "robinhood",
+      "name": "Robinhood",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Robinhood's customer cold storage. The address is an analytics attribution, not a Robinhood disclosure, and it is the fourth-largest single address on chain.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1ql49ydapnjafl5t2cp9zqpjwe6pdgmxy98859v2",
+          "label": "Public address",
+          "sats": 14084998559801,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q4vxcxw7mpg9dcryqu0kav8awrn7qk5e6wgs3hg",
+          "label": "Public address",
+          "sats": 33334711642,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qhk0ghcywv0mlmcmz408sdaxudxuk9tvng9xx8g",
+          "label": "Public address",
+          "sats": 294,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qjcm02r55a90v88xwe4alew4y4uyft2htvnywv2",
+          "label": "Public address",
+          "sats": 400908215886,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qwelntg7tpxwgmh7gea0kycclx87mksnvhaadgf",
+          "label": "Public address",
+          "sats": 6753367165,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 14525994854788
+    },
+    {
+      "id": "upbit",
+      "name": "Upbit",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Self-disclosed",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Korea's largest exchange, which keeps its own custody. Its cold wallets are the \"Mr.100\" addresses that were disclosed in 2024 and have been tracked since.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "18qNs1yBGGKR8RyErnEF5kegbNUgPfixhS",
+          "label": "Self-disclosed wallet",
+          "sats": 1000000733144,
+          "source": "https://cryptobuybots.com/upbit-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CNtkWbb4grh8xtb8mhoZ6armNE9PHgzA8",
+          "label": "Self-disclosed wallet",
+          "sats": 1420138140773,
+          "source": "https://cryptobuybots.com/upbit-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GUfWdZQoo2pQ4BKHsiegxuZPnheY5ueTm",
+          "label": "Self-disclosed wallet",
+          "sats": 1000000865960,
+          "source": "https://cryptobuybots.com/upbit-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MewpRkpcbFdqamPPYc1bXa9AJ189Succy",
+          "label": "Self-disclosed wallet",
+          "sats": 1000000592612,
+          "source": "https://cryptobuybots.com/upbit-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MtUMTqtdrpT6Rar5fgWoyrzAevatssej5",
+          "label": "Self-disclosed wallet",
+          "sats": 1000000593372,
+          "source": "https://cryptobuybots.com/upbit-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Ay8vMC7R1UbyCCZRVULMV7iQpHSAbguJP",
+          "label": "Self-disclosed wallet",
+          "sats": 8011459169597,
+          "source": "https://cryptobuybots.com/upbit-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 13431600095458
+    },
+    {
+      "id": "coinbase",
+      "name": "Coinbase",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Coinbase's own exchange wallets, separate from the Coinbase Prime custody wallets it runs for funds and companies.",
+      "extra": "Coinbase runs thousands of custody addresses and does not publish them; this card carries the tracked public ones only.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q059cgrlumrmzd3jat4wmlz7ng3jcg9wc6j04ak",
+          "label": "Public address",
+          "sats": 327260358441,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q0d3k8zue8z5ztqt0r35rsd7gua5z4ser6gt46c",
+          "label": "Public address",
+          "sats": 1292675,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q26umumjl7ha0acmyx5h64sdjqc4hnlg040yz6a",
+          "label": "Public address",
+          "sats": 329410405672,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q72hucjzkypvdagy7wqgt0kc22x67qztyn7caf4",
+          "label": "Public address",
+          "sats": 147902678931,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q7jtdfamxp9399w740dy45p6753h72tx4au4pq6",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q7yjedqu4thq908rkwmmqpst7sf8j0djplhrsxd",
+          "label": "Public address",
+          "sats": 661063755305,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q8lx6xnvasdthhh07fvd9py55t3gftpz6ujztl2",
+          "label": "Public address",
+          "sats": 327023903470,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q9e83uh7etgzmfrmjd389p7yjv5etsa6k3dq808",
+          "label": "Public address",
+          "sats": 332704142875,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q9qanklskrkhxrnl2tf29kdt7lya3yjffquldks",
+          "label": "Public address",
+          "sats": 84577412099,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qauwmszmyxkp3j9umszulx3qvtvkpfyftqpxc8h",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qcf0pq7f36q8gje68z9gvtnf2dgx42k7kztj20q",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qdj58duywm3ng0twrxk5kykup9q6jmmj72n60ms",
+          "label": "Public address",
+          "sats": 145813748320,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qdscrz46ftgsmz8ykty568dgn04tz0gtcqvlnc2",
+          "label": "Public address",
+          "sats": 86856857394,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qdvp374duyd755p8wkk0qg4tphwq5qyjavjmj5p",
+          "label": "Public address",
+          "sats": 163652804519,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qfszruqaal85d88qvgx25e2ttq7zf6ze6kpc5h7",
+          "label": "Public address",
+          "sats": 335999498077,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qgf263kwygczp5v06umslgpdq9qcswv3ewesxfe",
+          "label": "Public address",
+          "sats": 314312412512,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qk8m8sangt4hcg2x6d97l6pxujywypclc0q4n8d",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qksjja8l90jd95zzk05jme857ejs5rx6hmn5mdd",
+          "label": "Public address",
+          "sats": 329779958,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qm4kfqrzzkjsvvqm95qsvx7g4rfumfaqrr4t6z7",
+          "label": "Public address",
+          "sats": 326033748995,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qp797jxy9j9gythp7jaar637elukrrxmq68ulmk",
+          "label": "Public address",
+          "sats": 463015406752,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qq4xupsz8uws5a2rgzw28w0crc45ung8qep76sf",
+          "label": "Public address",
+          "sats": 122544594581,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qsefydr2r5ysjep7z4zelvz0ulmj29vlvarraqg",
+          "label": "Public address",
+          "sats": 332583634610,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qt8cewcxp50ywvwperagdr9xgn9zw8up9dq35j8",
+          "label": "Public address",
+          "sats": 331853364961,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qupmktle0fctwa4xsanrwwqzxxa5pjef943e220",
+          "label": "Public address",
+          "sats": 565681256,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qv7pjljug2y3zvahdu025e4mcq6f5m6cn0w9rt4",
+          "label": "Public address",
+          "sats": 313593820936,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qwfkngwsl3n2yrnttsmv3q849arwjlxzay34v7e",
+          "label": "Public address",
+          "sats": 4328045249473,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qxhue44m9hw6gkf7szn6pk907lmaevnrptu923c",
+          "label": "Public address",
+          "sats": 327479284402,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qxzkv9m43qzkm8jdrm0nygdzyqstqlhtwp8l00m",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qy43uuskm60v805ey8up2gh5kw23exp2gqrht0v",
+          "label": "Public address",
+          "sats": 320936290721,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Fp9KLM6cs35y8QvyqAiL714WMFSLBJDLC",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12BZD75sbMmdj5dy1d5cS2Lo4YWs1FDbDn",
+          "label": "Public address",
+          "sats": 1094,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12nxRsisUcJqCDeUpTYH2a7F5jcad3YhFG",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BvdLm9RcFWncKpJYr7YjFttYJ9zLf7We",
+          "label": "Public address",
+          "sats": 600,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KeK2uTAe8hDVKTbpyDDzd7qfRZ8z3LJx",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MVo3EXLakJym29CFK6o1MyaCBMdvcmmrL",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14Ai5GcasUdr5hR2GMzeojkzB9cm4oufHt",
+          "label": "Public address",
+          "sats": 1094,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FUBESNxB2JkyXPc4o9wwoGt158DC9A8dj",
+          "label": "Public address",
+          "sats": 1094,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Enhkd9LkQV56a9M12P4VuMDkjyTeLJy5m",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JpiTWauQdtysbynNp88dWeuyg2gBbKDcT",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16Azr3MAzMKMPmxZXfRsBbBPYHnp2CuJNJ",
+          "label": "Public address",
+          "sats": 1094,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Q7cu7WkeDurYgffeEc9CEnA6zLohbh9iQ",
+          "label": "Public address",
+          "sats": 547,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1EDRfeNkjkH2SAhSbEKzhKuabnEbVWbKEp",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JYbzYitYQ1ZWTx5KEx7WH2AejC5i5UUbF",
+          "label": "Public address",
+          "sats": 1094,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Hyh53PULY6Jyq5LPAJ4CHjgzEbVaqy7KU",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MqAfNMgbZoKtRinT89q1faSZqTKTqCFhR",
+          "label": "Public address",
+          "sats": 1094,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14YN9Zsx4H8DXUoK2XfRvjuanfjK1RrkHz",
+          "label": "Public address",
+          "sats": 547,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Cb1G5qFK91fShyaPPZWVFwYFBtqRG7h8D",
+          "label": "Public address",
+          "sats": 1094,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19Te6hzGFSbryomVYqzG2kpBmAJYykx5Yv",
+          "label": "Public address",
+          "sats": 1094,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12n3s8MCqdZzPnTisYrXagbfw8pJg8y9BW",
+          "label": "Public address",
+          "sats": 1094,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NNGdZMYsN9pgLSXZ5dD5KFUbatFynpmvY",
+          "label": "Public address",
+          "sats": 1094,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1C5TB2QzeDDJUE4EQD17NmSyEXTk34huRo",
+          "label": "Public address",
+          "sats": 1094,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1C1bbDApniTd7DtUodpr3ayXxVtcHvwWgx",
+          "label": "Public address",
+          "sats": 547,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LyTftu54VMYCv5pq3S4pMzPRMnsYKTESw",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17YyZSNFt31pzGXfZtrzs7Y5Nd56rG2uU5",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1q9kwzJggw6AbQjzJeYQFYK8D5gQK8sSh",
+          "label": "Public address",
+          "sats": 547,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3FiMKffg2kY2Pi2Kebn2HZqN7m6kEcNUMk",
+          "label": "Public address",
+          "sats": 87549569319,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14zukxqLuLXg5kqZYRB1Q3Audec3NtxJPW",
+          "label": "Public address",
+          "sats": 1640,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3FdFFJRqvBWKEjFqkZhxuGbN9HNUVAfLqF",
+          "label": "Public address",
+          "sats": 3020257,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MYv4C4hZ7hC5sbHrPkzvmNoozQgnHKeAU",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "182p5CrqfDxvonznRyi5AUBwsCkDX8eYMe",
+          "label": "Public address",
+          "sats": 547,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17RmGC3i2dASQai3mP9iJLX3ZD9TBm2YQV",
+          "label": "Public address",
+          "sats": 9828,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18oRfGoPpb6bkQdACnD6dVYWceeWURK5R6",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PL2cmmMLmGGDtqaSZJY8DR1iKJaziEPJv",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15mxk4fKk9ggQ4fikNWKpasahsdXZNdVu2",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14KzHoS5dXbhy2kBevNKLz2ZMtjaqHkKWZ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1N4yKFsFPjjoJyo3BAKUWpcs3SUghfgJkH",
+          "label": "Public address",
+          "sats": 8190,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Gjkd1hwrJxM9h5Sj1W5bfEN6km1qkVCg4",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "157ZXCYfK6NqBiFLkoLDt3PN8KyE8xdTu5",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18saWjMCchDTGWunefuDJSWNdz4p6KtfBL",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19F4xZNBxtPAdMqFudr2LDH5efeeUYF21x",
+          "label": "Public address",
+          "sats": 11066,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NJdKoBkKQNg6aYL9HTKyQ5SgfjZQDz3y3",
+          "label": "Public address",
+          "sats": 8190,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12US3aeNibsxe7Lhascm4AmvGiTxwSdD4X",
+          "label": "Public address",
+          "sats": 9282,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Jc7vYQHCnmdyhbpcv5o3pYtUbH6Sk139z",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1E1SKgxgYJFXzaLxgat2FNSnwWeKz1U15N",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Kphp4WNPLpScp5T5f63jnVS9ohK6a86g7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13nwifHUz5ZfHuQhk5ETJ4BhmqbuQdvTFp",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1D3AHKaQbtPLVwYB1L9ATAPXo14xVA2Hjc",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13jh1fCa6pCFTcCH1H6MXDWLa9zajtniMT",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Dr1pZDgpowHDGJrUNTithDL33TdriFMzE",
+          "label": "Public address",
+          "sats": 7098,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KLay1g7rZxAiotuDhGy5YizdXSpqkFxQ9",
+          "label": "Public address",
+          "sats": 552,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JpAvQxbxurhU8wfxszCtzFey4D6N8goJv",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KoiNofDvcUrrVfxgqpRZixWXNXo6d2kfQ",
+          "label": "Public address",
+          "sats": 10374,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Dt4Q2ofKUtHwvjN45tAUfikNBfJrDERcZ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Djs2VyBVr6MYNcGVaHAr8B3N1mViS5yoo",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JaUiAyoRXr4kqxm3ZQP5uFZmF57bkqXbu",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FrfmxAhYRNU9ebotDHP9FqLbe54QZVcfi",
+          "label": "Public address",
+          "sats": 9828,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16BBBjvAArL3zdb1Fh1isr2w2hX7K1K4Gm",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Lan1sQzYGViDZskUFmnitJvfejn2jYdNS",
+          "label": "Public address",
+          "sats": 8736,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17GAbQ5DSqnEhyrMMLd9yaraAmVyvoZJ3Z",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1AMDVupuTEeTSnKi6LoSFBqikQybufZsv1",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "178KR5zk2Z2rc6rWdczpHBAokBDkjoC8jC",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LRXrhZRLVTjGCPFphPsXZfeHesRigm59r",
+          "label": "Public address",
+          "sats": 7098,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1J2zKTQnSrLJMXZTnA3a5ky1W2L3PJhagC",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DTmjcZo3MMH9MscHizTLjrUxnvwvSLdf7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18Ayw3caz2xGDhTfz1nJxLw1NURPtBNJnn",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15ZQJagAa2iUCwpQXUUCZ4BfzFW5TAVyJj",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "134ooU6EQmCFFzEPN7yga3S1XikcBtynco",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HGdi2AtuvBUcdTFe62sKd7ZAFzoG7iQLb",
+          "label": "Public address",
+          "sats": 9282,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Fjom9b9wvp3HPi2ZS9hqXQwJpXcjumSYJ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16H2Fe9MgxZ1jXW3TaXbgWh3SJfwyxQUTp",
+          "label": "Public address",
+          "sats": 9828,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Cus9pZdkckCz23bDAsKMY6aLSQ7CmuHyw",
+          "label": "Public address",
+          "sats": 552,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FDzP5vQGMhCzeb9nH4AcUDnUbcHS22BMZ",
+          "label": "Public address",
+          "sats": 7644,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FtHBKrYkDchMA1pwRTpYZ77TpfwSgh6iF",
+          "label": "Public address",
+          "sats": 4368,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17SAATrqavNbzmqBwqxzZc7rK6u9Rmi9hE",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17J26KSDtNFPAUhCMwjcRNWhneMsXS75Ba",
+          "label": "Public address",
+          "sats": 7098,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Eqj1APg1dkcPH7CmHJ6SzRwtJRLpxtBFA",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MLsZmbT3mgmm6zLkTR26yJHVfn8BSdqqd",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FMbcnYvvccZ6hR324cFRpn1QX9TCkqtAe",
+          "label": "Public address",
+          "sats": 7644,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BbSZNNhoBUCFGMfnscBDXf7PH1takoMga",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DdxS8CheskxKAPPbG8Uq4Qts8kS4x1tt2",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15QFkJUWFZ6QRpTrzUitH2Egyf1JTngVgV",
+          "label": "Public address",
+          "sats": 8190,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17rVQwoL5v18KfoQJNMMoMBm3rDjodxw1m",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12Gjyd3MMR7Dj2KwCxw71wwzZXVp2xy8nK",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LbUMzM7tmyVJCpzBJTi5ZVmRb2Vn8mwVH",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BMi633XQ8jt45Tb5EvZ4xdZHb2GzxKSfb",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1M9pAdfhGHtQkhGRijApWAkkrPCduvV6Zi",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12mJZGPCWf5C2ap2dUdJiuGr8eWAvi6E5M",
+          "label": "Public address",
+          "sats": 7098,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1C7u4Zqu6ZZRsiKsFMYVDvNLfCwsGrbeTq",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16BiUbH8yxFmCJs4ArtyTgHKfXQFvkvPNr",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16dyizLarM2N4UjGaEFPESNmJC5vEALtZX",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1gvH7pGPrEBNjqmwYS8UDhjFQkyqkKCLE",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12yePmcVhMzzHYwh4BpVF3Cm1bYL9mqyKc",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HG6NbWmJjjSE1Z6oPetWG3nnKrQxgBN3a",
+          "label": "Public address",
+          "sats": 7644,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19om4Guv9QmVesS7AewMUyE5JUJ9H7xwNN",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13pTeUzSU4nwkM72hM6e8AcP2d8LudZBjc",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1AFNceZVB2MshqU5AEoxg14R7LrUx6Un6C",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GBWcQuY5aD6e2zrbdb38j7pizVr2wcJnC",
+          "label": "Public address",
+          "sats": 8190,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15URsTiy1ksoMMV7DuEi9hvSqHgqobAtKa",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Fn4FSiHFr9SgbQ3ccsybN9f3RF1omst4x",
+          "label": "Public address",
+          "sats": 8190,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Le1X8LJb4VkFsfktiUY7V7wMRhniu5Xgn",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17GyU83L63BtxtpDgv8LmhhtmvcrXbfVt1",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NQWCZqRYvANz3iX1Wnczpm277VEYvcAee",
+          "label": "Public address",
+          "sats": 9282,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1T7m8nSs5Yh3YuLNoHPb5ehwN3LRVEchn",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Gtpfqoo8stQw2E4vCbZZbJBBZvYzzCeRy",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JeTiSWo8pYWcNaTH4c3CfheAwVDYRoy1Q",
+          "label": "Public address",
+          "sats": 6006,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3Kzh9qAqVWQhEsfQz7zEQL1EuSx5tyNLNS",
+          "label": "Public address",
+          "sats": 3854,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "38UmuUqPCrFmQo4khkomQwZ4VbY2nZMJ67",
+          "label": "Public address",
+          "sats": 3706102,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 10211116634734
+    },
+    {
+      "id": "tether",
+      "name": "Tether (BTC reserves)",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Issuer reserve",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The bitcoin Tether holds against its stablecoin liabilities. The address is an analytics attribution.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qjasf9z3h7w3jspkhtgatgpyvvzgpa2wwd2lr0eh5tx44reyn2k7sfc27a4",
+          "label": "Public address",
+          "sats": 9693240698012,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 9693240698012
+    },
+    {
+      "id": "mt-gox-hacker",
+      "name": "Mt. Gox Hacker (1Feex)",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "2011 theft",
+      "evidence": "chain",
+      "live": true,
+      "description": "The destination of the March 2011 Mt. Gox theft: 79,957 BTC that sat untouched for a decade.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF",
+          "label": "Public address",
+          "sats": 7995726874324,
+          "source": "https://blog.wizsec.jp/2020/06/mtgox-march-2011-theft.html",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 7995726874324
+    },
+    {
+      "id": "okx",
+      "name": "OKX",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Proof of Reserves",
+      "evidence": "attributed",
+      "live": true,
+      "description": "OKX publishes Merkle-tree proof of reserves and its reserve addresses. The addresses below come from that disclosure and from the analysis tag pack that follows it.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1DcT5Wij5tfb3oVViF8mA8p4WrG98ahZPT",
+          "label": "Proof-of-reserves wallet",
+          "sats": 59858,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3FM9vDYsN2iuMPKWjAcqgyahdwdrUxhbJ3",
+          "label": "Proof-of-reserves wallet",
+          "sats": 1273464331454,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3MgEAFWu1HKSnZ5ZsC8qf61ZW18xrP5pgd",
+          "label": "Proof-of-reserves wallet",
+          "sats": 5430467082840,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q5863grtaftl6xq8axa5tngtesmlth8jds8ks25fufa2f0dw6w0tsaqk4m8",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3DPNFXGoe8QGiEXEApQ3QtHb8wM15VCQU3",
+          "label": "Proof-of-reserves wallet",
+          "sats": 8615,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 6703931482767
+    },
+    {
+      "id": "bybit",
+      "name": "Bybit",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Proof of Reserves",
+      "evidence": "official",
+      "live": true,
+      "description": "Bybit published its reserve wallets after the 2023 proof-of-reserves drive; the cold wallet below is the one it named.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q0npwm7hphq4w3pn0m4nr5hmum2sdg725edylgn",
+          "label": "Proof-of-reserves wallet",
+          "sats": 840000195006,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q59nmn5v9tz36talq7g090yue5kf7actqr62f96kakte70eu2948sw6ddxr",
+          "label": "Proof-of-reserves wallet",
+          "sats": 211200,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qa2eu6p5rl9255e3xz7fcgm6snn4wl5kdfh7zpt05qp5fad9dmsys0qjg0e",
+          "label": "Proof-of-reserves wallet",
+          "sats": 3819436829111,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qr7dl0rtnfvzkfqrvctpk068c8zluknkzapwhe9",
+          "label": "Proof-of-reserves wallet",
+          "sats": 870000332406,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 5529437567723
+    },
+    {
+      "id": "uk-government",
+      "name": "U.K. Government",
+      "category": "GOV",
+      "icon": "gov",
+      "badge": "Seized funds",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Bitcoin seized by UK authorities, chiefly the £4bn+ from the Zhimin Qian / Jian Wen money-laundering case, held by the NCA.",
+      "extra": "Arkham puts UK holdings above 61,000 BTC; the addresses here are the publicly tracked ones.",
+      "est": null,
+      "coverage": "partial",
+      "reportedSats": 6100000000000,
+      "reportedNote": "Arkham tracks more than 61,000 BTC for the U.K.; the addresses below are the publicly attributed ones.",
+      "addresses": [
+        {
+          "address": "bc1q4vxn43l44h30nkluqfxd9eckf45vr2awz38lwa",
+          "label": "Seized funds",
+          "sats": 1300302310461,
+          "source": "https://cryptobuybots.com/u-k-government-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q7ydrtdn8z62xhslqyqtyt38mm4e2c4h3mxjkug",
+          "label": "Seized funds",
+          "sats": 3600042412913,
+          "source": "https://cryptobuybots.com/u-k-government-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qncsa0qdrgsr58303gsnuwhd5vrm7hlkpd6klmf",
+          "label": "Seized funds",
+          "sats": 474136841988,
+          "source": "https://cryptobuybots.com/u-k-government-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 5374481565362
+    },
+    {
+      "id": "coincheck",
+      "name": "Coincheck",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Japanese exchange custody, including the wallet that was unconfirmed at the time of the 2018 hack.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q4j7fcl8zx5yl56j00nkqez9zf3f6ggqchwzzcs5hjxwqhsgxvavq3qfgpr",
+          "label": "Public address",
+          "sats": 4256510713729,
+          "source": "https://chainquery.com/sources/curated",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 4256510713729
+    },
+    {
+      "id": "binance-pool",
+      "name": "Binance Pool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Binance's mining pool. Its coinbase payouts are tagged by mempool.space, and the reward addresses below are the ones the chain shows being paid to the pool.",
+      "extra": "A pool reward address holds only what has not been swept yet, so this figure moves with the pool's payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1Q8QR5k32hexiMQnRgkJ6fmmjn5fMWhdv9",
+          "label": "Pool payout address",
+          "sats": 1021672081410,
+          "source": "https://chainquery.com/sources/mempool-pools-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qx9t2l3pyny2spqpqlye8svce70nppwtaxwdrp4",
+          "label": "Pool payout address",
+          "sats": 3164340239086,
+          "source": "https://chainquery.com/sources/mempool-pools-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "122pN8zvqTxJaA8fRY1PDBu4QYodqE5m2X",
+          "label": "Pool payout address",
+          "sats": 230960,
+          "source": "https://chainquery.com/sources/mempool-pools-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16moWjUJVRnDQKqhoCdcszfJg9wzBdoTHw",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/mempool-pools-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DSh7vX6ed2cgTeKPwufV5i4hSi4pp373h",
+          "label": "Pool payout address",
+          "sats": 1427,
+          "source": "https://chainquery.com/sources/mempool-pools-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JvXhnHCi6XqcanvrZJ5s2Qiv4tsmm2UMy",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/mempool-pools-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3L8Ck6bm3sve1vJGKo6Ht2k167YKSKi8TZ",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/mempool-pools-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3G7jcEELKh38L6kaSV8K35pTqsh5bgZW2D",
+          "label": "Pool payout address",
+          "sats": 1260750861,
+          "source": "https://chainquery.com/sources/mempool-pools-v2",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 4187273303744
+    },
+    {
+      "id": "crypto-com",
+      "name": "Crypto.com",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Proof of Reserves",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Crypto.com's reserve wallets were published by its chief executive in November 2022 and have been tracked since.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3QsGsAXQ4rqRNvh5pEW55hf3F9PEyb7rVq",
+          "label": "Proof-of-reserves wallet",
+          "sats": 9971,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q7cyrfmck2ffu2ud3rn5l5a8yv6f0chkp0zpemf",
+          "label": "Proof-of-reserves wallet",
+          "sats": 12621870944,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qlt5nm3kflne7rht4alsnzdzad878ld5rcu4na0",
+          "label": "Proof-of-reserves wallet",
+          "sats": 1305097969833,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qpy4jwethqenp4r7hqls660wy8287vw0my32lmy",
+          "label": "Proof-of-reserves wallet",
+          "sats": 161599613,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qr4dl5wa7kl8yu792dceg9z5knl2gkn220lk7a9",
+          "label": "Proof-of-reserves wallet",
+          "sats": 2459695861752,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 3777577312113
+    },
+    {
+      "id": "bitwise-bitb",
+      "name": "Bitwise Bitcoin ETF (BITB)",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "ETF custody",
+      "evidence": "official",
+      "live": true,
+      "description": "The only U.S. spot bitcoin ETF that publishes its custody addresses. Bitwise discloses them and its auditor attests the balances daily, so this card covers the fund nearly in full.",
+      "extra": "Self-disclosed custody addresses, attested daily by The Network Firm LLP.",
+      "est": null,
+      "coverage": "full",
+      "addresses": [
+        {
+          "address": "bc1qzculrus53vszftujqztm4c8lpe00sutplajkr8",
+          "label": "ETF custody address",
+          "sats": 70052879807,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qa22k86rjrvveylkluqvqcwg7smxfs3kjjalk0f",
+          "label": "ETF custody address",
+          "sats": 65131474705,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qqdrcrthxpz070tayd6mg6f2mgz57rm3lktyywe",
+          "label": "ETF custody address",
+          "sats": 65000000954,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q2tmq3n68784f9rd29ung4446u9p2ngqzgyuma9",
+          "label": "ETF custody address",
+          "sats": 16951696709,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qwurc3p5tq0956skcp6wsm3hc9uap62qtjjhqpu",
+          "label": "ETF custody address",
+          "sats": 35410884297,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q9sn9fqurrsf37z73kvtv8tvh8c72xxnht7fvl0",
+          "label": "ETF custody address",
+          "sats": 39077382069,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qse5e2de8d928v7rne9hna7rxy67w0x0a8r5697",
+          "label": "ETF custody address",
+          "sats": 61767250375,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q5re92xvrl5cuy4mhf0pfwhs60wcrg36csmvvet",
+          "label": "ETF custody address",
+          "sats": 61721973308,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qkv4jg0ear9ve5ljwyqtjwyyx7xj89syuuq3h6t",
+          "label": "ETF custody address",
+          "sats": 61127840130,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q526630j9hmd2la9hw8xmhrx2njmkelhn63cehf",
+          "label": "ETF custody address",
+          "sats": 60758674081,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qslp29dc48hh5ssr6lm4uc7gmafm30rl33d7ur3",
+          "label": "ETF custody address",
+          "sats": 60756807092,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q4yltkx4gyxquuapu0ffka67u0z0j8ydm67ts0n",
+          "label": "ETF custody address",
+          "sats": 60292926172,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qekdxm8eqnjrhsl0pkfnsl3r7hnpus02flfqw86",
+          "label": "ETF custody address",
+          "sats": 60034227275,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qm3qnm8zsgj7q0pvfxgynjsgdn9u4pgl6fm9tn5",
+          "label": "ETF custody address",
+          "sats": 60022905086,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q5g6z2sjs4wzcegpg5f80v2hghd4xrg4g27cafc",
+          "label": "ETF custody address",
+          "sats": 60000886171,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q0x6mm7jmrg08x465cwxde4lvu60fzc4a6pq2kd",
+          "label": "ETF custody address",
+          "sats": 60000003139,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qalcwea9td0gcl6e7ulmnfg7dcqhd5yhf4gr7mu",
+          "label": "ETF custody address",
+          "sats": 60000002047,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qp3e2q36v2d369e83swxe775jw3xhtgztjdw4ev",
+          "label": "ETF custody address",
+          "sats": 60000001171,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qy0gk0prldtxj432call82t7hz4xpmp6m8vxty7",
+          "label": "ETF custody address",
+          "sats": 60000000877,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qrmlf2x4kwn2dmmyar0fezten35djg2etpcd6mn",
+          "label": "ETF custody address",
+          "sats": 60000000877,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qkxq20jqzg04ntvxx7903ezkce0aax33kc4q6zv",
+          "label": "ETF custody address",
+          "sats": 60000000877,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qrfav7x4j5uppdtgch8l72mekhkrjdmnkdnxc0z",
+          "label": "ETF custody address",
+          "sats": 60000000877,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qlrtwhw90rv7sgxna7qhxskdaujkaryep486fd0",
+          "label": "ETF custody address",
+          "sats": 60000000877,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qvz9vg8pafrnztkkrxapshvz584jvuqkl0udav7",
+          "label": "ETF custody address",
+          "sats": 60000000877,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmjzynwnw3wpjfwvc7anvyldxst8y0zadtj5dxv",
+          "label": "ETF custody address",
+          "sats": 60000000877,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qddctjaw0v5zac96vtvj443c4dfq66ksnu7gnpe",
+          "label": "ETF custody address",
+          "sats": 60000000877,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qzefarl25cwltml5dzeyc659dhsdhsk87q70qh4",
+          "label": "ETF custody address",
+          "sats": 60000000877,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q8qmqlrhlmwf9w43azj2fachhzhs9kl04r74nt5",
+          "label": "ETF custody address",
+          "sats": 60000000330,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qvmyretpc8aezp5xl7spz3pctx7nfyutp93vet2",
+          "label": "ETF custody address",
+          "sats": 60000000330,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qdhxthtw3mlwvn3vzf3x303sw3hlahnv25fuhxc",
+          "label": "ETF custody address",
+          "sats": 60000000330,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qdf4g0sl8gzyemmsmyc9x4tv4ue2yuwg0grs97a",
+          "label": "ETF custody address",
+          "sats": 60000000330,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qldlzmssl4nlqrg8c0z3gfa8juujmqeakv072at",
+          "label": "ETF custody address",
+          "sats": 60000000000,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qgd03nxu7cv9rq3ektp80z075vjglamc06k4pvc",
+          "label": "ETF custody address",
+          "sats": 59999995548,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q455c026szlpmmcnvjnhzz50xsvl6ddyfpyd202",
+          "label": "ETF custody address",
+          "sats": 59999305545,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qw33ln83tqqjka8y6md0a6znqwn6yfl0j7fzt8c",
+          "label": "ETF custody address",
+          "sats": 59999137935,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qlah0v7u7nkcxlskhe0f5r4ctryzw4kftmu8gah",
+          "label": "ETF custody address",
+          "sats": 59991603516,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qv8v3nq83c5j5mg74ra8dzyezpchcamlqll9uh9",
+          "label": "ETF custody address",
+          "sats": 59966029957,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qr47xza5284dd476wtvaljm66rx2jdehzmfdra5",
+          "label": "ETF custody address",
+          "sats": 59700002047,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qs3njm2cnmj4s2nuk444vm9cfyxs8ktzqzsx2qh",
+          "label": "ETF custody address",
+          "sats": 59678232708,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q6nuvufsgxcdugwdrvvr0h9fzgsndxe30tmmcpv",
+          "label": "ETF custody address",
+          "sats": 59113356125,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qdufwk2phq57mz45dtkmyd69x3q98dz5j8wcrjt",
+          "label": "ETF custody address",
+          "sats": 58337617296,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q9nutn3pd7phjc0fe597qk52h5a6m7zluvw2twe",
+          "label": "ETF custody address",
+          "sats": 57925273554,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qur3vuejkd4m7y7589l4g4zpa0vgpvzwlz609em",
+          "label": "ETF custody address",
+          "sats": 57039821735,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q8m07d3llshupfgf6r5vdsmlkke4qq3tcwu2nzp",
+          "label": "ETF custody address",
+          "sats": 56901915362,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q0n89axqxpmc8gj5f3ya4lgq7flpwdetkycqkmt",
+          "label": "ETF custody address",
+          "sats": 41674882645,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q4gkvkdx5xd4vf6vh4llxhhddxhpm4g8s20kec4",
+          "label": "ETF custody address",
+          "sats": 56123620771,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q7xwvr9t6xrjzcg5pkrcylf7mlvmrtuj65kwg29",
+          "label": "ETF custody address",
+          "sats": 55874062200,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q62ygc4c3tmqnkmk9j43pa22w55eq75mvl5glg6",
+          "label": "ETF custody address",
+          "sats": 53701111740,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qtjfj8d7896g4njzt6pcrj6y0hud75s7ndz33v5",
+          "label": "ETF custody address",
+          "sats": 37986545029,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qw0906urz23vc25tnd73g756u90t7taru20lpz4",
+          "label": "ETF custody address",
+          "sats": 52082436856,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q3af6awqccvjvyj5nevfctzu628z9zrhe4rcj4x",
+          "label": "ETF custody address",
+          "sats": 51268205093,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q8xx4efxhpupyz73r20nha9ukxmhfzw5j7akpdj",
+          "label": "ETF custody address",
+          "sats": 51000001171,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qyxenx325978f6daxr72ecu5wf854zdj6m37fx4",
+          "label": "ETF custody address",
+          "sats": 51000000877,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qwvu8wun26v6053tkkm26ktmm9fn3knu6kaxwhd",
+          "label": "ETF custody address",
+          "sats": 50813587702,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qzx4u76hlhju0nyz4uj72j72sl2cac8jykkq329",
+          "label": "ETF custody address",
+          "sats": 50444406018,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qhexw57dqc3npfk43tg5zzncn8nn4gtrg2d3mua",
+          "label": "ETF custody address",
+          "sats": 50221738812,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qm80g33s2sfmuzt7a5wzg3et2qunggeakl3ngsx",
+          "label": "ETF custody address",
+          "sats": 50020690013,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q7ufcwktvc2y4tj9zlt6cyjpaf3ewmvxzhruspg",
+          "label": "ETF custody address",
+          "sats": 50000001554,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q46hqur0rz9c6r983wkxttevsjsgt7dhhzqsrk3",
+          "label": "ETF custody address",
+          "sats": 49991474419,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qcuk9s29mqrxjv33zfxn96vkt5x4v7jzcn9mjce",
+          "label": "ETF custody address",
+          "sats": 49165221217,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qdmalkt80m78am0mu9zsjjuf6nzjrsf87lw2jqm",
+          "label": "ETF custody address",
+          "sats": 44822306626,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qcpv37krhav648tqc2vcew5s0xx598hk3yzmutd",
+          "label": "ETF custody address",
+          "sats": 36956823419,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q97gkpezgaf2xcaamdlq7wc5xn645nlmp3dv6h9",
+          "label": "ETF custody address",
+          "sats": 36712123500,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q4dxy47x4m8edx3skk2q9kvg3mawdjyzma20wmy",
+          "label": "ETF custody address",
+          "sats": 29379743943,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qu97pnw3arh9gslvt84r3h8rzv2q7ssaevaq5ay",
+          "label": "ETF custody address",
+          "sats": 14956746253,
+          "source": "https://chainquery.com/sources/bitwise-bitb",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 3530955844987
+    },
+    {
+      "id": "deribit",
+      "name": "Deribit",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Proof of Reserves",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The derivatives exchange's reserve wallets, published in its wallet update and tracked by the analysis pack.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qa3phj5uhnuauk6r62cku6r6fl9rawqx4n6d690",
+          "label": "Proof-of-reserves wallet",
+          "sats": 4288704,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qws342rlkhszh58rtn35zrw7w076puz83gkcufy",
+          "label": "Proof-of-reserves wallet",
+          "sats": 3127700018642,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qeqy8p64uvfu7wmhtcvfm6n59wj0sczd870kfcu",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 3127704307346
+    },
+    {
+      "id": "abraxas",
+      "name": "Abraxas Capital",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Abraxas Capital tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qcpflj68s3ahy4xajez4d8v3vk28pvf7qte2jmlftvxzfke2u6mqsge3gvh",
+          "label": "Public address",
+          "sats": 2581633010710,
+          "source": "https://cryptobuybots.com/abraxas-capital-mgmt-heka-funds-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qpum6pw7pnsyhqww6x930u0a6xsat7hqg5eauas6q30vnmdkqkxrqu5jdwe",
+          "label": "Public address",
+          "sats": 236599999290,
+          "source": "https://cryptobuybots.com/abraxas-capital-mgmt-heka-funds-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 2818233010000
+    },
+    {
+      "id": "bitcoin-group",
+      "name": "Bitcoin Group SE",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Bitcoin Group SE tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q6h2v33qt0jjvpr2hxxtwhtvdvtn086g0n2qu06",
+          "label": "Public address",
+          "sats": 2580326798889,
+          "source": "https://cryptobuybots.com/bitcoin-group-se-bitcoin-de-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 2580326798889
+    },
+    {
+      "id": "mt-gox-trustee",
+      "name": "Mt. Gox Trustee",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Bankruptcy estate",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The Mt. Gox bankruptcy estate, distributed to creditors through the trustee's wallets since 2024.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1N7jWmv63mkMdsYzbNUVHbEYDQfcq1u8Yp",
+          "label": "Public address",
+          "sats": 2405175834095,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14Cr68x1rkzuUHqBu2jr83Fcxk2vcEsd5T",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1H6QDGhVoh44DjH2QZedwhk2h2FF8dfQKr",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16J2GkjkpgdAGz15FgwvYk2PSsCnDjNUKY",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15Wqv9Nfwn3tDghHC7yMXc6cG65QYu3XPE",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1G41yFGd4LCBVbZkH4QuVpX5kPBuwS9bgV",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1wdDJbdMR2pNLYh7zdRj7NpsfBwgJNT8r",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Q7vn9P6VAR4Pwswi1EJE2yWPpoqM7gEYq",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1zYDt5xgHdKZnX3hDVuwVaY5uudCcv8Gf",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CKR8ZoaRW8Zrx9H1bf1K6fjo3PJGiQoBP",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14YLdcQWeuZWTszEKf6ARVU1acCkmptJWP",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PntZFXRkfeqwDJopwDS6bvS4bUhQvjPwP",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HKcDkcoY2ErkvUsx38wawRWyG7x8jaz6B",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CDsnsjN5sV4kgFncTJ8esWMyCUejy7e73",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BJhbpn3acqY9Yij4Ui463k9eSmyjY4uKz",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CtrLrJnrg7PKpi8Nhz5GSn7kf5A9MT8b6",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LqUkUrc9vgaUu7CR8mg5CAqtQX8e25cwT",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GH1qNbhKKnYGpAfF6g1EKBsmmvjiwaEeP",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1B5NBEWKY4gnKGT3JRX97ifArAMQFMzMJ1",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1917ZKJ4g5r2xn7yKhoMm9PcztMfLQH2b1",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Agfu6U7cnhz5mTb8wmSMWBgMup1pdWeuB",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17ofbcvjzFvTHaoaRiLsxSxuBAmcquUSUt",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FXkRcYtwDeKTYerrTtXQAsh8BGZjQzJYc",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12EPNDjNJxtJjSYSqoMjChCysAjyA9BfE7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14ob8LrK6BfJTsEzbjzoebQCtjZu2M9PHr",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CX5xS4cq6miKPshH4inZ1c4JKjHZ7Dby5",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1AqHvi9FzDM23qhsjdBePt8H6Ft2CEWJvs",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1P3bCpZStfwWPphgJtpSSaY4jiv6o6wzZd",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NvK5WfAVisni5UUjCK9aQuvqj3ioruM9N",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17mPxdR2h8qPJAMVFeT3MyVN1SLoq85i9E",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13DpQXztm51vS15KkGPWMf5YbtTLFQuDTd",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Ncq7FVBwxiqit2Wbdgc65PuYbUFsi2T3N",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PppQsf6VDat8N88kM5ai5yakS2wAg1JeQ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BsphgQfKDmu9q6B1xGuT7krawTGXYjauD",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18GaiPZPmZUkKi99QnQ7icZrvVVc1TLiNw",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1C2N6BZumTet59fT6TyuaeMYi43BFY36kq",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17hiVEPrCVMsx3YwpDJtPMeYu4Eg295LUB",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HGgkBTC63CTdgxAsXZ6nDfbK3ENkTpFTc",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Jm9x7mTcZZ2UAo5Ut3h9hZbvFdkpMJrwR",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1L5JeconNUKAo8N74Qz3porVs61WAWmBUf",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16HhGwwLyugCYKv6KtSGFumhJu6REfeeBx",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1AY4QbBv6LBBS2zsMLkxjZTZEyG3gFkrn7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DRVGJK95pWMB39qCHmt8QvkAnSHSSqon9",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12KnVQB9GVP4DtYyB2TrpoRYwg1gdnVTnx",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HKC8uHDQHFgEmHUzKqKtPKfZ5kzq294qu",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JfMjGhDpFg5o1V1Sy1e9BGAf4EWwwjMt4",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14wS6F8su3jXy6gPDpkBYvC1uqTskpLJGa",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1A4uUtzo9KAsx5XNKPvMNpXHaS5UfsxVFs",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "146q3aJeZzmFTiJwictgrVsAVFBVidMxiX",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Gp5pDkGfQiE5feN1BA6e7Dbq7fB9QfKZk",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DoChJ2kmc1eHRRSosbYLmBsvan3oSxYkK",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "174pEpF2d3gahKRJkiPfxPJWjMAdiTV4c",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16CyTRPq1jDnbUYzWEvjb8WVckQvqt51MF",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KyzznvEnSJPe5zzTpP7xGqf6GMbeJdPP1",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17ZQd4kGwhoStiT9jKhtPBNpfVTJVqwDCe",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16mX2uZHUgVWArmZoPMPSEr1LVSeuB6Qc",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1L85RxZQnZ6MeFQi5sByDixUn71cgmV7Hi",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18DdiX3dmCi4jbbvgqQDavdpqVo8r2yeFq",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1EGnLyaTWmJfy4Cr51GgmrGLWuTU3HdWNd",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12nkGr3F9ByJnRXSFn36GwkeU6Twxn7er8",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15FJf4GnjJTyw4jLUrdF9Z1CtT7iV2oi4u",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CEGFg2V9nUdVk8RLwg5g98Ytr2VRtepAU",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "187rQSc1EKND2qnu8WU1PHexTZrPXUjvfW",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JbezDVd9VsK9o1Ga9UqLydeuEvhKLAPs6",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/mt-gox-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 2405175834095
+    },
+    {
+      "id": "blackrock-ibit",
+      "name": "BlackRock iShares Bitcoin Trust (IBIT)",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "ETF custody",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The largest spot bitcoin ETF. BlackRock holds the coins at Coinbase Custody across thousands of segregated addresses and publishes none of them; the addresses here are the ones tracked publicly, so the card shows only a share of the fund.",
+      "extra": "Partial coverage — tracked public addresses only. IBIT holds roughly 734,000 BTC across 6,700+ Coinbase Custody addresses; the balances below are the tracked subset, not the fund.",
+      "est": null,
+      "coverage": "partial",
+      "reportedSats": 73400000000000,
+      "reportedNote": "SEC filings and the fund page put IBIT at roughly 734,000 BTC across 6,700+ Coinbase Custody addresses; only the tracked subset is on chain below.",
+      "addresses": [
+        {
+          "address": "bc1q0szve5rt2062lealqweaqfq7mllxpner7m2nlj",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q3lskgrh96egrqguqavc6j4qlyyqhkek7634ep7",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q4a0q2r7nx8sn8z39556vdsjcenhzrjdw9y9wq2",
+          "label": "ETF custody address",
+          "sats": 30000000294,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q4px9tavdh9mdt6c7f92699krjlqa0vammcj840",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q55dk88ct0uzmywswyxffyzw0s8tsaplaphum00",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q5dzfkmve3h7l80duklsycw24tgphl2t5n9dkdn",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q6kj2qhhlz8v0q4kezqm9ap77ckpne3vfyumk78",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q6kqgfuslztdfpa2nc757zzdavnxd9dkpsypell",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q6n0q8ax6wypukekkpulzq0v8ap4yew78v0p9a2",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q6rckdcf0d4lzudcnlnq7pft8mnx2eprcqfmpuc",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q7n302mtjxgt7hfpaaa6ct8yemqcm6wycanan5u",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q7rfygfguzn3mug53kmtmmfx2de2wpr8s4y5kwm",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q85xezxk829gy6nadjut6hk58us62jn4ghlj6yd",
+          "label": "ETF custody address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q8atdgr96u7sp90larwwt8nyg4wvm45rdzuwd5v",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q8d9u3lr0g46660r4f67nrjmpsqx8tx6pzgqu46",
+          "label": "ETF custody address",
+          "sats": 28633150308,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q9ge6e3u06xscxmsj8fv5q5dwgh56r33fd4a0j4",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q9zdhwga37e8e2473my7d5rpx0qew0v62upmd88",
+          "label": "ETF custody address",
+          "sats": 161317775,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qa47lymaw8srsrcfhvd4f48790gguj2ru2jd4vk",
+          "label": "ETF custody address",
+          "sats": 30000000918,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qalsxaaf6kx9dgdml2n8c7xykkuy6uk57n5pl89",
+          "label": "ETF custody address",
+          "sats": 30000000918,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qanksrxvpylcll98hxxkjg8pxk45dz5py2lmrau",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qased3fr0s2694h0slukmju8l9g74aftssgnhtw",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qc36datxheffxhm8sdly79rt4jxs3zxves28awn",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qccvcyj800k37l4ka4dcujm5q3hxwa6z6t0z0zg",
+          "label": "ETF custody address",
+          "sats": 28961143167,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qdaf8sj6j7k3garf7l33u84v3x7dtnqccvdevcw",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qdk3vds5e5kmehetllxqx3kzl2awjq7u5nu3sgp",
+          "label": "ETF custody address",
+          "sats": 27320728885,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qewp3g8wzeukac7nn73dhdd27w4m5zhatqqr79d",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qfan30gpd8ngtwnzvsc9npy2kqnd7wpvunerqdp",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qg3lw2d8grthytj20r790s8gkr4kewmny9xm85k",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qgml5907mda25dg0w48pjf6hc449fmrr5wmx6nd",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qgn6prm38arpz549dnskfd8ryncs9url0td0j3p",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qh0qp9guckaf7udryj2t6gr4kdqkfpw0g2qvyx0",
+          "label": "ETF custody address",
+          "sats": 30000001000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qhpja4mgqshp3vh4r8505cjz2f287grt6ewr2k6",
+          "label": "ETF custody address",
+          "sats": 28657430192,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qhr4fkyxxv8j6mjeqelrmxxmkz2qfldpygk8hug",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qj2ruv5gh998qxpmqn3ecg7hrauls2nyjz30d0m",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qj98n8t5w68ymj3ajgzgep8kcge2c4hf2t6madc",
+          "label": "ETF custody address",
+          "sats": 30000000294,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qjcas8qyn0phhn9y4qvvekjg6fpcvu9m0w4wc4p",
+          "label": "ETF custody address",
+          "sats": 5755907886,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qjqjee7amvjsht5vak6cdvhzdp4xphwll8lvcwj",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qk75uzvk0x6z0g22rh8vdzlcp5u4q0cnzd0nqkg",
+          "label": "ETF custody address",
+          "sats": 29669621227,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qlaal3drvueaxndam7p5kxa9epl2g7rshqphd0t",
+          "label": "ETF custody address",
+          "sats": 30000000588,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qlg9nlqa9tdm2dd9kra4nyru0rxqxnsvu2wlxj0",
+          "label": "ETF custody address",
+          "sats": 30000000294,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qlhnua7g66aug0r9yafy4c3tyvm0ka7t9eg02ud",
+          "label": "ETF custody address",
+          "sats": 28446347455,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qlruhsflfqnmlv5krafz2xyc0kav02a5j37vtnw",
+          "label": "ETF custody address",
+          "sats": 2101405386,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qm6s79jgnzux3vglndpjlrwzuv6592t86h4fs5h",
+          "label": "ETF custody address",
+          "sats": 28459445691,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qm8hahx89585rykuqlnu3ydljz68f2e7azqf0hz",
+          "label": "ETF custody address",
+          "sats": 30000000294,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qnchz2kdkxr4xgzag3rvuxzjz25dsenfnf7fpgg",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qnfjxtxly6c4t0u665a9x9rchhv4quaq5jf40n5",
+          "label": "ETF custody address",
+          "sats": 29850259357,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qnrsr8jd8hmsdwfv2syamnpst3pm8y756v9amf7",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qnruswja97rkcy3mv4lsv984uzgf923c0h9aw33",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qpax37v70vfa7793glutmuvf4g7kttmdr7q5n03",
+          "label": "ETF custody address",
+          "sats": 30000000294,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qpgac0r9h68fwyhajuv293al3uhm8mml807tetq",
+          "label": "ETF custody address",
+          "sats": 30000000294,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qpxwup5zsjue4x0he9elhucw9u34pjlqmknkufq",
+          "label": "ETF custody address",
+          "sats": 30000000294,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qqt07hdrrea93rkwa6f0muryg5wpcya7cqcamrd",
+          "label": "ETF custody address",
+          "sats": 30000000294,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qquq7hs75tsnjmfxxrmcrkn3cx6rxtxh8tk2ykn",
+          "label": "ETF custody address",
+          "sats": 30000000294,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qr2pa2zh6x6ur36t4z6pq7lfqm4m9n9vujsnm7u",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qrt7tgap03mcs94nk6r4esywcyxc8536pg8yssg",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qsq8vhn65erj7mc30m47ec47cfn5z7w9avc5p6t",
+          "label": "ETF custody address",
+          "sats": 10759254684,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qswxk9xpd9hdeqv0ghfy6kd2hcq6fcekey33r3l",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qtfxa8rku637w77d3wz4ut7y906ddtnwujr77cf",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qtke3jdr3cks2624v8hy7a9d0gla27ydp8el2fr",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qtqjzh4nqtz2cqmzl6e4ux869u3zy96xrc7mcsg",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qufnzhcpuvkatddcwgk7tq6vyra2f2fr7ry6yrm",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qurjt9nqgz9dgg6j9hga42r2fahycx3ecduv5kv",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1quzdcfkkla4wtsdya5tlax4c23fj79k457l9xj2",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qv377k7vs3utlc6uj5ywjyanu3tn7kfkqpf57eu",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qvqufgp50hkk397zwvnr5tejc0as579gx8q3r5w",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qw2pt8mpuy9v50cen6qx3jx3696kmeunfpjg2ar",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qw4qt70s74r0g2w63arar9xk53874lsnf79hu43",
+          "label": "ETF custody address",
+          "sats": 28526551593,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qw4yj0v088jc44f5997xlm087a5ahxgvmz0qk2v",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qwtv84dqvqkjxhazk5sc2p4cg5j06hhrntcsal6",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qxgtwd7l4ehxru2rxve7cfg7uuw8p0vy05vvssy",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qxzw8sjmlaal3059uga98f8p2yqxruhke77wzdt",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qy624n2rk0rqsf8jf32wdlzmsa9yzxdydtpll4l",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qy9acjdmrj994ay6l4nuxaq5qt4perjvkzpyp4j",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qyaqwtfk2hjwyhux5qajkra93zvxnyfxfwg56uv",
+          "label": "ETF custody address",
+          "sats": 28038977168,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qz7gjl8fsk0gajwhaxzstzzxyyk3wu7308je66e",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qzlk6w943ukhkygwjd5mfqzzspkhr6lq0km96gl",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qvlk0r584m74kyf6tdq8r8es43w0e4y20sm2whg",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qhug23ff3jy0lnuy27huz93rp70z9mcts48n4ev",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q382hvy72szks44e4qk8cy76qwhmddd3rcyx37n",
+          "label": "ETF custody address",
+          "sats": 30000000000,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qgjuv5cmczcttpwy56gj6f46xehrjfw255y35f5",
+          "label": "ETF custody address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/blackrock-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 2225341546844
+    },
+    {
+      "id": "bitbank",
+      "name": "bitbank",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Japanese exchange custody wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qx2x5cqhymfcnjtg902ky6u5t5htmt7fvqztdsm028hkrvxcl4t2sjtpd9l",
+          "label": "Public address",
+          "sats": 2102950861076,
+          "source": "https://cryptobuybots.com/bitbank-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 2102950861076
+    },
+    {
+      "id": "boerse-stuttgart",
+      "name": "Boerse Stuttgart Digital",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Boerse Stuttgart Digital tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3EMVdMehEq5SFipQ5UfbsfMsH223sSz9A9",
+          "label": "Public address",
+          "sats": 1788353141221,
+          "source": "https://cryptobuybots.com/boerse-stuttgart-digital-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3NWndKFmvV6cJ6ENgXVeaDTo3mBfAvr27H",
+          "label": "Public address",
+          "sats": 777455,
+          "source": "https://cryptobuybots.com/boerse-stuttgart-digital-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1788353918676
+    },
+    {
+      "id": "purpose",
+      "name": "Purpose Bitcoin ETF (BTCC)",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "ETF custody",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The first spot bitcoin ETF, listed in Toronto. Tracked public addresses only.",
+      "extra": "Partial coverage — tracked public addresses only.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q72nyp6mzxjxm02j7t85pg0pq24684zdj2wuweu",
+          "label": "ETF custody address",
+          "sats": 1742793832396,
+          "source": "https://cryptobuybots.com/purpose-investments-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1742793832396
+    },
+    {
+      "id": "coinbase-prime",
+      "name": "Coinbase Prime Custody",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Custody",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The institutional custody arm that holds bitcoin for ETFs, public companies and funds. Coins are commingled across thousands of addresses, so the tracked set is a share of the whole.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q32hfrpkayqyvx4tlmn2s4xp66msysd8q9dn0y6",
+          "label": "Custody address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q4jt6d87y26ttz8e2pkl43f9hx4vq7zk5mf7ej7",
+          "label": "Custody address",
+          "sats": 3699,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q7trt2zh5lzd5sap0mqgd246kuq9g0kwg6zhhy3",
+          "label": "Custody address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q876jggnr4fqgyg6g8quuwc3lkuyrakt35uxgmv",
+          "label": "Custody address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q8eumzsu7nhxupvsnzp6lwuhv5v2kx7alt3g3jt",
+          "label": "Custody address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qeeek5xxjx3wuvxtfuuxuah4rnagg45dts4jn22",
+          "label": "Custody address",
+          "sats": 6778679056,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qefcww8zpq9xsqmzh8qxq8cseq7uat8mlskk739",
+          "label": "Custody address",
+          "sats": 48812942945,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qevl4xkmuenq7t3kkllqnhca3sw9z4put6w6sw8",
+          "label": "Custody address",
+          "sats": 30355761004,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qhv20ewm7rkyefj0jl8sp3jkajtxxysl3dg8jxc",
+          "label": "Custody address",
+          "sats": 5061695062,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qjhr74pnlr5wd8u4z8ed2zn5l03kax0h5pxymys",
+          "label": "Custody address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qkcts396czket4jqcq3f7yv2tllcpyfzgxn7yq8",
+          "label": "Custody address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmakjy7ns2z8vwgptf9vs8fndp304fg0p9xafm2",
+          "label": "Custody address",
+          "sats": 202963820267,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qnu4azuvrkl4t47djlksjnk46phaxz4aqhgemk9",
+          "label": "Custody address",
+          "sats": 8210,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qs4z2d3h5je080f74tax92dwg08sf3hylj9vfg3",
+          "label": "Custody address",
+          "sats": 1293790728578,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qs80a37qeuyru07tx6f3e7wuy74w34lr6fqwu3h",
+          "label": "Custody address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qwwwqj85nlgd4327t280hdvgz9rrq7d9npfq0du",
+          "label": "Custody address",
+          "sats": 52999546212,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qyz09u4ew8d6vjvjhpfky497aug74u22jg728h5",
+          "label": "Custody address",
+          "sats": 45500,
+          "source": "https://cryptobuybots.com/coinbase-prime-custody-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1640763230533
+    },
+    {
+      "id": "twenty-one-capital",
+      "name": "Twenty One Capital",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Twenty One Capital tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "38rFtDdFpXc4y6XPbSnNd2UvveEt5Xms2E",
+          "label": "Public address",
+          "sats": 1611631675697,
+          "source": "https://cryptobuybots.com/twenty-one-capital-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1611631675697
+    },
+    {
+      "id": "paxos",
+      "name": "Paxos",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Issuer reserve",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Stablecoin issuer and custodian.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qsg6x2cvm75xuddn5g0ss9zglaamgz90q8vcp8w",
+          "label": "Public address",
+          "sats": 1560181848422,
+          "source": "https://cryptobuybots.com/paxos-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1560181848422
+    },
+    {
+      "id": "gate",
+      "name": "Gate.io",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Gate's reserve and deposit wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "162bzZT2hJfv5Gm3ZmWfWfHJjCtMD6rHhw",
+          "label": "Public address",
+          "sats": 1047737358848,
+          "source": "https://cryptobuybots.com/gate-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1047737358848
+    },
+    {
+      "id": "ci-global",
+      "name": "CI Global Asset Management",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "CI Global Asset Management tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qatjx2qc8vxz39m0qdz303z8et2pgmc74xz8km3",
+          "label": "Public address",
+          "sats": 1047352994175,
+          "source": "https://cryptobuybots.com/ci-global-asset-management-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1047352994175
+    },
+    {
+      "id": "ledn",
+      "name": "Ledn",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Ledn tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qcxycjmmyl0fwd0nnqv73clpfrjwvcrqws7m0r35c96ncv57989csr83nrp",
+          "label": "Public address",
+          "sats": 775000014065,
+          "source": "https://cryptobuybots.com/ledn-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 775000014065
+    },
+    {
+      "id": "bitmex",
+      "name": "BitMEX",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Proof of Reserves",
+      "evidence": "official",
+      "live": true,
+      "description": "BitMEX publishes monthly multisig reserve attestations with full redeem scripts. The addresses below are that disclosure.",
+      "est": null,
+      "coverage": "full",
+      "addresses": [
+        {
+          "address": "3BMEXqGpG4FxBA1KWhRFufXfSTRgzfDBhJ",
+          "label": "Proof-of-reserves wallet",
+          "sats": 540,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEX9wYp3r7kTDY3d8ahA5ZwqLGR4G2Ji",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXkjEMicQmVZzKjMC65SzsJx7aPbUc6",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXgGMPu7V6fzfTVbizYPz15Z3mWGu4S",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEX2bmZDTdqvkbk4HPCPenJvwFQZrQzW",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEX9H6krX6Lhn8u38Fwp3vedc2xXJgpC",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXNHBijbEUnDkFCkdM7odwQv11Bu93g",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXcMURLxVWaAGMVFTmYPf8XLUabJCB9",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXQm6GX2HZvnts6cSfWq7ApqHkLDg8x",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXqxUAN85aMKSsMgXWcFMYnBX7hVZd4",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXoUYA6eGRJvbew61ksbuscTXKLEt72",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXYUBJYpeBqwo2bMNcf7Qri161dM7Ny",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXc4NZKHfGgegKM2HJDCsw49vwDB6s8",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXXCZBnBYqzgMFFpRk5nRqEHhJYeZL7",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXE8m87KnqkqXjWGhW14bFZyHL7587C",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXPfHJPsRx5hPvZzpUeGsgkRR2C7R24",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXgHVa81e8qWowegXqkrgE2Hf9o2cHn",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXC2E5t66WHbArVZWQyMcFHDm3bQ5wG",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXz53CTRBqZ12gkzSaCkkuvWxUeg2ae",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEX6DgV2w4X58FLAZFAa5QuSthqFhDry",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXg8cVp5b8XnzpKL6ECVvjRsw8fieXe",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXuY73GDZKrqwhnDCUV2wiv7whEsAaY",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXC1Y3y7xg468eqoLCDjoWmdxFnbQzp",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXoxykKrccBiSHG3LGjWdSeyP8DZGUv",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXQWntXsrwy6gVwFgh12ipvSMNZVeRS",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXH1DH7vvnTa6G9ZQKMRJa1Q5kzqa2t",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXfRVVeidSGR1W5WUXfWBYbmntgSfWr",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXct7bKxxJCrW75z4QpRzXXKVrMcAJ9",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXimBKieX4BzZD1mZCF8iaoshAMkgqK",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXgAmn7hDXSXjSgugXXuTd6dSvKLP6g",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXa7haKbwztGJRWNyjzFFVZeQvk7heb",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXAH1Sh4VRMdUirzmNXR4WrYsWN5KLZ",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXc4rtvoatTbmMsrBR2cMJePVejEpVr",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEX9QmQ7nCGLLQe9A5p17AqoUkhzwCB9",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXkDqmRXuCaEsZbaZ4jbBnBMkzoUgm8",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXzTVbGGra1V8eJiCEdXPMPfdMoiNfV",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXJZ1824MjbjJe2CercxKG8NdsH2Las",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEX7jrkTZeh7rzTy6oPx2Exz5nvNM8LX",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEX1cYYJt4jrtBdRJdD5A9deuxS6CCV3",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEX6sLcbAp6CzxjsV215cc6S1Y8TU2fo",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEX6rz8Wt9A6LxUptqax8fseiFVpwTKL",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXMUgEZEaYrFCVDtpquRgMsFUwJmYT2",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXPWNSVNAviLithV18zbpVLRa6gK8iy",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXSovhDLESDMtrfKuhz4Sc2upK5jQxZ",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEX1zyJmxpywRbtNKDoYqUJNrZrujYh8",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXVWU7qHtnw9Vqp4tAXHnfkfBuGPicB",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXQ89gBnbGqxb995gEXEgPdpawsLhdr",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXp35SRvsmMxMvzEP6npbRpRLJvT97o",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXxKiPW8PEw8j7yzxSeyc141AJ8PzyL",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXbGRFDSh7Vu79XZ7PcuhsLZU1sBdpx",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXxHNgb6J7t8aMbiAGfFJDbErWPc9c4",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXrWLKFt8cTFrLddxcKu9dDibFDkcyV",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXcu7yaJ6pUQAf1v76MVgSMDTJQzBhV",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexwcwdsskldv6q6j3mqh7pe0j7qedxylth0lx4dc35jv2s3pmxswflupu",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexqf3r7uxxu7kemf3hucajqez0auny4dtw47rmxya08uu3x74pspmk9n4",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexwl0ngckkntxpra8dpu204efus5zsts45nd3yxhqmgdvya6yfqzqqs5d",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmex84awyffrqe5qy895dtqywm9jgrdyr8ptryt532h464xxau89ssc356v",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmex3x2he6yej8quuhnzgmhxt04tgz6rcx5gxfj3xyjeu0pjl6jnsltwmfr",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexpx7aguezae5c5l5363g4gtxgapd0n9k5sa6vg8xluvfy4yt5swp98yd",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexdknyuy9kfuat96j8mnz8jagtq3msud7m9dz9sy4gqrggg6tpsas8cfz",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexsepf5z0gvllkau6s9xt5wftf6l94pgq5l0hhgth9nnr3g53esutewc3",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmex7e280vdd95k7f7je5r20w92rryglrsavmqsgkrv95xekhlpmqkfwq67",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexdmwjjwewvarxv9m49lta4khqhtmus7684lkjfnduvn389f6rsz9swzs",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexk65dazwkwu7q5ww5vuwplm6tmgqrqru7nv268dpady3qz8l6s350hs0",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexvnudxdx7q09r4s73y8kzkzhdxf4xamy9kz7qd2ww3m40ldjlq0zksny",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmex620sytapfndrf75zw3v8m3e3sw9lz88cn6hg99whkh3lxwtys9s3e68",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexgqk2l40vntta9yppz3h9mkdt06fna5pz6rn0ajwd95lkuw6gqwzpnex",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmex9w65psdq3y3fhg3yc8gem2jf5hrh6mpmm50q7wlsskf02vhds522374",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexwvwg7km0lm3fk88w8nc9ddns8hnyj2ncv4874dhwtnttrkw0qfuaray",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexv0e3frs4t9xmx0k9yzhwftxtzt0xe3krm6mln0ntea5v32ttsytf2zq",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexczklslwjtrnrcca93mer0prwdeq6r4xeq4fws6d9dhf5hvh9szyrlgw",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmex6x843e36lttca6f3nczp5cj65mqws8yxjkkfccc5pwuakxk0qz565ec",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexcttt3krazvr9228hvrt62sgattf60ljmfl6tuaq2wxc0qs9nqy6g6r4",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexgxcfmcjvv50afa94m8pf45r5af5nfuc8vkw5jeu7yjeu5955st8zmy9",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexrmn8zvkymm9rtvedrhhgl0uqnd92vznr43jfg5znnp055w7vszfshre",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexkzaspgkagmyxvfr3zdcp6y97wxgjlqz00hf0uc84q7ay2j96q5gpwz7",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmex27s0ykyw6nltzfqcq9yvssj3hr5vdxsq4wmquq5wk5yr3t33qv3an9z",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmextsk22rs3cxg3zp9yzlsv4dg4exxfttxna0pjruey8p7dl9ktses5mlu",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexxll4mxd4dhnw0z0xf9g9348hr8u27s5j52jyt8lqs0crvnn9su3px9l",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexwxg7788hhk8trw4s3qyf0q4c65zl3s32u3h40kw8g4r3v5pnqkp3swg",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexhkpgznmgee55jpvgnafljdxuyxnspdzu8jrft303955jyz97q9z6534",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmex4ly0echeygspaq5vfq47ppmsc2c2x8sexl7tfphls36ltglgqva4t8f",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexndlfz0fuprgyrqrg692rzhfyj5h3l3k3wyrkx457pe0nxmgdqtm6thy",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmext7a3ngf6l3uzf7xj9q9vswdkqv2hnmvgj74mvrn0urwd8ph8qq2r4kw",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmex2k2whl0hm630xlrl380v3nukw3gk0nj59t5jn2f3exc0mjfqsg8wyfc",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmex7r6psep6w8g04m59p9hwpgnk8nzxltkfr0xl26m73mw0sdvssnvej9u",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexzn2xfufea4mf0cvlygtcjuk2m9j63kkund94zks8ylnsxrupq3k8dq2",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexcpr9h48v2uaa9r7z9snm8apvaqa94cnyzyff2uta9kpe8u8aqnsvkam",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexg5dsj7hmqemclskvvzv6dryt4v23fzjruery4cuq78466rkas56843f",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexzutdvl6tmem3224dp49yxtwstv7lh5s2u50advxgymxxkr05qms4lp4",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexzcw7ryecks5g5ja4jg2j77kxllq803xa3dm2qt24ak3244w8qm9cqv4",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmex2zu8mxup6zwumnc77dzpgtvrhf4rzsfjk9zjkwjg269lrnpqq9djjzw",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexhy7drhld637g8c4eh4hxv92a9ey4w743qxxn4yfguwpq0934qahjmly",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexw67a7mgz09l3w905hmzmn5a8qpzad9v6n0yhj33jdlr368sqqqvy7e8",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexmg9xamppyh2k44mmcepkvtrd960q6dj2vlwy668y4mzwe8asqacr6xw",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexlqgl2tvd37th505gz93fjv48383u66ehe9ud8zueq6yhpat8qfmwx3z",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexvl73u7fgmz4pmy07d224jzv2kat838u76e8deff22w4ra53wsjaqw83",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmex8tymdfp6d8hfpq5kfk0ctqf6ewetjkw9fv2fwzr9thaj27jtszy5evu",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexnynghy9shvh0naxe5zqtetx3r82g7cqwdvrzrsvh3kjtafl3qfww9fp",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmexch943n5y948xfu4atfhaa9zfn3dmst0j5tcemhnu3krr5ljgskkpy85",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qchctnvmdva5z9vrpxkkxck64v7nmzdtyxsrq64",
+          "label": "Proof-of-reserves wallet",
+          "sats": 746620851611,
+          "source": "https://chainquery.com/sources/bitmex-por",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 746620852151
+    },
+    {
+      "id": "revolut",
+      "name": "Revolut",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Revolut tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q7uq3u829ahn22sdlpac0h0lurq3a9yfd3ew69f",
+          "label": "Public address",
+          "sats": 491742097058,
+          "source": "https://cryptobuybots.com/revolut-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 491742097058
+    },
+    {
+      "id": "bitstamp",
+      "name": "Bitstamp",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "One of the oldest exchanges, with cold wallets tracked since 2013.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qppunwskzl7t3mtmcarlvpxjuzd8jy7l7ga49av2c78xg47fujncsrc76y6",
+          "label": "Public address",
+          "sats": 59779247487,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qpxweytvrnze8vzw7c3sx0kxphk4xs4k28mgqc0jjd9kajqk40z3qwj2wta",
+          "label": "Public address",
+          "sats": 179085900885,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1quzr7gvhar06j24vguew85mmxqpw7u9hrgns2dmwd4xxrq5qu2pcsct5rlj",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qzgs08dsanj8dlrvuy3zyjfdl38g7m9wm2gs74lekd0ecsjjkw6ns8rvnes",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3CgKHXR17eh2xCj2RGnHJHTDjPpqaNDgyT",
+          "label": "Public address",
+          "sats": 12035143133,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JoktQJhCzuCQkt3GnQ8Xddcq4mUgNyXEa",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3A1KUd5H4hBEHk4bZB4C3hGgvuXuVX7p7t",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "113L62kchKukrSmA9ur7Xq9KorCV3u4dTG",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16vXP31udcx67Xk9KZJNAq2JM6i4hFSGyh",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1ABobw22YXGu4vKtysgX9AKRqz3fUFWv4E",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GuJf9YrV853Da9GouBvUq2zAjEdn8ej9d",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GVtpiTSEwC1vUe3UGFRBHjGTrWVFuiArs",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HNaQ8HWPQCW93aQzCHBr3EdqEqgfQV3ir",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JEC8vYP9cEDSu6N6DXkkYd3RaeWAdsCqN",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JYTUJZMTsJkqDfLzBG1bGcaBngLgSPAoQ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NaZM6vqvW14Q3P7XWUTB9Q6NWNESLbwEb",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PuSoNughjE4zTdRQS2sDhLEFbVgkB3kS7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3Nxwenay9Z8Lc9JBiywExpnEFiLp6Afp8v",
+          "label": "Public address",
+          "sats": 920910,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 250901212415
+    },
+    {
+      "id": "wisdomtree",
+      "name": "WisdomTree Bitcoin Fund (BTCW)",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "ETF custody",
+      "evidence": "attributed",
+      "live": true,
+      "description": "WisdomTree's spot bitcoin fund. Tracked public addresses only.",
+      "extra": "Partial coverage — tracked public addresses only.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qqrdytx6dwe3kww7caj0ennujukru4894yfspfr",
+          "label": "ETF custody address",
+          "sats": 201164983666,
+          "source": "https://cryptobuybots.com/wisdomtree-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 201164983666
+    },
+    {
+      "id": "spacex",
+      "name": "SpaceX",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Treasury",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Corporate treasury holding, reported from its balance sheet. Tracked public addresses only.",
+      "extra": "Partial coverage — tracked public addresses only.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q4pt7j8hyttgwga3zxtnk8expukp52ds74u54ez",
+          "label": "Treasury wallet",
+          "sats": 76400017601,
+          "source": "https://cryptobuybots.com/spacex-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q903fphrae935a4zwzwv9kyu5ytp5qh2wprjgk3",
+          "label": "Treasury wallet",
+          "sats": 61400144188,
+          "source": "https://cryptobuybots.com/spacex-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qzzy3nmshf7209ufthh6epy0yrpt6m5ydlw02x6",
+          "label": "Treasury wallet",
+          "sats": 40700000990,
+          "source": "https://cryptobuybots.com/spacex-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 178500162779
+    },
+    {
+      "id": "el-salvador",
+      "name": "El Salvador",
+      "category": "GOV",
+      "icon": "gov",
+      "badge": "National reserve",
+      "evidence": "official",
+      "live": true,
+      "description": "El Salvador publishes its national bitcoin reserve addresses on its own government site, one address per announcement.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3Fh6QjPzfu2LWYxVYqRZ45QPTja1PrFmNC",
+          "label": "National reserve",
+          "sats": 50000000546,
+          "source": "https://bitcoin.gob.sv/",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "359jBt2XuTdgk6YEz1WwhwMwrzTd7Qb3Gw",
+          "label": "National reserve",
+          "sats": 50000100000,
+          "source": "https://bitcoin.gob.sv/",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3DrHiHzfAKnne3zn8pqJdxJQhRFtW1jnMG",
+          "label": "National reserve",
+          "sats": 50000001622,
+          "source": "https://bitcoin.gob.sv/",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3KXKHH5hhiYkx9nfJdUxZL3ivrVSnQNfKz",
+          "label": "National reserve",
+          "sats": 25768903075,
+          "source": "https://bitcoin.gob.sv/",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 175769005243
+    },
+    {
+      "id": "grayscale",
+      "name": "Grayscale (GBTC / BTC)",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "ETF custody",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Grayscale's trusts, converted to ETFs in 2024. Custody is at Coinbase; tracked public addresses only.",
+      "extra": "Partial coverage — tracked public addresses only.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q5fymy5dc4q2flsamc6f7jjuxw9uq29dvy3glvd",
+          "label": "ETF custody address",
+          "sats": 49598698567,
+          "source": "https://cryptobuybots.com/grayscale-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qev4e6k2zvvdawz2g2ehuhzuwu6prgquel7qpe9",
+          "label": "ETF custody address",
+          "sats": 47694817545,
+          "source": "https://cryptobuybots.com/grayscale-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qnylx7v5ke0lw992md6wn4l8mpw989kqls7a7ll",
+          "label": "ETF custody address",
+          "sats": 49163867636,
+          "source": "https://cryptobuybots.com/grayscale-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 146457383748
+    },
+    {
+      "id": "two-prime",
+      "name": "Two Prime",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Two Prime tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qupq4ujccrwcte32lcmf6xtu5rj9lwcmh24e8hg0vkmm0ew3973xs46t9zf",
+          "label": "Public address",
+          "sats": 86999231189,
+          "source": "https://cryptobuybots.com/two-prime-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 86999231189
+    },
+    {
+      "id": "lmax",
+      "name": "LMAX Digital",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "LMAX Digital tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q58p76qs3r077hh8g0g8uu03jjn6c683dzz5y0vrla06reyczc48qaaqflv",
+          "label": "Public address",
+          "sats": 73873916412,
+          "source": "https://cryptobuybots.com/lmax-digital-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 73873916412
+    },
+    {
+      "id": "hut-8",
+      "name": "Hut 8",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Treasury",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Bitcoin miner and treasury company. Tracked public addresses only.",
+      "extra": "Partial coverage — tracked public addresses only.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qavez5ky4vzu32lwm3uktn7tq8dw5vxlnhr7gh2",
+          "label": "Treasury wallet",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/hut-8-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1ql9p86227vugxght9ys32ezyu44vde87z4y0z8a",
+          "label": "Treasury wallet",
+          "sats": 66720927075,
+          "source": "https://cryptobuybots.com/hut-8-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 66720927075
+    },
+    {
+      "id": "pool-mara-pool",
+      "name": "MARA Pool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "MARA Pool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "15MdAHnkxt9TMC2Rj595hsg8Hnv693pPBB",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1A32KFEX7JNPmU1PVjrtiXRrTQcesT3Nf1",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "32i1m6gNcSHwiPX9nfTNXVjme9j5DU8y5g",
+          "label": "Pool payout address",
+          "sats": 65727880090,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 65727880090
+    },
+    {
+      "id": "bitflyer",
+      "name": "bitFlyer",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Japanese exchange custody wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qyy30guv6m5ez7ntj0ayr08u23w3k5s8vg3elmxdzlh8a3xskupyqn2lp5w",
+          "label": "Public address",
+          "sats": 9415665460,
+          "source": "https://cryptobuybots.com/bitflyer-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qzk2pyxtahg64cx6gyq02vrw65fdxtpr253r4ygww9n2w2zjyy8wsnyc666",
+          "label": "Public address",
+          "sats": 50340279505,
+          "source": "https://cryptobuybots.com/bitflyer-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 59755944965
+    },
+    {
+      "id": "gemini",
+      "name": "Gemini",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Gemini's custody and cold wallets. The large 1LQoW / bc1ql whale address that once ranked third on chain is attributed to Gemini by two independent analyses.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q2vm9v49ghamzsckdhhm00z3268wr2vx6w5y8dm",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/gemini-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q68k3r0xuanyv347r4ynhxtrwsklneun62j39w0",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/gemini-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qpy04t5whzdgd4w4raqav3dfq76gpkkpzhzc7rz",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/gemini-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1quq29mutxkgxmjfdr7ayj3zd9ad0ld5mrhh89l2",
+          "label": "Public address",
+          "sats": 56666275840,
+          "source": "https://cryptobuybots.com/gemini-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qw83n4nrtyz22p2wwa8d7rp4ppk8c29lnr0fgsv",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/gemini-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qwysszeske676l0t6vamv90zqtk5e6uudmh0t8a",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/gemini-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 56666275840
+    },
+    {
+      "id": "ark-21shares",
+      "name": "ARK 21Shares Bitcoin ETF (ARKB)",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "ETF custody",
+      "evidence": "attributed",
+      "live": true,
+      "description": "ARK and 21Shares' spot bitcoin ETF, custodied with Coinbase. Tracked public addresses only.",
+      "extra": "Partial coverage — tracked public addresses only; the fund's custody is spread across unpublished Coinbase addresses.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qpjndl5y7wttpvftq2n3uhc5tvlvl228rergypz",
+          "label": "ETF custody address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/ark-invest-btc-etf-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qud5yz45eg6g5vwj4q7t9lx8ny5m6udae3xg3nw",
+          "label": "ETF custody address",
+          "sats": 14350475217,
+          "source": "https://cryptobuybots.com/ark-invest-btc-etf-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qumhetmcr5cuqlkf5garusc3wwwheg43qx8sghh",
+          "label": "ETF custody address",
+          "sats": 642114990,
+          "source": "https://cryptobuybots.com/ark-invest-btc-etf-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qwv2s8ckvsp0yh9kuaydtsqyyxqw5ww09v5hnvc",
+          "label": "ETF custody address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/ark-invest-btc-etf-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qyq0n03pjgmggyu26xepa72z34elzsyg2ajlc8l",
+          "label": "ETF custody address",
+          "sats": 38867089616,
+          "source": "https://cryptobuybots.com/ark-invest-btc-etf-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qdhfj4ppylu67sv9pgjs62c05hd0rmq4vv83v2e",
+          "label": "ETF custody address",
+          "sats": 35414720,
+          "source": "https://cryptobuybots.com/ark-invest-btc-etf-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qftcshkr9s98cj6jk9uehm5fa5qdtfdend949ahkjrtnlh4ls3psqd2xkhx",
+          "label": "ETF custody address",
+          "sats": 20646,
+          "source": "https://cryptobuybots.com/ark-invest-btc-etf-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 53895115189
+    },
+    {
+      "id": "fidelity-fbtc",
+      "name": "Fidelity Wise Origin Bitcoin Fund (FBTC)",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "ETF custody",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Fidelity's spot bitcoin fund, custodied by Fidelity Digital Assets. Tracked public addresses only.",
+      "extra": "Partial coverage — tracked public addresses only (FBTC custody is not published address by address).",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "32oWtYcHLt1nVWPEtJe5z4g7E8bd1A7jTQ",
+          "label": "ETF custody address",
+          "sats": 34777005442,
+          "source": "https://cryptobuybots.com/fidelity-custody-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 34777005442
+    },
+    {
+      "id": "luno",
+      "name": "Luno",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Luno tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qwfgdjyy95aay2686fn74h6a4nu9eev6np7q4fn204dkj3274frlqrskvx0",
+          "label": "Public address",
+          "sats": 33557026139,
+          "source": "https://cryptobuybots.com/luno-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 33557026139
+    },
+    {
+      "id": "invesco",
+      "name": "Invesco Galaxy Bitcoin ETF (BTCO)",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "ETF custody",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Invesco and Galaxy's spot bitcoin ETF. Tracked public addresses only.",
+      "extra": "Partial coverage — tracked public addresses only.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qcyzjcp3wq3f2e6pxserjtw08zpgsn8z3dx5gq8",
+          "label": "ETF custody address",
+          "sats": 31829139356,
+          "source": "https://cryptobuybots.com/invesco-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 31829139356
+    },
+    {
+      "id": "copper",
+      "name": "Copper",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Custody",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Institutional custody and settlement wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qgt9ce8awcv8aazk2pru4q9qaha5eafser64f3d",
+          "label": "Custody address",
+          "sats": 31430194095,
+          "source": "https://cryptobuybots.com/copper-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 31430194095
+    },
+    {
+      "id": "pool-foundry-usa",
+      "name": "Foundry USA",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Foundry USA payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "12KKDt4Mj7N5UAkQMN7LtPZMayenXHa8KL",
+          "label": "Pool payout address",
+          "sats": 1985386,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FFxkVijzvUPUeHgkFjBk2Qw8j3wQY2cDw",
+          "label": "Pool payout address",
+          "sats": 7900,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qxhmdufsvnuaaaer4ynz88fspdsxq2h9e9cetdj",
+          "label": "Pool payout address",
+          "sats": 12919707,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1p8k4v4xuz55dv49svzjg43qjxq2whur7ync9tm0xgl5t4wjl9ca9snxgmlt",
+          "label": "Pool payout address",
+          "sats": 7558829,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qtm7ye0wm085hhv88japwkalmwkt3amec5z9c7a3unv05tfg6y2pstr3xfz",
+          "label": "Pool payout address",
+          "sats": 30232122798,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 30254594620
+    },
+    {
+      "id": "kucoin",
+      "name": "KuCoin",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Proof of Reserves",
+      "evidence": "attributed",
+      "live": true,
+      "description": "KuCoin published its reserve wallets in a transparency report in 2022.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q9wvygkq7h9xgcp59mc6ghzczrqlgrj9k3ey9tz",
+          "label": "Proof-of-reserves wallet",
+          "sats": 21300257310,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qnwafj9hy9w827dh4nq2vsr9ltgf2qjm6tf465h",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qrt7rkpswpgmcag7txzf6ps9mvepwgndshqdx6d",
+          "label": "Proof-of-reserves wallet",
+          "sats": 6469619857,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1ArTPjj6pV3aNRhLPjJVPYoxB98VLBzUmb",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 27769877167
+    },
+    {
+      "id": "bhutan",
+      "name": "Bhutan (Druk Holding & Investments)",
+      "category": "GOV",
+      "icon": "gov",
+      "badge": "State mining",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The Royal Government of Bhutan mines bitcoin with hydropower through Druk Holding & Investments; its holdings have been tracked since 2023.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q22q82m27mx5dsyasfrtrwgqm4ly3lnevlyzmvhxf33ehkd7uhklsw5ga9j",
+          "label": "State mining wallet",
+          "sats": 14626655330,
+          "source": "https://arkm.com/explorer/address/bc1q22q82m27mx5dsyasfrtrwgqm4ly3lnevlyzmvhxf33ehkd7uhklsw5ga9j",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3QkQz739oPCen7HfNQzaNyV6DwDx4JB7iS",
+          "label": "State mining wallet",
+          "sats": 0,
+          "source": "https://arkm.com/explorer/address/bc1q22q82m27mx5dsyasfrtrwgqm4ly3lnevlyzmvhxf33ehkd7uhklsw5ga9j",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 14626655330
+    },
+    {
+      "id": "pool-spiderpool",
+      "name": "SpiderPool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "SpiderPool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "125m2H43pwKpSZjLhMQHneuTwTJN5qRyYu",
+          "label": "Pool payout address",
+          "sats": 96000,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "38u1srayb1oybVB43UWKBJsrwJbdHGtPx2",
+          "label": "Pool payout address",
+          "sats": 297200,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BM1sAcrfV6d4zPKytzziu4McLQDsFC2Qc",
+          "label": "Pool payout address",
+          "sats": 13412313622,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 13412706822
+    },
     {
       "id": "satoshi",
       "name": "Satoshi Nakamoto",
@@ -54,12 +7478,13 @@ var ENTITIES = {
         "sats": 110000000000000,
         "note": "~1,100,000 BTC: the rounded figure for the Patoshi pattern (Whale Alert 2020 counted 1,122,693 BTC over 22,503 blocks). An estimate from a named source, not a read balance."
       },
+      "coverage": "full",
       "addresses": [
         {
           "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
           "label": "Genesis block (block 0) coinbase",
           "sats": 5772160695,
-          "source": "mempool.space /api/address",
+          "source": "https://mempool.space/",
           "note": "The 50 BTC of the genesis coinbase are unspendable by protocol and are not counted in address statistics. The balance shown is later donations only.",
           "live": true
         },
@@ -67,16 +7492,16 @@ var ENTITIES = {
           "address": "12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX",
           "label": "Block 1 coinbase (first block mined after genesis)",
           "sats": 5135275617,
-          "p2pkSats": 5000000000,
-          "source": "mempool.space /api/address",
+          "source": "https://mempool.space/",
           "note": "The address API reports 1.35275617 BTC received later, but the 50 BTC P2PK coinbase output of tx 0e3e2357... is still unspent, so the tracked balance is adjusted to 51.35275617 BTC. p2pkSats carries the 50 BTC the API leaves out, and a live read adds it back. This address is block 1, not block 9 (a common web error).",
-          "live": true
+          "live": true,
+          "p2pkSats": 5000000000
         },
         {
           "address": "12cbQLTFMXRnSzktFkuoG3eHoMeFtpTu3S",
           "label": "Block 9 coinbase (input of the first P2P transfer in block 170)",
           "sats": 44412447,
-          "source": "mempool.space /api/address",
+          "source": "https://mempool.space/",
           "note": "The original 50 BTC was spent as the input of the first person-to-person transfer (10 BTC to Hal Finney, block 170). The remainder is later donations.",
           "live": true
         }
@@ -84,26 +7509,1661 @@ var ENTITIES = {
       "total": 10951848759
     },
     {
-      "id": "hal-finney",
-      "name": "Hal Finney",
-      "category": "PERSON",
-      "icon": "person",
-      "badge": "Historic",
-      "evidence": "chain",
-      "live": false,
-      "description": "Recipient of the first person-to-person bitcoin transfer (block 170, 2009-01-12).",
-      "extra": null,
+      "id": "pool-luxor",
+      "name": "Luxor",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Luxor payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
       "addresses": [
         {
-          "address": "1Q2TWHE3GMdB6BZKafqwxXtWAWgFt5Jvm3",
-          "label": "First P2P receive (10 BTC, block 170)",
+          "address": "1MkCDCzHpBsYQivp8MxjY5AkTGG1f2baoe",
+          "label": "Pool payout address",
           "sats": 0,
-          "source": "mempool.space /api/address",
-          "note": "The 10 BTC was paid to a P2PK output that address statistics do not count, and it moved in block 92,240. Balance is 0 (the 0.0446 BTC of later donations was spent too). Kept as a historic marker.",
-          "live": false
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "39bitUyBcUu3y3hRTtYprKbTp712t4ZWqK",
+          "label": "Pool payout address",
+          "sats": 4000000000,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "32BfKjhByDSxx3BM5vUkQ3NQq9csZR6nt6",
+          "label": "Pool payout address",
+          "sats": 6271669247,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
         }
       ],
-      "total": 0
+      "total": 10271669247
+    },
+    {
+      "id": "pool-bixin",
+      "name": "Bixin",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Bixin payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "13hQVEstgo4iPQZv9C7VELnLWF7UWtF4Q3",
+          "label": "Pool payout address",
+          "sats": 6923009399,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KsFhYKLs8qb1GHqrPxHoywNQpet2CtP9t",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 6923009399
+    },
+    {
+      "id": "yala",
+      "name": "Yala Finance",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Yala Finance tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qtq87j2u9clvxlyrafdvmu0lf88cqtzagsp7wn3qqsef8fahgqdus8yzp2e",
+          "label": "Public address",
+          "sats": 2873078404,
+          "source": "https://cryptobuybots.com/yala-finance-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 2873078404
+    },
+    {
+      "id": "pool-carbon-negative",
+      "name": "Carbon Negative",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Carbon Negative payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "33SAB6pzbhEGPbfY6NVgRDV7jVfspZ3A3Z",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3KZDwmJHB6QJ13QPXHaW7SS3yTESFPZoxb",
+          "label": "Pool payout address",
+          "sats": 1940484858,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1940484858
+    },
+    {
+      "id": "conti",
+      "name": "Conti",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Conti ransom wallets tracked by the GraphSense tag packs and Ransomwhere.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qnj6yephp3jt204f8yn02wvydn47yd42w63587c",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qvpt6tnce3knl5vr5v3k985uwr4mm85hc62ydqs",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmjavw2hsqdfet4mv5j83evy0z3w06rantrs6an",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q65njz3pfw9kjjvcetkexsl0l922wtd2wz2p46p",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JWnZmkJwJSK6F21nypCAGzsR6TVhPRA4P",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MuBnT25CQeTFYkx1tHP4Fa5rKbc4rC9uF",
+          "label": "Public address",
+          "sats": 1541148250,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qtcld00s09n944yjgyjfd6ujy5gespztc0umy2e",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q7ld076gjadenuvuknv2c5a9lqslfk8verdkf07",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qq0mn6wgm8wxr7j2af4j2q3t7stscesqf2afv6v",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q2muhfugejgft7smu0ejze22het2rkmnpdccx5j",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qzwe9gedyc88hnm8m265g780qy0ezh7z4va0z5c",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qdak2ewrf9n295akue9r538pcsuh6k3gm4j5gk3",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qp77llzx4q3t5dmwwwkzwg3aw30z3l924x7vlv5",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1ql8kpdvy5pns40lvfeuewz930e7nkh3xa5e96k7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qjndxpuddlssczk336tdd7wcawlj2qws7p77p2k",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qprpt8gm0h0jyj6py406xz9gucl40j8vusumaxx",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q22hz66x8uth9xadfxmn5fe2s9kdv7zg8rpjauw",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qnf273myysxjw23g9hze4vcu3uqkget9ra70hen",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qw5er3p5xayypk00l44p944xk4xhfgjgm0jjswc",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qvzs0kefvwgtx3vjdexznw0s5zq2st45uj5pyk0",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qs4elf8y33lwu35m89tj55hhjwts9jctpsdesxx",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qq0r3px80wzfa2cfe9r0xfqa2fpmmag9nhrekhw",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q7r8ars6zxml0k4ep5489vga9yudpvqaecywvw5",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qg44mhye7mzrlsqza97kgsl0kmppcvfz3lxnt32",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qlsceg70s90mwnntuq5r4jmfnd744arpu4q8q6u",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qtayhxcuswujqdxuqdc7djyt5976ek3dgtnc6l6",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qdpsal8xhg9p857r4g425y868yqwtzdqgzv8wg0",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1541149250
+    },
+    {
+      "id": "netwalker",
+      "name": "Netwalker",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Netwalker ransom wallets tracked by the GraphSense tag packs and Ransomwhere.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "17TMc2UkVRSga2yYvuxSD9Q1XyB2EPRjTF",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DTE5x3Rjn2q75HjX6hiu8CQwEGqe6wQ4s",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1C7FeXMf18mGrcF59DJTkmxnRfkKeG1KFZ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18x7PieotZcmMwYSaYbbV8X3zBMentd5Fu",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Kcwserp7KqSMYBDe6Ra5atHP6xWbQPBnD",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GuPsTqJjib8t2idTaLwa95kRLtiWhrE5A",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1C9wdSqXngQSMabJWRAn9jSzThLqmVBz28",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MTm1qxzVLvGPMnQ5vWPXGrNapC2XPyGAU",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GmoNbUmxdYZyb97wFAVtQjq7xt2Km3Qb2",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LgA6afU8BNTC9bwwHu6zN2RgJEMspHQbM",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1H2Spjde9d6YaoBfJ4LYmFWxDsgmxf92Ln",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HNZEpCrS2uBSNXb4TqZ76fD4VkyMzD5dL",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1AHod4t1vpW9aLxQM4CEcj5cxdCmQnpgLD",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13i19sWBpe5Z6P6HHigNFW1ebeWhXzmPfS",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1E4s5oWDH2KqjR5S5aywR3oThHrZT9s4Ui",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14fHcTQx7wwcbMa5opGqdJXTSEqTGRtoxS",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19nwTbrjLRRjxXam8NxExib8uWuuA78Cu3",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13DFuTYQhKQyj7m5pNzWrySsNUnFakcojp",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1McnyaGV4yaS7AQo97G8AHLFx94WzA751U",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13msidWLjvS6HUAmQcDj98nLno4BzZusXT",
+          "label": "Public address",
+          "sats": 64325998,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12bG5T6kvj9iWPzCxTjPcWipKaRDLLXZBL",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DgLhGeJfoUkkXdYNVf7SNckX5ST5taPVo",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GuR4EA1g9yFPP13QjnqjZscGdyyvCN4WZ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qsmehmvycn97hsl3l8mjavg8u44ymvmutmhzvtx",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qxkz0nsrqfat833fq9gh7ypk0qcvrgqku679cz0",
+          "label": "Public address",
+          "sats": 1266129099,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qc0xzda5wurdz2yhurdch8jvz6natg2w86749fc",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3KyeCr9QA56pAjEpUPrPVH5E9FuvPPcXuk",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qxay7nulfvjtz53p6erdajrfzdwtwc7vhah25c2",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qcwadmycvzen2qkjnge2hhgtgulerssy56pqx9k",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qdfqazmrxermtsefgeskc2e2jngmkx0hvl55hek",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1QDTerJPMMdPnbvWr8R5p4SYTPbQLzk8vj",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qqs4px4km9xlal0aquuucxeuj2m30llj7w9jwpv",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q2n664ugqjxcalnk5ts4qraz47plvyvwpeyryat",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3ELWptyxydCYekCuLwZPCDC79vLzvvXDv4",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NJFpoLF5WsKfcWicctEZ3ykhBKoooQcLi",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "35XP3iS53jgE4K7atFwmjoKrxy5hC6dbKp",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qx35wa2reueyf2jmhq3ffdv5vmqn5s8nm6flp9n",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qg4l65gt8pkfu9c62d5dz4dlzgu8g7qp5257luw",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qaktxa75kx8xglvmr5pgvruj0rjmvgxyaxxypfj",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qas4q5ursafmagzkvhs3v6sl4t98v9tnr8a75rg",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1330459097
+    },
+    {
+      "id": "flow-traders",
+      "name": "Flow Traders",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Flow Traders tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qlaw9lygwc342d8nvrrllculgrxwyalpr5k47y3",
+          "label": "Public address",
+          "sats": 1123688244,
+          "source": "https://cryptobuybots.com/flow-traders-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1123688244
+    },
+    {
+      "id": "pool-ocean",
+      "name": "OCEAN",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "OCEAN payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "37dvwZZoT3D7RXpTCpN2yKzMmNs2i2Fd1n",
+          "label": "Pool payout address",
+          "sats": 1082420393,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1082420393
+    },
+    {
+      "id": "tesla",
+      "name": "Tesla",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Treasury",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Corporate treasury holding, disclosed in its 10-Q filings. Tracked public addresses only.",
+      "extra": "Partial coverage — tracked public addresses only.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+          "label": "Treasury wallet",
+          "sats": 395351411,
+          "source": "https://cryptobuybots.com/tesla-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 395351411
+    },
+    {
+      "id": "pool-secpool",
+      "name": "SECPOOL",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "SECPOOL payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3Awm3FNpmwrbvAFVThRUFqgpbVuqWisni9",
+          "label": "Pool payout address",
+          "sats": 315581564,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 315581564
+    },
+    {
+      "id": "wannacry",
+      "name": "WannaCry Ransom Wallets",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware 2017",
+      "evidence": "official",
+      "live": true,
+      "description": "The three ransom addresses hard-coded into the WannaCry malware. The coins were withdrawn years ago; the addresses remain the record of the attack.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "115p7UMMngoj1pMvkpHijcRdfJNXj6LrLn",
+          "label": "Public address",
+          "sats": 46702392,
+          "source": "https://www.nksc.lt/doc/ENISA-WannaCry-v1.0.pdf",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12t9YDPgwueZ9NyMgw519p7AA8isjr6SMw",
+          "label": "Public address",
+          "sats": 192242576,
+          "source": "https://www.nksc.lt/doc/ENISA-WannaCry-v1.0.pdf",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13AM4VW2dhxYgXeQepoHkHSQuy6NgaEb94",
+          "label": "Public address",
+          "sats": 32943048,
+          "source": "https://www.nksc.lt/doc/ENISA-WannaCry-v1.0.pdf",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 271888016
+    },
+    {
+      "id": "wintermute",
+      "name": "Wintermute",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Wintermute tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q9exg34dkmgxu28yektgn929jpjpzukhhl2r3zr",
+          "label": "Public address",
+          "sats": 128030330,
+          "source": "https://cryptobuybots.com/wintermute-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 128030330
+    },
+    {
+      "id": "bitgo",
+      "name": "BitGo",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Custody",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The custodian behind WBTC and many institutional holdings.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q25dumhyfldnmmtlcphpzvwyc742wzrazuf3nmx5h3r0se080hqcq8m0tkn",
+          "label": "Custody address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/bitgo-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qnmjfqkzrktgna789exafgag6s8gtmp2235jnl9t6gw9d9fnjzp4s540p7r",
+          "label": "Custody address",
+          "sats": 105000000,
+          "source": "https://cryptobuybots.com/bitgo-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 105000000
+    },
+    {
+      "id": "chatex",
+      "name": "Chatex",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Sanctioned",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Sanctioned exchange (OFAC, 2021).",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3E7YbpXuhh3CWFks1jmvWoV8y5DvsfzE6n",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3NRJ8aXdUiZdHaiFX9ePX3DhGHzcEi14Fq",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3K7PMJyMNVnxqsfpmK9r9nJDtzDw9wNwNV",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3H3rh85qPaGLy2w6618yZNaH7i8asHv46B",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3MTrJTFhYK9v1C6pjHtuweZSopfZa4b1wb",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "347QFbejDBdMZFTxpmn6evvvqyXiqZTCd7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "33xWfziVZesgo83U5izdNCBVTnrtBpSwK7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "32wdqwX3zCEX3DhAVEcKwXCEGdzgBnx1R9",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3N9YcPBDky9UsMx1RTk33tL4jDkZfSnsPk",
+          "label": "Public address",
+          "sats": 100000000,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q90zrdysy4flyacw7hsury3ajs9yzwtwp6guqpypx94w0d3p58hysvz6pde",
+          "label": "Public address",
+          "sats": 52700,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qw7vfgv3r5vnehafl0y95sclg3uqsj87wxs9ad628yjjcq33cwessr6ndyw",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q86tl9255vg5wldamfymaaz36uqxzm30gs7fhkljvzdlt9t38s3lqgdwdfq",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3M7CGBPUJwXXSroWuZ6H5jiprdKCyf7V5M",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "34kWCKF2wCbe6uinit2uL4ND6d8yxsuxKM",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qe95l438kzjcvnsm3kn8n5augf9gpctdlhsq7f7hpnkyvlr7rc7cqupapf7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "32VgTk8kGvBsqkHhkvtNooGdtqZm46jTVo",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3NPognMSbzyA2JYW2fpkVKWyBMi2XTq2Zt",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 100052700
+    },
+    {
+      "id": "pool-ghash-io",
+      "name": "GHash.IO",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "GHash.IO payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1CjPR7Z5ZSyWk6WtXvSFgkptmpoi4UM9BC",
+          "label": "Pool payout address",
+          "sats": 41386538,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 41386538
+    },
+    {
+      "id": "pool-arkpool",
+      "name": "ArkPool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "ArkPool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1QEiAhdHdMhBgVbDM7zUXWGkNhgEEJ6uLd",
+          "label": "Pool payout address",
+          "sats": 36381421,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 36381421
+    },
+    {
+      "id": "silk-road",
+      "name": "Silk Road (FBI seizure)",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "FBI seizure",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The Silk Road marketplace's hot wallet, seized by the FBI in 2013. It holds dust now; the seized coins were auctioned in 2014-15.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX",
+          "label": "Public address",
+          "sats": 33061617,
+          "source": "https://www.walletexplorer.com/address/1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 33061617
+    },
+    {
+      "id": "blender",
+      "name": "Blender.io",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Mixer",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Blender.io mixer wallets. Sanctioned in 2022 for laundering Lazarus funds.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3NDzzVxiLBUs1WPvVGRfCYDTAD2Ua2PvW4",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "32fbAZMTaQxNd2fAue1PgsiPgWfcsHBQQt",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3GMfGEDYMTq9G8dEHet1zLtUFJwYwSNa3Y",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "39AALn7eTjdPzLb99hHhD6F7J8QWB3R2Rd",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3N3YSDvp4cbhEgNGabQxTN39kEzJmwG8Ah",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "37g6WgqedzZx6nx51tYgssNG8Hnknyj5nL",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3HQDRyzwm82MFmLWtmyikDM9JQEtVT6vAp",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3FBgeJdhiBe22UoSpp51Vd8dPHVa2A4wZX",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "34pFGsSYbWEritXncW9unZtQQE9dKSvKku",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3JLyyLbwciWAC6re87D7mRknXakR4YbnUd",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3DCCgmyKozcZkFBzYb1A2x8abZCpAUTPPk",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "38LjCapRrJEW7w2zwbyS15P9D9UGPjWS44",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15PggTG7YhJKiE6B16vkKzA1YDTZipXEX4",
+          "label": "Public address",
+          "sats": 28222776,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3QAdoc1rDCt8dii1GVPJXvvK6CEJLzCRZw",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3HupEUfKmMhvhXqf8TMoPAyqDcRC1kpe65",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3F6bbvS1krsc1qR8FsbTDfYQyvkMm3QvmR",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3QJyT8nThEQakbfqgX86YjCK1Sp9hfNCUW",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "34ETiHfQWEYFCCaXmEeQWVmhFH5vz2JMvd",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3MTRvM5QrYZHKo8gh5qKcrPK3RLjxcDCZE",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3J19qffPT6mxQUcV6k5yVURGZtdhpdGr4y",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3LDbNuDkKmLae5r3a5icPA5CQg2Y8F7ogW",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3PyzSbFj3hbQQjTzDzyLSgvFVDjB7yw4Cj",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "36XqYWGvUQwBrYLRVuegN4pJJJSPWL1WEu",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3K35dyL85fR9ht7UgzPfd1gLRRXQtNTqE3",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "33KKjn4exdBJQkTtdWxqpdVsWxrw3LareG",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3LhnVMcBq4gsR7aDaRr9XmUo17CuYBV4FN",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3EUjqe9UpmyXCFd6jeu69hoTzndMRfxw9M",
+          "label": "Public address",
+          "sats": 28281,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3JHMz3mTna1gVCZSPp8NgRFiY7phkv5mA8",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3EPqGUw2q89pwPZ1UF8FJspE2AyojSTjdu",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "32DaxSzUhLBHY2WGSWQYiBSHnRsfQZrrRp",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3ANWhUnHujdwbw2jEuGSRH6bvFsD9BqEy9",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3MvQ4gThF4mmuo49p4dBNchcmFHBRZnYfx",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "31t4nEpcwyQJT1VuXdAoQZTT5givRDPsNP",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3Q5dGfLKkWqWSwYtbMUyc8xGjN5LrRviK4",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3B4G1M8eF3cThbeMwhEWkKzczw9QoNTGak",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "32PsiT8itBrEF84ebdaF82yBUEcz5Wc6uY",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3MD3riFB6U8PykypF6qkvSj8R2SGdUDPn3",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "34kEYgpijvCmjvahRXXQEnBH76UGJVx2wg",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "35hh9dg3wSvUJz9vFk1FsezLE5Fx3Hudk2",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "38ncxqt932N9CcfNfYuHGZgCyR85hDkWBW",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3QEjBiPzw6WZUL4MYMmMU6DY1Y25aVbpQu",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3GYbbYkvqvjF5oYhaKCgQYCvcVE1JENk6J",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3JUwAS7seL3fh5hxWh9fu3HCiEzjuQLTfg",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3GSXNXzyCDoQ1Rhsc7F1jjjFe7DGcHHdcM",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BazbaTP8ELJUEfPBV9z5HXEdgBziV9p7W",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 28251057
+    },
+    {
+      "id": "pool-redrock-pool",
+      "name": "RedRock Pool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "RedRock Pool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3554kSaWNnP3B49Xyybert7gmxq2YSnfnx",
+          "label": "Pool payout address",
+          "sats": 27356642,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 27356642
+    },
+    {
+      "id": "pool-est3lar",
+      "name": "Est3lar",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Est3lar payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "34qGNFx6uQv6SzjYPbYVWtjvuy5DSGugt8",
+          "label": "Pool payout address",
+          "sats": 23970006,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 23970006
+    },
+    {
+      "id": "ross-ulbricht",
+      "name": "Ross Ulbricht (Dread Pirate Roberts)",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "Silk Road",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Silk Road's founder. The wallet below is the one the FBI seized as his personal holdings; it is empty now, and the funds were auctioned.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1HB5XMLmzFVj8ALj6mfBsbifRoD4miY36v",
+          "label": "Public address",
+          "sats": 20148071,
+          "source": "https://www.justice.gov/",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 20148071
+    },
+    {
+      "id": "pool-zulupool",
+      "name": "Zulupool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Zulupool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1ZULUPooLEQfkrTgynLV4uHyMgQYx71ip",
+          "label": "Pool payout address",
+          "sats": 17313116,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 17313116
+    },
+    {
+      "id": "bridgers",
+      "name": "Bridgers",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Bridgers tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q7t4vyehjsexdme84qhdgd4dawcn54djh0m78fz",
+          "label": "Public address",
+          "sats": 16554295,
+          "source": "https://cryptobuybots.com/bridgers-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 16554295
+    },
+    {
+      "id": "pool-poolin",
+      "name": "Poolin",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Poolin payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "14sA8jqYQgMRQV9zUtGFvpeMEw7YDn77SK",
+          "label": "Pool payout address",
+          "sats": 10000,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17tUZLvy3X2557JGhceXRiij2TNYuhRr4r",
+          "label": "Pool payout address",
+          "sats": 2000,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1E8CZo2S3CqWg1VZSJNFCTbtT8hZPuQ2kB",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GNgwA8JfG7Kc8akJ8opdNWJUihqUztfPe",
+          "label": "Pool payout address",
+          "sats": 11126,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "36n452uGq1x4mK7bfyZR8wgE47AnBb2pzi",
+          "label": "Pool payout address",
+          "sats": 12001,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3JQSigWTCHyBLRD979JWgEtWP5YiiFwcQB",
+          "label": "Pool payout address",
+          "sats": 11679770,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3KJrsjfg1dD6CrsTeHdHVH3KqMpvL2XWQn",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 11714897
     },
     {
       "id": "laszlo-hanyecz",
@@ -115,551 +9175,4717 @@ var ENTITIES = {
       "live": true,
       "description": "On 2010-05-22 Laszlo Hanyecz paid 10,000 BTC for two pizzas. Both sides of that transaction are listed.",
       "extra": "The chain record is settled (tx a1075db5..., block 57,043). Ownership attribution rests on Hanyecz naming the address himself on the forum and on press coverage.",
+      "est": null,
+      "coverage": "full",
       "addresses": [
         {
           "address": "1XPTgDRhN8RFnzniWCddobD9iKZatrvH4",
-          "label": "Laszlo Hanyecz (sender, self-attributed)",
+          "label": "Public address",
           "sats": 3234782,
-          "source": "bitcoin.com explorer / tx a1075db5...",
-          "note": "All 131 inputs of the pizza transaction came from this address. The balance shown is later small deposits.",
+          "source": "https://mempool.space/tx/a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d",
+          "note": "",
           "live": true
         },
         {
           "address": "17SkEw2md5avVNyYgj6RiXuQKNwkXaxFyQ",
-          "label": "jercos (recipient, 10,000 BTC)",
+          "label": "Public address",
           "sats": 2473041,
-          "source": "mempool.space /api/address",
-          "note": "The 10,000 BTC was split and moved ten minutes later. The balance shown is later small deposits.",
+          "source": "https://mempool.space/tx/a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d",
+          "note": "",
           "live": true
         }
       ],
       "total": 5707823
     },
     {
+      "id": "hydra",
+      "name": "Hydra Market",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Darknet 2022",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The largest darknet marketplace before its 2022 takedown; its bitcoin wallets were seized by German and U.S. authorities.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1BCWMwpR4M1nYUuuYe2bmzrNuwGoF9ZAbA",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MQBDeRWsiJBf7K1VGjJ7PWEL6GJXMfmLg",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qj6j6p0jdefl6pvdzx3kx8245yy5mz6q4luhzes",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1D1ej7zQzywWBDNXKNYpmH7Hso2U9koDG4",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1A3iYY4c3dkgNYGewzYzr7EsqfBuWXibGo",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1K2fmE9hfhbRNSZoBvCBWZAvsS5idTUxBG",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GYuu9d5HPikafbys3k5Q3DRJq6debGsoB",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3KvBX3jo69Qn8jHy44M33RYoeYcf8DdRBD",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "35aTjkBh4yeTypJsi9nuTdoMKHTsawKVgX",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FFS6pX1TCKTNy668Mbk2Lyoem1qB48kYX",
+          "label": "Public address",
+          "sats": 629,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Licqjca74n8pmNaoARXLLqcTUTHFpxbXH",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3AYU365Tcjef7j9pdKF9Xe8rWpEpsH196t",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3CCmt5LjQ5yKkaFY1DWC2SbERVEtWRnSRD",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3HRExd8GKFskZC5inmVcpiyy9UWG7FVa6o",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "35SwVFxosV3AsvnrBfzdXarqavRbvDyyxv",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1EvhBad5wCZYhBoAsGaciV6AvmZ1osLpeJ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "148LKmyZT3FGE4x1GjsFN6RsAwcjzk5iuE",
+          "label": "Public address",
+          "sats": 547,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "35qwVtMEohWDdBWRiCSR7azoP5cbY8SG1Q",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17mhyeBX617ABZ1ffThhUTJkHUcMvCkfd5",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Ge8JodC2HiBiEuT7D3MoH6Fak6XrcT9Kf",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16ZSAEfYpPCj3D94fsNt2okYj9Ue8mxy6T",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3ES6pqCueDPCnC4hCqhhYuey6gyiRJZw6E",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3Kp8Qc5z7yevDeoQxhS5RSSKnEi5x7AQ43",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "361AkMKNNWYwZRsCE8pPNmoh5aQf4V7g4p",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qs9u6j78e3utj08mwvqkkmqm9de5xk3g4yh8qtq",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1B3u21itzjgKtm7QsNQNCBpSkwzzeDHqrW",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qsmv6lkrw65l30yazdqpdjjtwzpvk9f8gfh0cy7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3QnWE5GVfQu3wVav91RuFkqip4Ti4NWqAY",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19FQzHibWDhSP8pKmJS3uagFYoisXtehzw",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3QWUdP5taP4GrRuueVDud1eWetb7hc3wDH",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Dpddb1TMjvmNQeYDqgyd1ww6cmwPJRdSk",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HH8eiuaTMucTNyvGCUmAvmCZCtdMi8SqK",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19pPbUDvoSBZafkUCYkD2Z9AkuqqV6sWm7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13LQJQ1oJ9K7PsqsGfjNhoVv6UeU6hgzQz",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CG1aSCxUnbmv9G34ofxTQoHtuVnMLJtQV",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1G64TFMFVJTjhJXra6x74BBhsfSyiWaFtT",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16p2UWTZwXRyK5bTHNVjdDyy1D3EQGsZf2",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3Czhm6xqn8odwz6jgTcjRrUjog28v6aVS8",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MbtT2ZsTtLp7EKZUV9r74cTyqvsMtTP2M",
+          "label": "Public address",
+          "sats": 32592,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Pu1nAW7kCoSMThMs8QcpM8JxuByQDZgH",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BCN3WgMRJwULTz1vsEQ7NZrBjwaUBf5Ca",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3MP7yBGSW2gkXVRE8S84T2j4KVgPh3rEzv",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "331TS6DyASY7iU5CRA8UryBnkPS78fP2B1",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BvJRBRp9ZZ6zLyuZaZsV7g3xP6JokdZQW",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1J9wJH2bamZVxscXAvoDH4jvtGKb7sYFDm",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GkLN7DbA9mAtHNzQWNPANcdWbefaz4Gzm",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BWP6ZQAhc4j5wR1b95zJAthJEFvhdees7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "35KAdTa2vqnJzitF2xiUzZn1Gmcas2Y465",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1QHxyuLGRMHfbNPJikV4Dwhfx45HWfUMWB",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1E9uUnLbyfToazo95vmM3ysYnzgkrL7GeC",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GnFTy5F9qi5MfaRZfgdg2jkyT5xtAHvd8",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qvlzfn6kmezv44d8kw0p5jsmxe6wchv3zc7gsxs",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3P6PzdfETr4275Gn3veLkCyDxA1jV8fHKm",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NbGwQwt4uEhg2srAKppLf8QaF6fbp3PZG",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3PDmRwotTkRAFRLGTUrucCERp2JdM1q4ar",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1B11Ezqg3AXjFhMdRq5UpPDpNyriYNVtkn",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DGsY4ww3BJnWXTsnmTgWa6UWdoRXgA1pX",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "37dDBCexFPraKW4jGSqkE3NyG52YeZQbJx",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "32pCmCWEjwhkLwh5BgLNAeBQFp5Gi1hv81",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1D3GuaS9eqKw8dWj9JFQtNufdRtysjSLxZ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3KGQ3hX6eFYtBjTBFSdvdkzHmwZyYWLRQh",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Sf6e4xQv8muMZqYPTdRFf3e5o5eWcg9F",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3PiCnZrBvGfWAKQ9hr4cCpfaDjy64yNSpE",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3GAUBtrTtWp1D9yeXgr3wMg8B599QHa5m5",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KkaKujnqwJf7Cbm7JKAZGF3X9d4685m8n",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1F7UL41qYm6TvnExZzPHBCyeENvX3XDEMS",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1H8sDTTgJPBKw83EBZDLhXvetCbxZUMMZM",
+          "label": "Public address",
+          "sats": 2989,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PJp8diNa89cVHpiT1VPu7EQ8LxYM5HX6v",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12VrYZgS1nmf9KHHped24xBb1aLLRpV2cT",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3HSZc4BLnQBznjSq7JvXgqNCZUUs3M9fZz",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3AFcE2mbSSndcpYFgHoExSmjUc26ef2gQh",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "35LScRJ8hzDvvWh9t9UA8bHGnGNVz3YEfa",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GcKLUUXodTQcLcPD7VLMgvCc4hs5Q775",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MtsQsw6n2jvJCWhpCw7jifTfD9Q3rBBVg",
+          "label": "Public address",
+          "sats": 2487846,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3K4rjdh8A5yi6LWvft2rbmyZvqEbPSSSX4",
+          "label": "Public address",
+          "sats": 19271,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "34WWXwFKAsXL9zYxbeNPaPV6vDamkjQLUo",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3HJN4jRa4mdfkey9JR9jUhr86yPwL86A3C",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Q4tJjH2aBr3AJrzxqa4Z3jPpf5SDgF4jK",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3GXdtA6kbb4M5aqzZm5qqxcFDFRMW8LqdJ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DKGRGJXGNLAtTeFb9SNPNHtrkZ87q7qKi",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16EKTes8ahD8xvwisqjc2xSNLiG3fDHatW",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3AjiWiUdKB5mcGUSS9mBeoHCeYJw3Zo8r6",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3JuSgFrwnrNfuhvR4GpWAPmeJVot4xrEae",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18cFGAdYcvNHkuhXLBE7izQKCyUW8TzCJE",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "34dxZvijpBM1YkPybczbQ7DuGuKAnULdfS",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1EtMuBPQnPCa3cecerdSH1SzydxnhbTmw",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PYtgFS2t6i57WdDvbRa7kPcsagGMBxzfg",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3GuQjr7kkrR5EjpanMgyAuxuLgrjEUwe21",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14gM1HuLVDELNHaFU22qpabjtiWek4HhV1",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17V7THwHMiDJmDwZK4unhE5HgKFJKx7VCe",
+          "label": "Public address",
+          "sats": 3333,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NvJm3jfZxENNyqws5BKQvhkLxg9chLJdo",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HuYfoEwsfHgZiRhbhJrCd5ST3iksa8KEx",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3K26aMKmnrv97Pj6YiFcqiXk2LxeHfhnG3",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "36yS87PLuW7sErLg1TY26WzaVarTim7AcC",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "35eanEz5iYg2eYaxCtMrR4SCoypFqrBWUH",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3JhPsVV3KnL9dBYGSZALS9EbrLr97R865a",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qsmqpalp3gtgkltag4x3ygevmhh9y2hzk73t2ug",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1quyc6j8ca84q9gjej5jjd2n8hra0vfu0j60fefs57p6e5rerkq07q0l5u3w",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PXxwPVtYxZiCRp9LKq7aKMDFrhAQztvUE",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q237mvl0heyw0r38wd3xz8h5mar96rrwpams8pp",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13hfsQm6oCaDZehfYBSMFiJVAi1jsL6sQd",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1ANpca7g93BwptUJg1zV116v49zn9gjDi3",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CNbhgxGRZvsWnEHotfXge7k2E1UPzBDC7",
+          "label": "Public address",
+          "sats": 69548,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CddRqw7oSPrT4tt5oXKyx2LiHJDPszy7y",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "175BUqf8JCU1uoG1iTRKTacDa4uvJDUCw2",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Hhe61Bwxs8Hd2WxzWY9FQyZicBiZGeSNW",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3QVyoH4u3qT88uChAeJVhfB3r6maZt431y",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1EuUMPBCZtSd5pVVFEqmRqUSfU1qy6ASuL",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "33fWcMdmsB2Ey4CEbVWbjGFkuevBSyP9nG",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16SPDQFFzgsoNSPiFFTfS8Dw8LLXqia4oc",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q202ajnhxgg9d9jjczmg0g4usp6haqldyy2eakl",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qqf8kcc9m57xjqcvsvuf989nnl48ve6d2s24cx3",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3DLGfN7hgsWXXSp9euXcnmWXLpFQuswW2t",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LKE3XA9bf5JFqtGtCHzWj5QGxKGwMfXZw",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BQACtiMXYB9JpUMpkEWt9m8BzswpGHq4X",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PWRKxkR5AU7Tc9zPqjdhtu1eGW1QZzs4y",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 2616755
+    },
+    {
+      "id": "pool-cloverpool",
+      "name": "CloverPool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "CloverPool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1Bf9sZvBHPFGVPX71WX2njhd1NXKv5y7v5",
+          "label": "Pool payout address",
+          "sats": 2279390,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "34qkc2iac6RsyxZVfyE2S5U5WcRsbg2dpK",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3EhLZarJUNSfV6TWMZY1Nh5mi3FMsdHa5U",
+          "label": "Pool payout address",
+          "sats": 15391,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3NA8hsjfdgVkmmVS9moHmkZsVCoLxUkvvv",
+          "label": "Pool payout address",
+          "sats": 2380,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qjl8uwezzlech723lpnyuza0h2cdkvxvh54v3dn",
+          "label": "Pool payout address",
+          "sats": 57479,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 2354640
+    },
+    {
+      "id": "pool-canoepool",
+      "name": "CanoePool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "CanoePool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1GP8eWArgpwRum76saJS4cZKCHWJHs9PQo",
+          "label": "Pool payout address",
+          "sats": 1509902,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1509902
+    },
+    {
+      "id": "pool-1thash",
+      "name": "1THash",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "1THash payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "147SwRQdpCfj5p8PnfsXV2SsVVpVcz3aPq",
+          "label": "Pool payout address",
+          "sats": 29064,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15vgygQ7ZsWdvZpctmTZK4673QBHsos6Sh",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12dRugNcdxK39288NjcDV4GX7rMsKCGn6B",
+          "label": "Pool payout address",
+          "sats": 1418957,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NzDBxPNrGXwPLx9HuVBPgs9DjozY741mi",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12dHcSW5MzgBeoPqt6HyVcAMBVbTd3Vfrm",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "38XnPvu9PmonFU9WouPXUjYbW91wa5MerL",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3Kd2qAXwEoGfgChtDxF12THb7PyiTYFeJJ",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1448021
+    },
+    {
+      "id": "coincheck-hack",
+      "name": "Coincheck Hack (2018)",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "2018 hack",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The NEM theft that hit Coincheck in 2018; the exchange's bitcoin wallets are tracked here.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3LCGsSmfr24demGvriN4e3ft8wEcDuHFqh",
+          "label": "Public address",
+          "sats": 276325,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "336xGpGweq1wtY4kRTuA4w6d7yDkBU9czU",
+          "label": "Public address",
+          "sats": 974652,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1250977
+    },
+    {
+      "id": "lazarus",
+      "name": "Lazarus Group (DPRK)",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "FBI attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "North Korea's state hacking group, attributed by the FBI. The wallets below are the ones the FBI published as laundering addresses.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qqvpjgaurtnhc8smkmdtwhx9c8207m0prsyxyjx",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qy0ggpxu8f6lta6vf44vervr4py2uu829grj8yh",
+          "label": "Public address",
+          "sats": 1110000,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qfesn3jj65fhmf00hh45ueql8je8jae6ep3qk84",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qg0qygyv3qfp8cjyy99ch9vc9dp876vl8wys67u",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qqydp9muxtnxyet3ryfqc467wjtm23f0r7eh5aa",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qqa682d2q0wtx5gfpxh4yfl9s4k00ukakl5fpk5",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qtnuzecpqaakj0dt855n24dv7u5pme7vyct2cf2",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qy78e6ml7f3p438jqrrlzsewx625y0sr7jsesa7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q32dzmf4t5a3xxvyxn07scgpmjznnz3kwjhw8uc",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qmqgkxzzfzjqepptw9xzxy03672xg55q559fmvr",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qdjmwm8q74r0yx99nghaeu33xdmz3lqnt2uspqv",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qvjpgxa2g3nvyw2hnclptextllu9dr4vkew8jfp",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q6w7qlaj3mfkgfrxwtvhw45cu86wew7xpjfqcmy",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qfcl8a4ck7uu3phgg5fj6g9servp6f85j3frcd3",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qe4n22sduyylws74aewc6y6g32nglvglqu7hted",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qtalh4l8qc0p2qw70axxjhwu9z7rm93td5sgsl3",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qc593a4d2hznk2ext3k2zmpdrqazlhhh80m4xas",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q8y9wc2p9444y8r77xtmswxm9qqw90nrpufkx47",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qlq3s8hgczfe62yt94xqasdr5ftuuyrc5kgvpwr",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q82gvk20m08uctmmr97p2mqyxtyh6xf68rwe0t9",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qrqv5f7jxhp67jcgk9wv5jx4795wlntvhdz2a7j",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qkrkxgvp2te3xhgn74c2azt4flf9u05y56kh3a9",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/us-fbi-lazarus",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1110000
+    },
+    {
+      "id": "pool-miningcity",
+      "name": "MiningCity",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "MiningCity payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "11wC5KcbgrWRBb43cwADdVrxgyF8mndVC",
+          "label": "Pool payout address",
+          "sats": 730000,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 730000
+    },
+    {
+      "id": "pool-58coin",
+      "name": "58COIN",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "58COIN payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "199EDJoCpqV672qESEkfFgEqNT1iR2gj3t",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14DjTuAUh87cwRsbU1z6W8hZY6FnEkpfLS",
+          "label": "Pool payout address",
+          "sats": 522858,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 522858
+    },
+    {
+      "id": "pool-wiz",
+      "name": "wiz",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "wiz payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1wizSAYSbuyXbt9d8JV8ytm5acqq2TorC",
+          "label": "Pool payout address",
+          "sats": 509296,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 509296
+    },
+    {
+      "id": "pool-antpool",
+      "name": "AntPool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "AntPool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "15kiNKfDWsq7UsPg87UwxA8rVvWAjzRkYS",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16MdTdqmXusauybtXTmFEW4GNFPPgGxQYE",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16kUc5B48qnASbxeZTisCqTNx6G3DPXuKn",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17gVZssumiJqYMCHozHKXGyaAvyu6NCX6V",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1AJQ3jXhUF8WiisEcuVd8Xmfq4QJ7n1SdL",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1B7ZBX2C39b26M9chHLURGSFTJA6DDQkZv",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BWW3pg5jb6rxebrNeo9TATarwJ1rthnoe",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CBqo1w3hmm9SCmbu2Yg6Ls4uLfkUqZJsx",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CZHhV67Qos4xXb8uYqvAGjK8Wq52woPi5",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CyB8GJNEsNVXtPutB36nrDY3fMXBTzXSX",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1D4UZG4qo8bF1MuZHSEyBHRZaxT8inatXS",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1D9jw3QHNankXxtcGVihsDK7Z7THN6j7Pg",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DDXyKUT6q3H9e5QXm2Gv6BNNWgztFG55g",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DQaDTefKPjHz3beLuo8KHRZF9t2Sc6foP",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Dek9ArRHb9tyWb9gaaX8SWmkfi5V7U5Y6",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DyR7HPQWjM6Zrnk7SzHVY2GEpXRGNNH9o",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FdJkPdpXtK3t5utZHJAop3saLZWfPfgak",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FrHkVsW7csAYYaRbUUcrKSmv91hcQnsqQ",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GEG1JR81jvUXs7TMAuo3SPBHZrpJijcjt",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GRcX882sdBYCAWyG99iF2oz7j3nYzXhLM",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GT2N4dCufvbnTKMbS61QrQPN4SexCAFiH",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Gp7iCzDGMZiV55Kt8uKsux6VyoHe1aJaN",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1H3u6R813MHGYhmGW6v86EYYriawRtACYD",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1H6ckqNWikmVT3wpN3X1BQ6b156Xc9nT2L",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JBVrhSSDrZrRmm4RnoWouqgGGqJMvWHi8",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JwUDWVSbAY5NeCBJhxQk1E8AfETfZuPj4",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1K8PNogxBZ6ts532DZnzxdbjgzJLjLdXqz",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KmgBTL7cFmFFYTD7HcdkMcZXRcTkh2WwS",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LTGvTjDxiy5S9YcKEE9Lb7xSpZcPSqinw",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MiQrT5sEKTUGNMbd9WS3yPPkSjWdpYA2r",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NS4gbx1G2D5rc9PnvVsPys12nKxGiQg72",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Nh7uHdvY6fNwtQtM1G5EZAFPLC33B59rB",
+          "label": "Pool payout address",
+          "sats": 174106,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Pzf7qT7bBGouvnjRvtRD8VhTyqjX1NrJT",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Sjj2cPC3rTWcSTEYDeu2f3BavLosog4T",
+          "label": "Pool payout address",
+          "sats": 88950,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1jLVpwtNMfXWaHY4eiLDmGuBxokYLgv1X",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3FaYVQF6wCMUB9NCeRe4tUp1zZx8qqM7H1",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GuMujABuc8kvzDTyVJFpcf4vszPUgsjiU",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Mp3atombUR6iLLYoLEdN9uPfPscsKBXfi",
+          "label": "Pool payout address",
+          "sats": 8757,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PsCQgpSvhJi3SBPHsaff58KckUGPTj6ZT",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GpNEJs7u3mZmcDGEyjTTH7RY7HiYoXyNk",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15GkaQNU7eHTJinRCBdaA7XUuUnEV1DgCk",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PoQzWXxQ1k83b1XPEduHQ6bTRsPpanY3G",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1EXvnuRqFeoWhT91KbB92JrkVN8HzwdbMj",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13uXbcdbnmap8K1BuoUchUrxbXvYNJULgq",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1D7SiA31KdcV3oEDys7nSJdnfUqLX16XLv",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1VPPQcE3WpboCdBNhnibLSJxCPE1oF4fB",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1An5nHhKrtGiq2NduqcLfH93zQvUqKPKPz",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BD88k5dCx2SUEKudcJUTZEyZ2RQMrBX33",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15uJubohqL9sm4uPNUcbiabLG7J3mjzfZD",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15urYnyeJe3gwbGJ74wcX89Tz7ZtsFDVew",
+          "label": "Pool payout address",
+          "sats": 77078,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18Vs7N1VfCj3nZDjKXAURse1ZNSc1dakE5",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Ebb8NfVmKMoGuMJCAEbVMv2dX8GnzgxSa",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1H5Qqo8huoczLZbPPCHCegSiwEYF648SSo",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12i6Y6TZsmbFPJiQr6UXqTqmkL5j2FCXD3",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KSRteDMjDcp1x1kedaTTN1tEoAMBhJgaP",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GR2hojymSX6VVxWNgXRbR8sQsbXnaMp6n",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 348891
+    },
+    {
+      "id": "binance-hack",
+      "name": "Binance Hack (2019)",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "2019 hack",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The 7,000 BTC taken from Binance in May 2019 and the wallets analysts tied to it.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "14QZ2wB8b8ZQNgb978Lwptdc8Vhv5aZQM2",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17Bmh2aNne8sR9kRwMwDzWHAYeZaZPRm28",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19GwykQiTA8PRD2vWJmRF8xiMdJw7SZZhU",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BsRYrL6FWjnX76nyvQUQXcv8QL2oZpJ6x",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1L8ZtgE7tAuySsWhQn7SqdZwJPuMzqYmTx",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LmbAuieDKqZeQCUn8F5hrf87ocL3b1whA",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1P1198g3tN65qt9j5gixb2jsQpDvDwgFj3",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "32LZ4wWwEhTzwtqAm2gPauktYZb5kQ6C5a",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "34djvfuqD127KsUDH6e5q4mJUHBzWK29ki",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3AiKChFEc5fpBvsi2Pr2YsFPWgrFeVQkXC",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3AoRjdkUFE4nfRtArRC8r1MnUjUPmuLdDP",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3ARiHh4ZB8gWRwwboAa9wkew6uBwKuVkUD",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXtMSkRt3wwXKytg7Nj86utJeSbwFHx",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXuoRza9EimRGSHGrwPmyFNUqWFpu8t",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3BMEXyn3rFJwGH6tTVMgC9ERz8TdDhVLuv",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3DAJaTi9mZhHupEJ3ZEfAXCnXdqJmS8a5D",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3DoSXzGZFbUnw4dC5Cwj7GZ7aKPLwFcKSg",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3KBsR6Ld255Tw5hNR4S6KaX5SXxvRF6jv3",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3KfKiJT5vNAdsmCLVXagSm9GKtiQRsYxEo",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3L8JcsWNa3kuVaQJxAE1hhcoBT17rcJA6b",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3MpKfZZyf44myybX3M9y1sTKS5Mrs7e5JF",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3NdX1S7rkAtddTMpunrh1wcYeFjsKyxkRc",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3PFgaikRuFXTKNNC42b3hyXxdKg7HRHA41",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q3ldtrr6xtpx8jam5gw68aaexz2wtluj0qullvr",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q6fejm4r866tmt8ptf42juedv5gevlv2qt72agq",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q7p6edvd4zvtya8uj366c23dan8pvlp503spucu",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q8ezyqqntqf2tlt6ensx2zqhj50q0q9ashvx4jt",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q8m9h3atn4cqeqhu3ekswdqxchp3g7d4v3qv3wm",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q93ecep2338dy9aauwyvh4g22t49rnedxl8z0tj",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q9svj9wp68zftgejjgk6f96ukuyx8c5urkqsv69",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qanrl8n3flz4jftkscljx2hwuc3h50f9ynp2nyn",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qecs672j9dpvwr56zeldgf3swtlv3dad52wzuta",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qesy52g7ndy652qudr2awuk57mcaxgmn9qsmpzk",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qhlhx6lrnr0jf4zpvm788j7yeezau6s8q557p2z",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qhqap39mpkldjzvqdf3204p732krtnf56mm9aj3",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1ql0wlnu80l8kctjzkzlzd72sdjqwuvruvgepceq",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qld27dqu6wrl4tmjdr8tl55qavmghwrr4ldh7qn",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qp6k6tux6g3gr3sxw94g9tx4l0cjtu2pt65r6xp",
+          "label": "Public address",
+          "sats": 284494,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qqp8pwq277d30cy7fjpvhcvhgztvs7v0nudgul5",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qshkncv7tkpye7z0z4a3k9yw2e73whha9gjs88z",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qtpdptcf4ngfkwq6dr36kqaeh2n5h00rx5unkgc",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qvr2jxlmvckap7cg2l6mdgh5fa8glkhe4s88sax",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qvstwzsrfml43jrclsp68220l4lx5lw3kwf7dp0",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qyv4zv0wjn299kx4yz6g7v6g6400wqgzcqgw9vx",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 284494
+    },
+    {
+      "id": "suex",
+      "name": "SUEX OTC",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Sanctioned",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Sanctioned OTC broker (OFAC, 2021).",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "12HQDsicffSBaYdJ6BhnE22sfjTESmmzKx",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1L4ncif9hh9TnUveqWq77HfWWt6CJWtrnb",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13mnk8SvDGqsQTHbiGiHBXqtaQCUKfcsnP",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Edue8XZCWNoDBNZgnQkCCivDyr9GEo4x6",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1ECeZBxCVJ8Wm2JSN3Cyc6rge2gnvD3W5K",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1J9oGoAiHeRfeMZeUnJ9W7RpV55CdKtgYE",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1295rkVyNfFpqZpXvKGhDqwhP1jZcNNDMV",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LiNmTUPSJEd92ZgVJjAV3RT9BzUjvUCkx",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LrxsRd7zNuxPJcL5rttnoeJFy1y4AffYY",
+          "label": "Public address",
+          "sats": 133548,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KUUJPkyDhamZXgpsyXqNGc3x1QPXtdhgz",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CF46Rfbp97absrs7zb7dFfZS6qBXUm9EP",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Df883c96LVauVsx9FEgnsourD8DELwCUQ",
+          "label": "Public address",
+          "sats": 88041,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qdt3gml5z5n50y5hm04u2yjdphefkm0fl2zdj68",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1B64QRxfaa35MVkf7sDjuGUYAP5izQt7Qi",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/ofac-sdn",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 221589
+    },
+    {
+      "id": "htx",
+      "name": "HTX (Huobi)",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Proof of Reserves",
+      "evidence": "attributed",
+      "live": true,
+      "description": "HTX, formerly Huobi, published its reserve addresses after the FTX collapse. The tags below come from that disclosure and the analysis pack that followed it.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "35hK24tcLEWcgNA4JxpvbkNkoAcDGqQPsP",
+          "label": "Proof-of-reserves wallet",
+          "sats": 67001,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3HuobiNg2wHjdPU2mQczL9on8WF7hZmaGd",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1EVzaFkkNNXq6RJh2oywwJMn8JPiq8ikDi",
+          "label": "Proof-of-reserves wallet",
+          "sats": 2527,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1EepjXgvWUoRyNvuLSAxjiqZ1QqKGDANLW",
+          "label": "Proof-of-reserves wallet",
+          "sats": 4923,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18Zcyxqna6h7Z7bRjhKvGpr8HSfieQWXqj",
+          "label": "Proof-of-reserves wallet",
+          "sats": 3289,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MvYASoHjqynMaMnP7SBmenyEWiLsTqoU6",
+          "label": "Proof-of-reserves wallet",
+          "sats": 7764,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1C81BGyi8SJ919UxnHm2iwNmaN2RHfU4us",
+          "label": "Proof-of-reserves wallet",
+          "sats": 2241,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Pq5g112JhHW6dNX7QSuHaczt3KwKXY119",
+          "label": "Proof-of-reserves wallet",
+          "sats": 2188,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PFQM6D3CFrf7PFtZZAW9YHr55EPsfAsrG",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13oLr3JJm4qx7PrTGtorPcxZ5YXpYKnXmE",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MW8QJahh2YXovXpbhDcXAN8MEEL2AUn4n",
+          "label": "Proof-of-reserves wallet",
+          "sats": 9291,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16AhJPQwo5NgpcHbyQA2f7BqWVjePN6nAq",
+          "label": "Proof-of-reserves wallet",
+          "sats": 18565,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1J29zwZCRJafLCh3NHY7T11Sc2bLpDfKsq",
+          "label": "Proof-of-reserves wallet",
+          "sats": 8244,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1McYknG7PKnpKhdYuxUqAxFke43uKtpS2e",
+          "label": "Proof-of-reserves wallet",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Lt7etHUD5to8rSFW9USYARP6thzUfco7V",
+          "label": "Proof-of-reserves wallet",
+          "sats": 80317,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FggHs2692e8E26ECZMcxncWuY9VCX7HRo",
+          "label": "Proof-of-reserves wallet",
+          "sats": 547,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 206897
+    },
+    {
+      "id": "jigsaw",
+      "name": "JigSaw",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "JigSaw ransom wallets tracked by the GraphSense tag packs and Ransomwhere.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "15fbyNgDnqYQR5vSHJ8PTAEJbKy4dwNBCZ",
+          "label": "Public address",
+          "sats": 200000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1L9GdBW65Rt6e8UY69bnWNWomsppFFFR2X",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18sn8Q5L1T3LbZuvz5hqHu2aFXgU5T9fu4",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18zvwScQrbRH4Uh3C2zSzTmciMe7HYjvX",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12YHmaLEAbWx3o3p6BvegG9WH47EYs8t1V",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Cf55htjGATCj3U97EfwjLc39YG36anMuj",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MkafmzCi2DYJyXb1hqtUJntkPg2sAyz3H",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FNiZfWYQPEcZFL8i5bwvMC75RuB78LwaB",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18Rvo1q63i7tmwBxaBXZ7iQtFRdHiNiJFF",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FLjcTFpz9MhwLdZ4xm9onpAnUGfRbGdXg",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LGxbfoqmrtdzvKQL2FTWBTMbTEQLR3jJ1",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1P67AghL2mNLbgxLM19oJYXgsJxyLfcYiz",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 200000
+    },
+    {
+      "id": "sinbad",
+      "name": "Sinbad.io",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Mixer",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Sinbad.io mixer wallets. Sanctioned in 2023 as a Blender successor.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qq7p0es3dv5hcynjjf40f2xjjr6qp5py47d2f6n847vduuq9gvnyq7y9ecd",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JHdQHkBZiim1cb4hyUh2PbzEbbg6z2TrF",
+          "label": "Public address",
+          "sats": 178516,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 178516
+    },
+    {
+      "id": "pool-bytepool",
+      "name": "BytePool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "BytePool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "39m5Wvn9ZqyhYmCYpsyHuGMt5YYw4Vmh1Z",
+          "label": "Pool payout address",
+          "sats": 137422,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 137422
+    },
+    {
+      "id": "flexcoin",
+      "name": "Flexcoin Hack (2014)",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "2014 hack",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The 2014 Flexcoin theft that forced the exchange to close.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "15TDob9hdsh2xKomM9H8rWFQWJM26rLF5b",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Dbt4sVZLMsztyqTeDAow19NvobSnA3YJ4",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DssS2srnAra8ghUpgEHsEARswej4SMgd3",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PbMV8H6rxybwvBKYAaz19e4AyWFVj5SrZ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1A8HCB6bPHXnJxGR6pFYc83vgyMmFD9Vnj",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18QFB7ERMxA7CnBSiwysxxZzN4Ghqaquek",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JhZyxZHZS9ViGLv8aAHsZcjA9bmbDWXxM",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Bn5dhVnEMuYJpRFXucoSJ4tcbrvb2LPt2",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19Zz2pC8HeDq5o9zubg9Lq9Xj6W5L3va1C",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GEhfbjbUaCVYBa6Av6zwRqnwkrq9vNozE",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NDkevapt4SWYFEmquCDBSf7DLMTNVggdu",
+          "label": "Public address",
+          "sats": 2000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KEHEBtoczmboK1wwMfyfETdj4kaKEbHPh",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HbEfchoAtf1w4u6tt35NtBnrgNV83fjk5",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17fabmvK6mNNbstG1sAz5BuTTwm89puWru",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1AXxRoMHrEbbk43dciTmuTiouprHtRTATi",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1qWxCe9sj17XCadDDXt8VvhfwREFoobCk",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16f49J8g94yMFW2ejDcxfW2iM8FF6FFnnV",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15WEuUbg9zUmNMjQ6p8KJowowVCByegoHG",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1QFcC5JitGwpFKqRDd9QNH3eGN56dCNgy6",
+          "label": "Public address",
+          "sats": 102000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 104000
+    },
+    {
+      "id": "zaif-hack",
+      "name": "Zaif Hack (2018)",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "2018 hack",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The Japanese exchange Zaif, whose bitcoin wallets were drained in 2018.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "131oVmmougbyqdzJbBbuH3rZ2H8jnibtew",
+          "label": "Public address",
+          "sats": 91898,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13mZDxXPwNYBJGpL7PKvUGDqYuvSfCSDWZ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13SNYvAHPhQRJQ5YAscozFfHpPC8Zv9uhZ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13VeCuWGfADhZ6BsT8AEcAHC8XfDUQXJGg",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15VjS4phKXggkBha4fBuwASXNh3DEhSfX4",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16aydFi1nxYZ3CJJSxRZyCYdGMSN3Rqgaj",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16DpJ3yYU9U6ftbx2yVNzVDLjiADkNHKHN",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16hDAtVwWAgw5mB7VWgw2HjjrVXHnAdLNb",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16LjNwfewj6hNRiftMRLmhMvoKui4WvTRk",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16QXvHKmMNLEhxQhZxbvFKTpvdMmG1mXbt",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16VU8XG3AHcMcnRZuzyL3oayEr8tyrh1er",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17TDx276QnvgtnnYK13FaBxhyvqzL7R97U",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17xoqTXiQqDDiHeqmo2SzCrcLEW4owdUMb",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18QXQMSR9KN6Q7zVzTjyMWFNVLyguqAMRi",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18uBZFj3kn8sMSo6oXXprVnxzkFhJRXpyu",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "194HyHzPZdsfTMHhHZA18LEbPXqz6rdtxS",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19h8YyKXrkNmxN5yeiNzrLf3HjC6eSXkPb",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19j5v1Mj3FZdsCGCXQDoc6FAaJqREp8fn1",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1ANgC9K3BaFaqSftvV1BttNEAYx3wCzJ93",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Ayy13r2r4yx4xdUWxKi4jiSV38oFrTj2A",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Bd2AgYQkLWU3h9PiUZU8qQ67B66iSPbtd",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BezeEEZmUDWP35GtXKPqvC1uHp2rENmTx",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BMuFEGxNxCsUSwcNsLTnwgTMhzj9G97EX",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BRqM3xrTbhwSCKKyuMdWYWBG2BMWWDCpj",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BSkWsx3zRT2Nh4qVLtnsgKayNsSFu5gCP",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1C2cA9VpBi5j9GHV7mtQerbsBmTMTPMzke",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CoywkKVnwAwJU3Yo33a2sJA4iNCG42dvQ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DgP9WKNfuFAzn4NLcueQqxkoNitwyy2B1",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DHGK3udunLJADv37rSUYSi8qGq2vCcukj",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Dm5xUUaLj3MMord32nbLEqqXoamcVPnSa",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1E6ss2ujcgieuTauN4NwZ3o1mXesKuDRxC",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1ExDFZJRQRthskuAxhKjffWyqSsRcMbNym",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FGGLoAohjLgsrU5wtwV3h7QqWfmAPGGRE",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FQbtziij4j7bt1aANKagtNZf9V2ErcLUQ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1G1AY74wkwUm2rh5EV2BntpSn867GtpqTg",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GHvk2145Q9T73bdjGGeCiCdbFe6RTYnbD",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GkAXNSCzfDxnw93tAqj6i3ofKzCf12zDJ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GLsqb6rMERLLeSQibaaCjwmLsiTy5rEqk",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GwWv6W7yaqPTnnCLaH8aB3bnCjYpLvrgm",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GxkYqhxV4R6i118T3fbtLt3yEg7AqWmxF",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1H3AL19bUYShrzuRAmjkYGPFqMhAuu2cDq",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1H4pZTm3Kf2moYsEEtZJ9sTfxKPzchq8oj",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JbaTD7YpLWd3sktDUAEEhTG7yWkPnLMjs",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JqX7UCZ7BXT91sasnkHnvYz36E4RKCQ5U",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JZxzRF9TcwPEwsXabfnHs6urkoWLNW4ny",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KkeRqHSftnDcoHKoZ7aDKcpiVvCSVYCwa",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KTZGEpfkpuMHsBjV3eK9Cc5gtx8BXtnk",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KwihZq5PrpSG8hQUjr5XnMNW7kw4xrnJy",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1L14nGZbBdVrmh1barkxnkg3CR9G9msbnb",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LnNsUycA3iAWhqKj1L3vEH1GV6nJE5NtF",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LSzUeGejzgfoT2oF4LQ32simvJjoQuA2U",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MAxnF9SWFjCKDTrMnKhAxMCTPmRStQwpb",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Mn2idx4ApBMUpqBUfn93581NmMANwkcV7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MWzyk74rLJdnDxHA2PAU3yVsqRvdQRrWf",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Np4JZSyfWJ2AnwhA45V2J3RFsH3S9xBAK",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NtfZA9xEVghmzZgWSyuBVUfSfBaiRYoV3",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1pM6f66bHpvfCWwMLgrPfW63JyWXJZVyT",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PU5RKTFCWqT5xQhDkPxr5g56fgMj1gWM7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Q7jMKLTAcpfNEWJ8Z4GD9bg8YGMtPVppY",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1QBuBCo2LCrJ1d3zG4mtK485EYjQsf4gAa",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 91898
+    },
+    {
+      "id": "pool-braiins-pool",
+      "name": "Braiins Pool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Braiins Pool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1AqTMY7kmHZxBuLUR5wJjPFUvqGs23sesr",
+          "label": "Pool payout address",
+          "sats": 90235,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CK6KHY6MHgYvmRQ4PAafKYDrg1ejbH1cE",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 90235
+    },
+    {
+      "id": "pool-polmine",
+      "name": "Polmine",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Polmine payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "13vWXwzNF5Ef9SUXNTdr7de7MqiV4G1gnL",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16cv7wyeG6RRqhvJpY21CnsjxuKj2gAoK2",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17kkmDx8eSwj2JTTULb3HkJhCmexfysExz",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1AajKXkaq2DsnDmP8ZPTrE5gH1HFo1x3AU",
+          "label": "Pool payout address",
+          "sats": 90195,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JrYhdhP2jCY6JwuVzdk9jUwc4pctcSes7",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Nsvmnv8VcTMD643xMYAo35Aco3XA5YPpe",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 90195
+    },
+    {
+      "id": "cumberland",
+      "name": "Cumberland DRW",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Cumberland DRW tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q0tvsfqur2m8uar6e5lls88psu7a4wadln2vg0r",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/cumberland-drw-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q5wa03g9m2lg425eueyw2xexwm3ly9lkfd65p4g",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/cumberland-drw-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q8s3h3vw5xufdas890q29lpuca56r0ezqar0mvs",
+          "label": "Public address",
+          "sats": 89680,
+          "source": "https://cryptobuybots.com/cumberland-drw-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qcd6dqmxp49475davkskt4udpupzk9yd3qt28ec",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/cumberland-drw-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qpgnh9vf4luahspfsvfn70rrjgn0sscfhu853z7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/cumberland-drw-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qsld6vyjw3vnkzzcn55khdpsam64d35w0rwvfpm",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/cumberland-drw-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qzyytmn87ey5m34s0fskteqh4cx9kkwwrqnz5nk",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://cryptobuybots.com/cumberland-drw-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 89680
+    },
+    {
+      "id": "pool-f2pool",
+      "name": "F2Pool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "F2Pool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1KFHE7w8BhaENAswwryaoccDb6qcT6DbYY",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qf274x7penhcd8hsv3jcmwa5xxzjl2a6pa9pxwm",
+          "label": "Pool payout address",
+          "sats": 49983,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 49983
+    },
+    {
+      "id": "pool-whitepool",
+      "name": "WhitePool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "WhitePool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "14VkxDwSAUWrzYTxV49HnYhKLWTJ3pCoUS",
+          "label": "Pool payout address",
+          "sats": 39761,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 39761
+    },
+    {
+      "id": "pool-digitalx-mintsy",
+      "name": "digitalX Mintsy",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "digitalX Mintsy payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1NY15MK947MLzmPUa2gL7UgyR8prLh2xfu",
+          "label": "Pool payout address",
+          "sats": 30000,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 30000
+    },
+    {
+      "id": "lockbit",
+      "name": "LockBit",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "LockBit ransom wallets tracked by the GraphSense tag packs and Ransomwhere.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qwx9y37xd8sznjj0yw85q9fd9qfyaur9xasc2h4",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qr4mhf2zqtgd45x9clfmuekf42z4eglh4aydlnk",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KsiEH5ZrfS3XhLVUU758rMKnP65kz2GYz",
+          "label": "Public address",
+          "sats": 29518,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 29518
+    },
+    {
+      "id": "pool-bitalo",
+      "name": "Bitalo",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Bitalo payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1HTejfsPZQGi3afCMEZTn2xdmoNzp13n3F",
+          "label": "Pool payout address",
+          "sats": 26342,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 26342
+    },
+    {
+      "id": "pool-titan",
+      "name": "Titan",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Titan payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "14hLEtxozmmih6Gg5xrGZLfx51bEMj21NW",
+          "label": "Pool payout address",
+          "sats": 20000,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 20000
+    },
+    {
+      "id": "pool-terra-pool",
+      "name": "Terra Pool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Terra Pool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "32P5KVSbZYAkVmSHxDd2oBXaSk372rbV7L",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3Qqp7LwxmSjPwRaKkDToysJsM3xA4ThqFk",
+          "label": "Pool payout address",
+          "sats": 17293,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q39dled8an7enuxtmjql3pk7ny8kzvsxhd924sl",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 17293
+    },
+    {
+      "id": "cryptconsole",
+      "name": "CryptConsole",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "CryptConsole ransom wallets tracked by the GraphSense tag packs and Ransomwhere.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1KG8rWYWRYHfvjVe8ddEyJNCg6HxVWYSQm",
+          "label": "Public address",
+          "sats": 15930,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14h5cEcF6ajw6RD9h8f97GGnpaqVJKn1Ty",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GfxDzSzyBzRNiP5zXqaa32qybify4G7ro",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LK6iedToCUuDwTDXBQK724hhg2Sabo7ba",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LmSuGJwxBBRL9t5RMZVCeTbvsGnxMwcaf",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1M4CkSF12u9twHSwzHUAAknr1YsnmnY8Zm",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GXLDTdWTBGNdeQaKLKoVZRuwiXhmgUe3M",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PLZtR66AHmUuNYgjr3tVULwyzQkBBQNC9",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18kBvWUsWQdP6TtH1wLw5MWm3NKgMVwWqf",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GSB5sJFASF9X7w4sS7Xr8rTZE4ToZP2Bq",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 15930
+    },
+    {
+      "id": "pool-eclipsemc",
+      "name": "EclipseMC",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "EclipseMC payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "15xiShqUqerfjFdyfgBH1K7Gwp6cbYmsTW",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18M9o2mXNjNR96yKe7eyY6pfP6Nx4Nso3d",
+          "label": "Pool payout address",
+          "sats": 10000,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 10000
+    },
+    {
+      "id": "pool-btcdig",
+      "name": "BTCDig",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "BTCDig payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "15MxzsutVroEE9XiDckLxUHTCDAEZgPZJi",
+          "label": "Pool payout address",
+          "sats": 10000,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 10000
+    },
+    {
+      "id": "samsam",
+      "name": "SamSam",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "SamSam ransom wallets tracked by the GraphSense tag packs and Ransomwhere.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "14UKG6AFQCsch2iJVsZKrDMxTEbkj2cdPP",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15gbE7z9cbxg5Gvh2rDFPdU1a1VLu9rnBa",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16VckpWyEzDCC7zD2uGTwjYAVXE3EZctBY",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "193D1yarHanBhTETzvEAZ7qxnTzgD2Pqor",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19CbDoaZDLTzkkT1uQrMPM42AUvfQN4Kds",
+          "label": "Public address",
+          "sats": 7091,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19iq6bKkGBrzBr3puVDv1j8zRNchTjGwy5",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DqU3NwULyDYKSSYeo42WSTQXRm2dPRQJ1",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Fom8GLdBzZL9dMTipd98AWHMRvZ42pYqi",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GWQv1LmYCVk6cKikarV2hC6RJBULZ26am",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HCvm76tKdTEHfrsVBGm3hiPRHCSHTVLf8",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13R8c99CsCMr7iz73NYYEWjsEqYp9fLtdt",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1A1rUVvjVLWvUeBNHbxyur9ebs3p8UTKjL",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Ar31oJp7ALcErh61KGiu18WsmjWpHc9pi",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DA1gyQNpCRM1292nV3xY53tkDzeJ7SgZ4",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DcCFq3n5ptvxZpCD485sHX2EJmpCBK3Ds",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DxYrRu3fkqj2iLjL4a55e4n3bWAF9mBNU",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1F2K3zxpjTWDL7aBt497cVqUJUG3G85rkE",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KzVLJcZky4wDjhCKjJiS8HnxurGusjCnG",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NHgHGYm2f5Acu4XC17EKoMLDAHC5143G8",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14ggugtbDt7fkNKr9DwrSU95fzJdKWjubP",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Gmjyb9wd6Ju9phn5tREmLYwPsPFusqEx6",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1D6KWQmrVPG7ordHPkAs9J11mYd23Qq3L3",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "152YUceczz6wUrqpxetyoRZBMQuitfZw3F",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "156Sfpz3eu615fjjhHZ3cH1czkj7i1bTRZ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "115XeVa3r6bRzSZ55RAbzL3GCiVTXeKsDP",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1G8CNAevnbz4iu2PUGMU65FyoNgZeNVYQY",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13Tdj8ER4kFggUPxiHjFSqPk6KTNSLNi99",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12Z7QctstwkxxfWdrFJs1oEpDLT3jpqcPq",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1597m4mvFKvhcTHFDyqHqsSCgkMthK34kw",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CMJGvv6usQ5tz4z8miDngQeRzrgvBuz8H",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 7091
+    },
+    {
+      "id": "pool-btcc",
+      "name": "BTCC",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "BTCC payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "152f1muMCNa7goXYhYAQC61hxEgGacmncB",
+          "label": "Pool payout address",
+          "sats": 7070,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 7070
+    },
+    {
       "id": "tim-draper",
       "name": "Tim Draper",
       "category": "PERSON",
       "icon": "person",
-      "badge": "Auction 2014",
+      "badge": "USMS auction 2014",
       "evidence": "attributed",
-      "live": false,
-      "description": "Venture investor who won the 2014 U.S. Marshals auction of 29,656 BTC seized from Silk Road.",
-      "extra": "The address below is the one the auction payout was sent to (1Ez69... to 1a8LDh...), which the press reported at the time and which Draper's auction win confirms. Draper publicly disputed a later Arkham attribution of a different wallet in 2026, so only this chain-documented payout address is listed, and it is a historic marker now: 0.00006558 BTC of dust remains.",
+      "live": true,
+      "description": "The venture investor who bought 29,656 BTC in the 2014 U.S. Marshals Silk Road auction. The payout address below is the one the auction transfer landed at.",
+      "est": null,
+      "coverage": "partial",
       "addresses": [
         {
           "address": "1a8LDh3qtCdMFAgRXzMrdvB8w1EG4h1Xi",
-          "label": "2014 USMS auction payout (29,656 BTC)",
+          "label": "Public address",
           "sats": 6558,
           "source": "https://cointelegraph.com/news/feds-sell-29656-bitcoins-to-single-bidder-in-silk-road-auction",
-          "note": "Received 29,656.51933514 BTC on 2014-07-01 and spent over the following years. Not a claim about any wallet Draper holds today.",
-          "live": false
+          "note": "",
+          "live": true
         }
       ],
       "total": 6558
     },
     {
-      "id": "us-government",
-      "name": "U.S. Government",
-      "category": "GOV",
-      "icon": "gov",
-      "badge": null,
-      "evidence": "attributed",
-      "live": true,
-      "description": "Bitcoin seized by the U.S. Department of Justice and the FBI. The Silk Road (Individual X, 2020) and Bitfinex (2022) seizures are the largest.",
-      "extra": "Arkham attributes 623 addresses and 306,795 BTC to the entity (2026-11). The James Zhong seizure (51,326 BTC over 4 wallets) and the Prince Group seizure (127,271 BTC) have no publicly confirmed individual addresses, so they are not listed.",
-      "addresses": [
-        {
-          "address": "bc1qa5wkgaew2dkv56kfvj49j0av5nml45x9ek9hz6",
-          "label": "Silk Road seizure (Individual X, 2020)",
-          "sats": 6937018476959,
-          "source": "https://arkm.com/announcements/the-us-government-is-now-an-entity-on-arkham",
-          "note": "Seized 2020-11; unspent as of 2026-11.",
-          "live": true
-        },
-        {
-          "address": "bc1qazcm763858nkj2dj986etajv6wquslv8uxwczt",
-          "label": "Bitfinex hack seizure (2022)",
-          "sats": 9464348826145,
-          "source": "https://arkm.com/announcements/the-us-government-is-now-an-entity-on-arkham",
-          "note": "Seized 2022-02; unspent as of 2026-11.",
-          "live": true
-        }
-      ],
-      "total": 16401367303104
-    },
-    {
-      "id": "el-salvador",
-      "name": "El Salvador",
-      "category": "GOV",
-      "icon": "gov",
-      "badge": null,
-      "evidence": "official",
-      "live": true,
-      "description": "The first country to make bitcoin legal tender. The National Bitcoin Office (ONBTC) publishes the reserve addresses.",
-      "extra": "About 7,814 to 7,846 BTC across 20 published addresses (2026-10). A single address was split into 14 of at most 500 BTC each on 2025-08-29, and 500 BTC addresses have been added since. Five representative addresses are listed.",
-      "addresses": [
-        {
-          "address": "32ixEdVJWo3kmvJGMTZq5jAQVZZeuwnqzo",
-          "label": "2024-03 first published address (retired)",
-          "sats": 0,
-          "source": "https://bitcoin.gob.sv/address/32ixEdVJWo3kmvJGMTZq5jAQVZZeuwnqzo",
-          "note": "The address the president published on 2024-03-15. Balance 0 since the 2025-08-29 split; kept as a historic marker.",
-          "live": false
-        },
-        {
-          "address": "3Fh6QjPzfu2LWYxVYqRZ45QPTja1PrFmNC",
-          "label": "ONBTC reserve (split address)",
-          "sats": 50000000546,
-          "source": "https://bitcoin.gob.sv/address/3Fh6QjPzfu2LWYxVYqRZ45QPTja1PrFmNC",
-          "note": null,
-          "live": true
-        },
-        {
-          "address": "359jBt2XuTdgk6YEz1WwhwMwrzTd7Qb3Gw",
-          "label": "ONBTC reserve (moved 2026-05-23)",
-          "sats": 50000100000,
-          "source": "https://bitcoin.gob.sv/address/359jBt2XuTdgk6YEz1WwhwMwrzTd7Qb3Gw",
-          "note": null,
-          "live": true
-        },
-        {
-          "address": "3DrHiHzfAKnne3zn8pqJdxJQhRFtW1jnMG",
-          "label": "ONBTC reserve (split address)",
-          "sats": 50000001622,
-          "source": "https://bitcoin.gob.sv/address/3DrHiHzfAKnne3zn8pqJdxJQhRFtW1jnMG",
-          "note": null,
-          "live": true
-        },
-        {
-          "address": "3KXKHH5hhiYkx9nfJdUxZL3ivrVSnQNfKz",
-          "label": "ONBTC reserve (1 BTC/day purchases)",
-          "sats": 25768903075,
-          "source": "https://bitcoin.gob.sv/address/3KXKHH5hhiYkx9nfJdUxZL3ivrVSnQNfKz",
-          "note": "255 small purchases accumulated here.",
-          "live": true
-        }
-      ],
-      "total": 175769005243
-    },
-    {
-      "id": "bhutan",
-      "name": "Bhutan (Druk Holding & Investments)",
-      "category": "GOV",
-      "icon": "gov",
-      "badge": null,
-      "evidence": "attributed",
-      "live": true,
-      "description": "The sovereign fund DHI mines bitcoin with surplus hydropower. The government has never published a balance; only the Arkham attribution exists.",
-      "extra": "Arkham attributes 274 addresses and 525.097 BTC (2026-11-28). Mining payouts are spread over many small addresses, so one representative address is listed.",
-      "addresses": [
-        {
-          "address": "bc1q22q82m27mx5dsyasfrtrwgqm4ly3lnevlyzmvhxf33ehkd7uhklsw5ga9j",
-          "label": "DHI: BitGo Custody",
-          "sats": 14626655330,
-          "source": "https://arkm.com/explorer/address/bc1q22q82m27mx5dsyasfrtrwgqm4ly3lnevlyzmvhxf33ehkd7uhklsw5ga9j",
-          "note": "Unmoved since 2025-11-18. Arkham label.",
-          "live": true
-        },
-        {
-          "address": "3QkQz739oPCen7HfNQzaNyV6DwDx4JB7iS",
-          "label": "DHI main wallet (source of the 2026-03 outflow)",
-          "sats": 0,
-          "source": "https://btc.network/blog/bhutan-120m-bitcoin-sell-off-2026-on-chain-analysis",
-          "note": "Moved all 319.71 BTC in 2026-03; balance 0. Historic reference.",
-          "live": false
-        }
-      ],
-      "total": 14626655330
-    },
-    {
-      "id": "uk-government",
-      "name": "U.K. Government",
-      "category": "GOV",
-      "icon": "gov",
-      "badge": null,
-      "evidence": "attributed",
-      "live": true,
-      "description": "61,000 BTC seized by London police in 2018 from the Jian Wen and Zhimin Qian fraud. The U.K. government has never published addresses; the Arkham labels are the only public basis.",
-      "extra": "Arkham attributes 4 addresses and 61,245 BTC. The three below total 53,744.82 BTC; the fourth has no public page and is not listed.",
-      "addresses": [
-        {
-          "address": "bc1q7ydrtdn8z62xhslqyqtyt38mm4e2c4h3mxjkug",
-          "label": "Zhimin Qian & Jian Wen fraud funds",
-          "sats": 3600042412913,
-          "source": "https://arkm.com/explorer/address/bc1q7ydrtdn8z62xhslqyqtyt38mm4e2c4h3mxjkug",
-          "note": null,
-          "live": true
-        },
-        {
-          "address": "bc1q4vxn43l44h30nkluqfxd9eckf45vr2awz38lwa",
-          "label": "Zhimin Qian & Jian Wen fraud funds",
-          "sats": 1300302310461,
-          "source": "https://arkm.com/explorer/address/bc1q4vxn43l44h30nkluqfxd9eckf45vr2awz38lwa",
-          "note": null,
-          "live": true
-        },
-        {
-          "address": "bc1qncsa0qdrgsr58303gsnuwhd5vrm7hlkpd6klmf",
-          "label": "Zhimin Qian & Jian Wen fraud funds",
-          "sats": 474136841988,
-          "source": "https://arkm.com/explorer/address/bc1qncsa0qdrgsr58303gsnuwhd5vrm7hlkpd6klmf",
-          "note": null,
-          "live": true
-        }
-      ],
-      "total": 5374481565362
-    },
-    {
-      "id": "germany",
-      "name": "Germany (BKA)",
-      "category": "GOV",
-      "icon": "gov",
-      "badge": "Sold 2024",
-      "evidence": "attributed",
-      "live": false,
-      "description": "About 50,000 BTC seized from the Movie2k.to operators by the Saxony state police and held by the BKA, then sold in full in June and July 2024.",
-      "extra": "The government never confirmed addresses; Arkham attributed five by size and timing, and heise reported them. What remains is 0.0005389 BTC of dust, so this is a historic card.",
-      "addresses": [
-        {
-          "address": "bc1qgrvchamnmmaancn3vwea6elnvexpylzh30rhjz",
-          "label": "BKA Movie2k.to funds",
-          "sats": 16628,
-          "source": "https://www.heise.de/en/news/Movie2k-bitcoins-worth-billions-much-ado-about-little-9777779.html",
-          "note": null,
-          "live": false
-        },
-        {
-          "address": "bc1q0unygz3ddt8x0v33s6ztxkrnw0s0tl7zk4yxwd",
-          "label": "BKA Movie2k.to funds",
-          "sats": 0,
-          "source": "https://www.heise.de/en/news/Movie2k-bitcoins-worth-billions-much-ado-about-little-9777779.html",
-          "note": null,
-          "live": false
-        },
-        {
-          "address": "bc1q93njc4we4s088a2nz6c9e6vthc5h4ake53rxmd",
-          "label": "BKA Movie2k.to funds",
-          "sats": 15968,
-          "source": "https://www.heise.de/en/news/Movie2k-bitcoins-worth-billions-much-ado-about-little-9777779.html",
-          "note": null,
-          "live": false
-        },
-        {
-          "address": "bc1qnwft8re0tkkyekd4nl34dqvgmwx3zsfyxfadfg",
-          "label": "BKA Movie2k.to funds",
-          "sats": 10794,
-          "source": "https://www.heise.de/en/news/Movie2k-bitcoins-worth-billions-much-ado-about-little-9777779.html",
-          "note": null,
-          "live": false
-        },
-        {
-          "address": "bc1q9agtd4sk5r06vqcsy3ewdr0dslf03dlj3agtva",
-          "label": "BKA Movie2k.to funds",
-          "sats": 10500,
-          "source": "https://www.heise.de/en/news/Movie2k-bitcoins-worth-billions-much-ado-about-little-9777779.html",
-          "note": null,
-          "live": false
-        }
-      ],
-      "total": 53890
-    },
-    {
-      "id": "blackrock-ibit",
-      "name": "BlackRock iShares Bitcoin Trust (IBIT)",
+      "id": "pool-bitclub",
+      "name": "BitClub",
       "category": "CORP",
       "icon": "corp",
-      "badge": "ETF custody",
+      "badge": "Mining pool",
       "evidence": "attributed",
       "live": true,
-      "description": "The largest spot bitcoin ETF. Coins arriving through Coinbase Prime custody settle into the IBIT wallets.",
-      "extra": "Arkham attributes 6,738 addresses and 744,981 BTC (2026-11-28). The four below are custody addresses Arkham Research published itself and are a small part of that total; this is not IBIT's whole holding.",
+      "description": "BitClub payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
       "addresses": [
         {
-          "address": "bc1qvlk0r584m74kyf6tdq8r8es43w0e4y20sm2whg",
-          "label": "IBIT custody",
-          "sats": 30000000000,
-          "source": "https://arkm.com/research/blackrock-records-six-straight-days-of-btc-inflows-1-5b",
-          "note": "Arkham attribution, not a fund disclosure.",
-          "live": true
-        },
-        {
-          "address": "bc1qhug23ff3jy0lnuy27huz93rp70z9mcts48n4ev",
-          "label": "IBIT custody",
-          "sats": 30000000000,
-          "source": "https://arkm.com/research/blackrock-records-six-straight-days-of-btc-inflows-1-5b",
-          "note": null,
-          "live": true
-        },
-        {
-          "address": "bc1q382hvy72szks44e4qk8cy76qwhmddd3rcyx37n",
-          "label": "IBIT custody",
-          "sats": 30000000000,
-          "source": "https://arkm.com/research/blackrock-records-six-straight-days-of-btc-inflows-1-5b",
-          "note": null,
-          "live": true
-        },
-        {
-          "address": "bc1qgjuv5cmczcttpwy56gj6f46xehrjfw255y35f5",
-          "label": "IBIT custody",
-          "sats": 0,
-          "source": "https://arkm.com/research/blackrock-records-six-straight-days-of-btc-inflows-1-5b",
-          "note": "Deposited and moved on; balance 0.",
-          "live": false
-        }
-      ],
-      "total": 90000000000
-    },
-    {
-      "id": "fidelity-fbtc",
-      "name": "Fidelity Wise Origin Bitcoin Fund (FBTC)",
-      "category": "CORP",
-      "icon": "corp",
-      "badge": "ETF custody",
-      "evidence": "attributed",
-      "live": true,
-      "description": "Fidelity's spot bitcoin ETF. Arkham published FBTC inflow and custody addresses.",
-      "extra": "Of the 23 addresses in Arkham's Fidelity FBTC ETF Inflows entity, only this published custody deposit address was verified.",
-      "addresses": [
-        {
-          "address": "32oWtYcHLt1nVWPEtJe5z4g7E8bd1A7jTQ",
-          "label": "Fidelity Custody Deposit",
-          "sats": 34777005442,
-          "source": "https://arkm.com/explorer/address/32oWtYcHLt1nVWPEtJe5z4g7E8bd1A7jTQ",
-          "note": "Arkham attribution. Last moved 2026-11-25.",
+          "address": "155fzsEBHy9Ri2bMQ8uuuR3tv1YzcDywd4",
+          "label": "Pool payout address",
+          "sats": 6401,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
           "live": true
         }
       ],
-      "total": 34777005442
+      "total": 6401
     },
     {
-      "id": "binance",
-      "name": "Binance",
-      "category": "CORP",
-      "icon": "corp",
-      "badge": "Proof of reserves",
-      "evidence": "official",
-      "live": true,
-      "description": "The largest exchange. Reserve wallets are published in its own proof-of-reserves material.",
-      "extra": "The Binance PoR address list holds about 629,029 BTC over 95 addresses (CryptoKeyhole, 2026-11-28). The two below are the largest. The PoR file does not label hot or cold, so they are named PoR wallets, not cold wallets.",
-      "addresses": [
-        {
-          "address": "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo",
-          "label": "Binance PoR wallet (largest single address on chain)",
-          "sats": 24859759296803,
-          "source": "https://public.bnbstatic.com/static/proof-of-reserve/wallet_address_20261031.zip",
-          "note": null,
-          "live": true
-        },
-        {
-          "address": "3M219KR5vEneNb47ewrPfWyb5jQ2DjxRP6",
-          "label": "Binance PoR wallet",
-          "sats": 16487839644777,
-          "source": "https://chainquery.com/sources/binance-por",
-          "note": null,
-          "live": true
-        }
-      ],
-      "total": 41347598941580
-    },
-    {
-      "id": "bitfinex",
-      "name": "Bitfinex",
-      "category": "CORP",
-      "icon": "corp",
-      "badge": "Self-published",
-      "evidence": "official",
-      "live": true,
-      "description": "The exchange publishes its BTC cold and hot wallet addresses in its own GitHub repository, the strongest disclosure tier there is.",
-      "extra": null,
-      "addresses": [
-        {
-          "address": "bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqjwvw97",
-          "label": "BTC cold wallet (self-published)",
-          "sats": 15701008337263,
-          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
-          "note": null,
-          "live": true
-        },
-        {
-          "address": "1Kr6QSydW9bFQG1mXiPNNu6WpJGmUa9i1g",
-          "label": "BTC hot wallet (self-published)",
-          "sats": 102193173087,
-          "source": "https://github.com/bitfinexcom/pub/blob/main/wallets.txt",
-          "note": "Hot wallet with about 490,000 transactions; the balance moves often.",
-          "live": true
-        }
-      ],
-      "total": 15803201510350
-    },
-    {
-      "id": "robinhood",
-      "name": "Robinhood",
-      "category": "CORP",
-      "icon": "corp",
-      "badge": "Customer custody",
-      "evidence": "attributed",
-      "live": true,
-      "description": "U.S. stock and crypto app. Customer bitcoin sits in cold storage; the address is known from an Arkham label and 2023 press confirmation by the company.",
-      "extra": "Arkham attributes 1,670,411 addresses and 185,007 BTC. This is the representative cold wallet that holds customer assets, not the company's own coins.",
-      "addresses": [
-        {
-          "address": "bc1ql49ydapnjafl5t2cp9zqpjwe6pdgmxy98859v2",
-          "label": "Robinhood customer cold storage",
-          "sats": 14084998559801,
-          "source": "https://satoshis.watch/bc1ql49ydapnjafl5t2cp9zqpjwe6pdgmxy98859v2",
-          "note": "Customer assets, not the exchange's own holding.",
-          "live": true
-        }
-      ],
-      "total": 14084998559801
-    },
-    {
-      "id": "mt-gox-trustee",
-      "name": "Mt. Gox Trustee",
-      "category": "OTHER",
-      "icon": "group",
-      "badge": "Distributed",
-      "evidence": "attributed",
-      "live": false,
-      "description": "The estate of the exchange that failed in 2014. Creditor distributions through 2024 moved the money out.",
-      "extra": "The trustee publishes no addresses. This is the transit wallet analysts tracked during the 2024 distributions, empty since 2026-06-02, so it is a historic card.",
-      "addresses": [
-        {
-          "address": "1JbezDVd9VsK9o1Ga9UqLydeuEvhKLAPs6",
-          "label": "Mt. Gox estate transfer hub",
-          "sats": 0,
-          "source": "https://satoshis.watch/1JbezDVd9VsK9o1Ga9UqLydeuEvhKLAPs6",
-          "note": "About 141,000 BTC passed through in one day, 2024-05-28. Empty now.",
-          "live": false
-        }
-      ],
-      "total": 0
-    },
-    {
-      "id": "luna-foundation-guard",
-      "name": "Luna Foundation Guard (LFG)",
-      "category": "OTHER",
-      "icon": "group",
-      "badge": "Reserve 2022",
-      "evidence": "official",
-      "live": true,
-      "description": "The Terra non-profit whose bitcoin reserve backed the UST peg. LFG named this treasury address itself in September 2022.",
-      "extra": "The reserve held 80,394 BTC on 2022-05-07 and spent almost all of it defending the peg within days. About 313 BTC remains, and the balance matches the JS Held audit of the reserve.",
-      "addresses": [
-        {
-          "address": "bc1q9d4ywgfnd8h43da5tpcxcn6ajv590cg6d3tg6axemvljvt2k76zs50tv4q",
-          "label": "LFG treasury (named by LFG, 2022-09)",
-          "sats": 31305620571,
-          "source": "https://www.lfg.org/audit/LFG-Audit-2022-11-14.pdf",
-          "note": "Received 71,049.43 BTC in total and spent 70,736.37 BTC in May 2022.",
-          "live": true
-        }
-      ],
-      "total": 31305620571
-    },
-    {
-      "id": "silk-road",
-      "name": "Silk Road (FBI seizure)",
+      "id": "plustoken",
+      "name": "PlusToken",
       "category": "OTHER",
       "icon": "hacker",
-      "badge": "Seized 2013",
+      "badge": "Ponzi 2019",
       "evidence": "attributed",
       "live": true,
-      "description": "The marketplace wallet the FBI seized in 2013. Most of the money later moved to U.S. Government wallets.",
-      "extra": "29,679.67 BTC passed through and most of it left between 2013 and 2015. The 0.3306 BTC left is residue and small deposits. The seized bulk is tracked under U.S. Government.",
+      "description": "The PlusToken wallet scam, whose operators moved billions through bitcoin wallets tracked by analysts.",
+      "est": null,
+      "coverage": "partial",
       "addresses": [
         {
-          "address": "1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX",
-          "label": "FBI-controlled Silk Road seized funds",
-          "sats": 33061617,
-          "source": "https://www.walletexplorer.com/address/1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX",
-          "note": null,
+          "address": "3ETAVt2scYBFkBFksuNDk1i5tDLQ2c4zWR",
+          "label": "Public address",
+          "sats": 600,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
           "live": true
-        }
-      ],
-      "total": 33061617
-    },
-    {
-      "id": "mt-gox-hacker",
-      "name": "Mt. Gox Hacker (1Feex)",
-      "category": "OTHER",
-      "icon": "hacker",
-      "badge": "Dormant",
-      "evidence": "chain",
-      "live": true,
-      "description": "The address that received about 80,000 BTC when the Mt. Gox hot wallet was emptied on 2011-03-01. Nothing has ever left it.",
-      "extra": "Mark Karpeles publicly certified the transfer as unauthorised on 2023-08-01, and WizSec's forensic work traces it to a copied wallet.dat. The owner is unknown and the key may be lost; the coins have not moved in more than 15 years.",
-      "addresses": [
+        },
         {
-          "address": "1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF",
-          "label": "Mt. Gox theft destination (2011-03-01)",
-          "sats": 7995726874324,
-          "source": "https://blog.wizsec.jp/2020/06/mtgox-march-2011-theft.html",
-          "note": "79,957.27 BTC, never spent. The 2011 Mt. Gox theft; whose key controls it is unknown.",
+          "address": "3EYsru4LUcN258sENYPu5Py3S5WnqxEcnE",
+          "label": "Public address",
+          "sats": 600,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
           "live": true
-        }
-      ],
-      "total": 7995726874324
-    },
-    {
-      "id": "bitfinex-hacker",
-      "name": "Bitfinex Hacker (2016)",
-      "category": "OTHER",
-      "icon": "hacker",
-      "badge": "Seized 2022",
-      "evidence": "attributed",
-      "live": false,
-      "description": "A receiving wallet of the August 2016 Bitfinex breach, in which about 119,754 BTC left the exchange in more than 2,000 transactions.",
-      "extra": "The DOJ statement of facts names only the prefix Wallet 1CGA4s; the full address comes from the public CSV of the 2,072 unauthorised transactions and matches that prefix. The coins were seized in 2022 and are tracked under U.S. Government, so this card is history.",
-      "addresses": [
+        },
         {
-          "address": "1CGA4srJbPWhtJb7ezgY6GQf4PKhFuzD9w",
-          "label": "Bitfinex hack destination (Wallet 1CGA4s)",
+          "address": "3HKs1g7u5a1uU4pC5HaNooYMbL1Lao4mv4",
+          "label": "Public address",
+          "sats": 600,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3ESakThMrdVVrbhhcpf9spicyjCg1Uk8Jm",
+          "label": "Public address",
+          "sats": 600,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "33LNws16Wfs12usWBNfa1MSX3YKY6Hdayf",
+          "label": "Public address",
+          "sats": 600,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3HwY536CxznDxMjiRCFkpx5ykwJbJMZY4w",
+          "label": "Public address",
           "sats": 0,
-          "source": "https://degreesofsatoshi.com/wallet/bitfinex-2016-hack-destination-addresses/",
-          "note": "Received 567.49 BTC in the hack and moved all of it to the consolidation wallet later seized. Balance 0.",
-          "live": false
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "35bCzX3RQEWdquqCPQkmdJdu2K4ut1roUZ",
+          "label": "Public address",
+          "sats": 600,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "31owhyALzzPEqUFwRbU5yQR4wNhYEjCiE5",
+          "label": "Public address",
+          "sats": 600,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3PBN3MCpDcZKr7WdyY1ULq1NeGwLNjpkj7",
+          "label": "Public address",
+          "sats": 600,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "33FKcwFhFBKWHh46Ksmxs3QBu8HV7h8QdF",
+          "label": "Public address",
+          "sats": 1146,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
         }
       ],
-      "total": 0
+      "total": 5946
     },
     {
-      "id": "wannacry",
-      "name": "WannaCry Ransom Wallets",
-      "category": "OTHER",
-      "icon": "hacker",
-      "badge": "Ransom 2017",
-      "evidence": "official",
+      "id": "river",
+      "name": "River Financial",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
       "live": true,
-      "description": "The three bitcoin addresses hard-coded into the WannaCry ransomware that spread worldwide from 2017-05-12. Victims paid the ransom here.",
-      "extra": "The addresses come from the malware's own configuration, as published by INCIBE-CERT and ENISA in May 2017. Payments were never laundered in a publicly traced way, and the wallets still receive the occasional payment.",
+      "description": "River Financial tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
       "addresses": [
         {
-          "address": "115p7UMMngoj1pMvkpHijcRdfJNXj6LrLn",
-          "label": "WannaCry ransom address 1 (hard-coded in the malware)",
-          "sats": 46702392,
-          "source": "https://www.nksc.lt/doc/ENISA-WannaCry-v1.0.pdf",
-          "note": "Documented by ENISA (ThaiCERT) and INCIBE-CERT in May 2017.",
-          "live": true
-        },
-        {
-          "address": "12t9YDPgwueZ9NyMgw519p7AA8isjr6SMw",
-          "label": "WannaCry ransom address 2 (hard-coded in the malware)",
-          "sats": 192242576,
-          "source": "https://www.nksc.lt/doc/ENISA-WannaCry-v1.0.pdf",
-          "note": "Documented by ENISA (ThaiCERT) and INCIBE-CERT in May 2017.",
-          "live": true
-        },
-        {
-          "address": "13AM4VW2dhxYgXeQepoHkHSQuy6NgaEb94",
-          "label": "WannaCry ransom address 3 (hard-coded in the malware)",
-          "sats": 32943048,
-          "source": "https://www.nksc.lt/doc/ENISA-WannaCry-v1.0.pdf",
-          "note": "Documented by ENISA (ThaiCERT) and INCIBE-CERT in May 2017.",
+          "address": "bc1qysj2w7xsw09datsy9mt9x50jn7qjd6qde6d66qm3ce0a4y9uzdpqcavdr0",
+          "label": "Public address",
+          "sats": 5300,
+          "source": "https://cryptobuybots.com/river-wallets",
+          "note": "",
           "live": true
         }
       ],
-      "total": 271888016
+      "total": 5300
+    },
+    {
+      "id": "pool-bwpool",
+      "name": "BWPool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "BWPool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1JLRXD8rjRgQtTS9MvfQALfHgGWau9L9ky",
+          "label": "Pool payout address",
+          "sats": 5150,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 5150
+    },
+    {
+      "id": "pool-rawpool",
+      "name": "Rawpool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Rawpool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1FbBbv5oYqFKwiPm4CAqvAy8345n8AQ74b",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "35y82tEPDa2wm6tzkEacMG8GPPW7zbMj83",
+          "label": "Pool payout address",
+          "sats": 4304,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3CLigLYNkrtoNgNcUwTaKoUSHCwr9W851W",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3QYvfQoG9Gs9Vfvbpw6947muSqhoGagvF6",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q8ej2g5uxdsg0jwl0mpl606qfjxgkyv3p29yf37",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qnnl503n04cqacpwvhr89qr70metxr79ht3n380",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qru8mtv3e3u7ms6ecjmwgeakdakclemvhnw00q9",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qwlrsvgtn99rqp3fgaxq6f6jkgms80rnej0a8tc",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 4304
+    },
+    {
+      "id": "linode-hack",
+      "name": "Linode Hack (2012)",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "2012 hack",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The 2012 Linode server compromise that drained several customer wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1978kFf3WKYiZsy89WX6qJ8vxWAbRWFGLq",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BoVMxw6LFiPyzaskB4ojEpAVrYEqZU6tV",
+          "label": "Public address",
+          "sats": 2809,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14xpJvJD8G3PBPWaT8AdBWuZUpsdV5j8RH",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19aSNhp1YE8h8m9h7SCGx9acCsixDFK91",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1F3czt4VGUGdmrXW4qbh8hbQZ1hcHpwFGT",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MXg8M3t2C64PMn5UZw1LEZyLdvtPTbC5W",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JL7vc2Ecn8QeeBYdpAP22pVpaSP6Cni3J",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15WoJ7L4AUfGHWdGj45NY9rFNiwU48woX2",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15dcNmArcsmhhRD55ShhRU8tgcJCRsu1DZ",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1AaXeH5DuP6FpPxdCn9RGXKWhSG4r9Hq9q",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NRy8GbX56MymBhDYMyqsNKwW9VupqKVG7",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DMuVKe9PKpx3dbs2b2MnXuVmLfA4drHif",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1KEuuxuUMPySnGw1WPxzGcXcL1zBm3k7Tq",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13CmJpbAueuWiPKw3UYU4vXEcZ4WzP6nxt",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LmyEU8KHVLj7rpE2zowZ5Je6WWtCJMhG",
+          "label": "Public address",
+          "sats": 0,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 2809
+    },
+    {
+      "id": "pool-bitcoinindia",
+      "name": "BitcoinIndia",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "BitcoinIndia payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1AZ6BkCo4zgTuuLpRStJH8iNsehXTMp456",
+          "label": "Pool payout address",
+          "sats": 1094,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1094
+    },
+    {
+      "id": "pool-175btc",
+      "name": "175btc",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "175btc payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1FWk3pn6r3dhzU7Xer1ALQQPGaZwG1LLcm",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LZcEKMCFfg9ARpgw3jG3yZxAV5kPt8mM9",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1AoYA4NmweQuTVRvTKf4PPLcjwWGHJGSj8",
+          "label": "Pool payout address",
+          "sats": 1000,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "pool-bitcoinrussia",
+      "name": "BitcoinRussia",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "BitcoinRussia payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "14R2r9FkyDmyxGB9xUVwVLdgsX9YfdVamk",
+          "label": "Pool payout address",
+          "sats": 1000,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "165GCEAx81wce33FWEnPCRhdjcXCrBJdKn",
+          "label": "Pool payout address",
+          "sats": 0,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "babylon",
+      "name": "Babylon",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Analytics attribution",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Babylon tracked BTC wallets.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1p8jkwplu835wtjfuzzj3pwkzydyf98qlvvufyudutvqdlpns04h4qqqhnea",
+          "label": "Public address",
+          "sats": 330,
+          "source": "https://cryptobuybots.com/babylon-wallets",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1pdscqxcegedsmkwda427yzcwvszu0xeannh85jkzxfg4ehll2e9lqexmvgn",
+          "label": "Public address",
+          "sats": 660,
+          "source": "https://cryptobuybots.com/babylon-wallets",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 990
+    },
+    {
+      "id": "pool-neopool",
+      "name": "Neopool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Neopool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1HCAb2h89bUinm6QZrAPpfbk4ySBrT2V4w",
+          "label": "Pool payout address",
+          "sats": 821,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 821
+    },
+    {
+      "id": "pool-pega-pool",
+      "name": "PEGA Pool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "PEGA Pool payout addresses from the mempool.space pool registry. A pool address holds only what has not been swept to the pool's payout wallet, so the figure moves with the payout cycle.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1BGFwRzjCfRR7EvRHnzfHyFjGR8XiBDFKa",
+          "label": "Pool payout address",
+          "sats": 600,
+          "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 600
     }
   ]
 };

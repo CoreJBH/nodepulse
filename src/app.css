@@ -563,7 +563,11 @@ body.layer-ent{--ec:0,229,255;--ec2:59,130,246}
 /* The verified part and the estimate that are added into the row's total, printed under
    the name so the figure on the right is never an unexplained sum. */
 .erow .estb{font-family:var(--mono);font-size:8px;line-height:1.45;letter-spacing:.03em;color:var(--dim);margin-top:3px}
-.erow .val{flex:0 0 auto;text-align:right;font-family:var(--mono);font-size:11.5px;color:#bff3ff;font-variant-numeric:tabular-nums}
+.erow .val{flex:0 0 auto;text-align:right;font-family:var(--mono);font-size:11.5px;color:#bff3ff;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* A figure past 1,000 BTC is a whole number on the row (1,100,110) and the row's value
+   column keeps its width: the name's side is the one that gives, so a long figure can
+   never be cut to its first five characters on a 360 px screen. */
+.erow .main{min-width:0;overflow:hidden}
 .erow .val .u{font-size:8px;letter-spacing:.1em;color:var(--dim);margin-left:3px}
 .erow .val small{display:block;font-size:8.5px;color:var(--dim);margin-top:3px;letter-spacing:.04em}
 .cat{font-family:var(--mono);font-size:7.5px;letter-spacing:.14em;padding:2px 5px;border-radius:4px;background:rgba(var(--ec),.14);color:#8fe9ff}
@@ -709,4 +713,85 @@ body.layer-ent{--ec:0,229,255;--ec2:59,130,246}
   .erow .ic{width:22px;height:22px}
   .dbal{grid-template-columns:1fr 1fr}
   .dbal > div:last-child{grid-column:1 / -1}
+}
+
+/* ---------------- entity dashboard (sheet closed) ----------------
+   The ENTITIES layer draws no point on the globe, so a closed sheet left the middle of the
+   screen empty. This panel fills that space with the one thing the table is for: how much
+   of the 21M cap the tracked entities hold, how the supply splits around it, and what each
+   category contributes. */
+.ent-dash{
+  position:fixed;z-index:9;left:0;right:0;display:none;
+  top:calc(env(safe-area-inset-top,0px) + 116px);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 150px);
+  overflow-y:auto;overscroll-behavior:contain;padding:6px var(--pad) 4px;
+  font-family:var(--mono);color:#bff3ff;
+}
+body:not(.layer-ent) .ent-dash{display:none !important}
+.ent-dash::-webkit-scrollbar{width:3px}
+.ent-dash::-webkit-scrollbar-thumb{background:rgba(var(--ec),.28);border-radius:3px}
+.ent-dash .dhead2{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  font-size:8px;letter-spacing:.18em;color:rgb(var(--ec));margin:4px 0 8px}
+.ent-dash .dhead2 span:last-child{color:var(--dim2);letter-spacing:.06em}
+.ent-dash .dhero{padding:12px 13px;border-radius:14px;border:1px solid rgba(var(--ec),.22);
+  background:linear-gradient(180deg, rgba(var(--ec),.10), rgba(2,10,22,.55));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 0 30px rgba(var(--ec),.10)}
+.ent-dash .dl{font-size:7.5px;letter-spacing:.16em;color:var(--dim)}
+.ent-dash .dbig{font-size:clamp(22px,7.2vw,34px);line-height:1.1;margin-top:5px;color:#a8f4ff;
+  letter-spacing:-.01em;text-shadow:0 0 20px rgba(0,229,255,.35);font-variant-numeric:tabular-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ent-dash .dbig span{font-size:11px;letter-spacing:.12em;color:var(--dim);margin-left:6px}
+.ent-dash .dsub2{font-size:8.5px;color:var(--dim);letter-spacing:.06em;margin-top:5px}
+.ent-dash .dsupply{margin-top:11px;padding:10px 12px;border-radius:12px;
+  border:1px solid rgba(var(--ec),.14);background:rgba(2,10,22,.42)}
+.ent-dash .drow{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:9px;flex-wrap:wrap}
+.ent-dash .dn{color:#cdeefc;min-width:112px;flex:0 0 auto;font-size:9px;letter-spacing:.04em}
+.ent-dash .dv{color:#eafaff;font-variant-numeric:tabular-nums}
+.ent-dash .dc{margin-left:auto;color:var(--dim2);font-size:8px;letter-spacing:.04em}
+.ent-dash .dbar{flex:1 1 auto;min-width:60px;height:5px;border-radius:99px;background:rgba(var(--ec),.10);overflow:hidden}
+.ent-dash .dbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#00e5ff,#3b82f6)}
+.ent-dash .w0{width:0%}
+.ent-dash .w5{width:5%}
+.ent-dash .w10{width:10%}
+.ent-dash .w15{width:15%}
+.ent-dash .w20{width:20%}
+.ent-dash .w25{width:25%}
+.ent-dash .w30{width:30%}
+.ent-dash .w35{width:35%}
+.ent-dash .w40{width:40%}
+.ent-dash .w45{width:45%}
+.ent-dash .w50{width:50%}
+.ent-dash .w55{width:55%}
+.ent-dash .w60{width:60%}
+.ent-dash .w65{width:65%}
+.ent-dash .w70{width:70%}
+.ent-dash .w75{width:75%}
+.ent-dash .w80{width:80%}
+.ent-dash .w85{width:85%}
+.ent-dash .w90{width:90%}
+.ent-dash .w95{width:95%}
+.ent-dash .w100{width:100%}
+.ent-dash .dbar i.person{background:linear-gradient(90deg,#34d399,#00e5ff)}
+.ent-dash .dbar i.gov{background:linear-gradient(90deg,#fbbf24,#f97316)}
+.ent-dash .dbar i.other{background:linear-gradient(90deg,#a78bfa,#3b82f6)}
+.ent-dash .dstack{display:flex;height:7px;border-radius:99px;overflow:hidden;margin-top:9px;background:rgba(2,8,18,.8);border:1px solid rgba(var(--ec),.12)}
+.ent-dash .dstack i{display:block;height:100%}
+.ent-dash .dstack .tk{background:linear-gradient(90deg,#00e5ff,#3b82f6)}
+.ent-dash .dstack .pv{background:rgba(var(--ec),.26)}
+.ent-dash .dstack .un{background:rgba(120,140,170,.20)}
+.ent-dash .dfoot2{font-size:7.5px;line-height:1.7;color:var(--dim2);letter-spacing:.04em;margin-top:10px}
+/* the list header above the ranking: what the tab shows and when it was read */
+.lhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--mono);
+  font-size:8px;letter-spacing:.12em;color:var(--dim);margin:2px 0 2px}
+.lhead span:first-child{color:rgb(var(--ec))}
+.lhead .wbtn{margin-left:auto;padding:5px 8px;font-size:8px}
+/* the coverage line on a card whose public addresses are only part of the entity */
+.dcov{margin-top:10px;padding:8px 10px;border-radius:10px;font-family:var(--mono);font-size:8.5px;line-height:1.7;
+  color:#cdeefc;border:1px dashed rgba(251,191,36,.35);background:rgba(251,191,36,.06)}
+.dcov b{color:#ffd98a;letter-spacing:.12em;margin-right:5px;font-weight:500}
+@media (max-width:430px){
+  .ent-dash{top:calc(env(safe-area-inset-top,0px) + 106px);bottom:calc(env(safe-area-inset-bottom,0px) + 132px);padding:2px var(--pad)}
+  .ent-dash .dn{min-width:96px}
+  .erow .val{font-size:11px}
+  .dbal b{font-size:12.5px;word-break:break-all}
 }

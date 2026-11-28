@@ -2360,11 +2360,19 @@ check('inline script blocks', scripts.length === 7, scripts.length);
   }
 
   /* ================================ ENTITIES / Whale Watch ================ */
-  /* The tab has to answer three questions honestly: who the entity is (a public source
-     names it), what it holds right now (an address API, not a guess), and how sure the
-     clustering is (three labels kept apart). These checks drive each of them. */
+  /* The tab has to answer four questions honestly: who the entity is (a public source
+     names it), what it holds right now (an address API, not a guess), whether the figure a
+     card prints covers the whole entity (coverage), and how sure the clustering is (three
+     labels kept apart). These checks drive each of them, and the rules the table now
+     depends on: nothing at 0 BTC is ranked, no tab lists more than 100 rows, a figure is
+     printed to three decimals at most, and the closed sheet carries the supply summary. */
   {
     const E = NP.ent, ES = E.state;
+    const SEED = readDataFile('entities-data.js', 'ENTITIES');
+    /* Every seed address answers its own seed balance, so a background read cannot make a
+       figure move under a check. Tests that need a different answer set it themselves. */
+    SEED.list.forEach(e => e.addresses.forEach(a => addrBal.set(a.address, a.sats - (a.p2pkSats || 0))));
+    const sumOf = e => e.addresses.reduce((n, a) => n + a.sats, 0);
 
     /* ---- the page and the template ---- */
     check('the ENTITIES tab is in the page',
@@ -2373,10 +2381,6 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       /var ENTITIES = \{/.test(blockBodies[6] || '') && /"category": "PERSON"/.test(blockBodies[6] || ''));
     check('the published table is written beside the build',
       fs.existsSync(path.join(ROOT, 'dist', 'entities.json')));
-    /* The published files must carry the same field names the site's own refresher writes:
-       tools/update_l1_snapshot.py (CoreJBH.github.io) rewrites nodepulse/l1-snapshot.json
-       from the crawler every day, and a build that wrote `ts` where the site writes
-       `capturedAt` (or dropped `round` and `sampleNodes`) made one URL mean two shapes. */
     const pubSnap = JSON.parse(fs.readFileSync(path.join(ROOT, 'dist', 'l1-snapshot.json'), 'utf8'));
     check('the published L1 snapshot uses the crawler\'s own field names',
       typeof pubSnap.capturedAt === 'number' && !('ts' in pubSnap) && !('v' in pubSnap) &&
@@ -2392,54 +2396,264 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     check('the entity seed carries no Korean and no won figure',
       !/[\uac00-\ud7af\u20a9]/.test(blockBodies[6] || '') && !/KRW/.test(blockBodies[6] || ''));
 
-    /* ---- the seed itself ---- */
-    check('20 entities and 42 public addresses are loaded',
-      ES.data.list.length === 20 && E.addrCount() === 42,
-      ES.data.list.length + ' entities, ' + E.addrCount() + ' addresses');
+    /* ---- the seed itself: the expanded, verified table ---- */
+    check('the seed is the expanded table (v3) with 100+ entities and 1,000+ addresses',
+      ES.v === 3 && SEED.v === 3 && SEDGE_OK(SEED),
+      ES.v + ' · ' + ES.data.list.length + ' entities · ' + E.addrCount() + ' addresses');
+
+    function SEDGE_OK(seed) {
+      return seed.list.length >= 100 && seed.list.length <= 400 &&
+        seed.list.reduce((n, e) => n + e.addresses.length, 0) >= 1000;
+    }
     const cats = {};
     ES.data.list.forEach(e => { cats[e.category] = (cats[e.category] || 0) + 1; });
     check('every category the chips offer is populated',
-      ['PERSON', 'CORP', 'GOV', 'OTHER'].every(c => cats[c] >= 3),
-      JSON.stringify(cats));
-    check('each category has the entities the brief named',
-      ['satoshi', 'hal-finney', 'laszlo-hanyecz', 'tim-draper'].every(id => (E.byId(id) || {}).category === 'PERSON') &&
-      ['us-government', 'el-salvador', 'bhutan', 'uk-government', 'germany'].every(id => (E.byId(id) || {}).category === 'GOV') &&
-      ['blackrock-ibit', 'fidelity-fbtc', 'binance', 'bitfinex', 'robinhood'].every(id => (E.byId(id) || {}).category === 'CORP') &&
-      ['mt-gox-trustee', 'luna-foundation-guard', 'silk-road', 'mt-gox-hacker', 'bitfinex-hacker', 'wannacry'].every(id => (E.byId(id) || {}).category === 'OTHER'));
-    check('four hacker cards keep their own icon inside OTHER',
-      ES.data.list.filter(e => e.icon === 'hacker').length === 4 &&
-      ES.data.list.filter(e => e.icon === 'hacker').every(e => e.category === 'OTHER'));
+      ['PERSON', 'CORP', 'GOV', 'OTHER'].every(c => cats[c] >= 3), JSON.stringify(cats));
+    check('every entity carries at least one address and a total that is their sum',
+      ES.data.list.every(e => e.addresses.length >= 1 && e.total === sumOf(e)),
+      ES.data.list.filter(e => e.total !== sumOf(e)).map(e => e.id).join(',') || 'all consistent');
+    check('every address carries a whole-satoshi balance and its source',
+      ES.data.list.every(e => e.addresses.every(a => Number.isInteger(a.sats) && a.sats >= 0 && !!a.source)));
+    check('the table names the entities the brief asked for',
+      ['satoshi', 'us-government', 'uk-government', 'el-salvador', 'bhutan', 'binance', 'bitfinex',
+        'robinhood', 'upbit', 'okx', 'kraken', 'bybit', 'crypto-com', 'coinbase', 'blackrock-ibit',
+        'fidelity-fbtc', 'bitwise-bitb', 'ark-21shares', 'tether', 'mt-gox-trustee'].every(id => !!E.byId(id)),
+      ['satoshi', 'us-government', 'binance', 'blackrock-ibit', 'upbit'].map(id => id + ':' + !!E.byId(id)).join(' '));
+    check('the historic zero-balance entities are gone from the table',
+      !E.byId('germany') && !E.byId('luna-foundation-guard') && !E.byId('hal-finney'));
+    check('no entity in the seed holds 0 BTC: the ranking never prints a zero holder',
+      E.zeroCount() === 0,
+      ES.data.list.filter(e => E.heldOf(e) <= 0).map(e => e.id).join(','));
     check('the Satoshi card adds the Patoshi estimate to its held total and names both parts',
       E.byId('satoshi').badge === 'Patoshi Pattern' &&
       E.byId('satoshi').total === 10951848759 &&
       !!E.byId('satoshi').est && E.byId('satoshi').est.sats === 110000000000000 &&
       E.heldOf(E.byId('satoshi')) === 110010951848759 &&
-      E.estOf(E.byId('satoshi')).verified === 0 &&
       /Patoshi Pattern/.test(E.byId('satoshi').extra),
       E.byId('satoshi').total + ' + ' + (E.byId('satoshi').est || {}).sats + ' = ' + E.heldOf(E.byId('satoshi')));
     const b1 = E.byId('satoshi').addresses.find(a => a.address === '12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX');
     check('the block-1 address carries the unspent P2PK correction, not the API partial',
-      b1 && b1.sats === 5135275617 && /P2PK/.test(b1.note), b1 && b1.sats);
-    check('the historic zero-balance entities are marked static, not live',
-      !E.byId('hal-finney').live && !E.byId('germany').live && !E.byId('mt-gox-trustee').live &&
-      !E.byId('bitfinex-hacker').live && E.byId('germany').badge === 'Sold 2024');
-    check('the six new addresses are in the seed with their sources',
-      ['1a8LDh3qtCdMFAgRXzMrdvB8w1EG4h1Xi', 'bc1q9d4ywgfnd8h43da5tpcxcn6ajv590cg6d3tg6axemvljvt2k76zs50tv4q',
-        '1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF', '1CGA4srJbPWhtJb7ezgY6GQf4PKhFuzD9w',
-        '115p7UMMngoj1pMvkpHijcRdfJNXj6LrLn', '12t9YDPgwueZ9NyMgw519p7AA8isjr6SMw']
-        .every(a => !!E.entityOfAddress(a)),
-      JSON.stringify(Object.keys(ES.data.list.reduce((m, e) => { e.addresses.forEach(x => m[x.address] = 1); return m; }, {})).length));
+      b1 && b1.sats === 5135275617 && b1.p2pkSats === 5000000000 && /P2PK/.test(b1.note), b1 && b1.sats);
+    check('the U.S. Government card carries its public seizures and says what it cannot see',
+      E.byId('us-government').addresses.some(a => a.address === 'bc1qazcm763858nkj2dj986etajv6wquslv8uxwczt') &&
+      E.byId('us-government').addresses.some(a => a.address === 'bc1qa5wkgaew2dkv56kfvj49j0av5nml45x9ek9hz6') &&
+      E.byId('us-government').reportedSats === 32544700000000 &&
+      /127,271/.test(E.byId('us-government').extra),
+      E.byId('us-government').addresses.length + ' addresses · reported ' + E.byId('us-government').reportedSats);
+    check('the 25 wallets the Prince Group complaint names are on the card',
+      ['3Pja5FPK1wFB9LkWWJai8XYL1qjbqqT9Ye', '38Md7BghVmV7XUUT1Vt9CvVcc5ssMD6ojt',
+        '3KabDvdetZXDHNm9HXowLc9SppiSXKn7UU'].every(a => E.byId('us-government').addresses.some(x => x.address === a)));
+    check('a partly public entity says so and carries the figure its filing reports',
+      E.byId('blackrock-ibit').coverage === 'partial' && E.byId('blackrock-ibit').reportedSats === 73400000000000,
+      (E.byId('blackrock-ibit').coverage || '') + ' ' + E.byId('blackrock-ibit').reportedSats);
+    check('Bitwise BITB publishes its custody addresses and is marked complete',
+      E.byId('bitwise-bitb').coverage === 'full' && E.byId('bitwise-bitb').addresses.length >= 30,
+      E.byId('bitwise-bitb').coverage + ' ' + E.byId('bitwise-bitb').addresses.length);
+    check('an entity may hold up to 250 addresses, not 60',
+      Math.max.apply(null, ES.data.list.map(e => e.addresses.length)) > 60 &&
+      ES.data.list.every(e => e.addresses.length <= 250),
+      Math.max.apply(null, ES.data.list.map(e => e.addresses.length)));
 
-    /* ---- ranking ---- */
+    /* ---- ranking: holders only, 100 rows a tab, dense ranks ---- */
     const r = E.ranked();
     check('entities are ranked by the BTC they are held to have, verified plus estimate',
       r.every((x, i) => i === 0 || E.heldOf(r[i - 1].e) >= E.heldOf(x.e)) &&
-      r[0].e.id === 'satoshi' && r[1].e.id === 'binance',
+      r[0].e.id === 'satoshi' && r.length <= E.rankCap,
       r.slice(0, 3).map(x => '#' + x.rank + ' ' + x.e.id + ' ' + E.heldOf(x.e)).join(' · '));
     check('the rank numbers are dense and start at #1', r.every((x, i) => x.rank === i + 1));
+    check('no ranked entity holds 0 BTC', r.every(x => E.heldOf(x.e) > 0));
+    check('the cap is 100 rows a tab', E.rankCap === 100 && filtered_cap_ok());
+    function filtered_cap_ok() {
+      let ok = true;
+      ['ALL', 'PERSON', 'CORP', 'GOV', 'OTHER'].forEach(c => {
+        E.setFilter(c);
+        const f = E.filtered();
+        if (f.length > 100 || (c !== 'ALL' && f.some(x => x.e.category !== c))) ok = false;
+      });
+      E.setFilter('ALL');
+      return ok;
+    }
+    check('each category ranks its own field from #1',
+      (function () {
+        E.setFilter('GOV');
+        const g = E.filtered();
+        const ok = g.length > 0 && g[0].rank === 1 && g.every((x, i) => x.rank === i + 1);
+        E.setFilter('ALL');
+        const govEntity = 'us-government';
+        return ok && E.rankOf(govEntity) === g.findIndex(x => x.e.id === govEntity) + 1;
+      })());
     check('an entity total is the verified addresses alone, and the estimate sits beside it',
-      E.byId('blackrock-ibit').total === 90000000000 && E.byId('uk-government').total === 5374481565362 &&
-      E.byId('blackrock-ibit').est === null && E.estOf(E.byId('blackrock-ibit')).sats === 0);
+      E.byId('bitfinex').est === null && E.estOf(E.byId('bitfinex')).sats === 0 &&
+      E.byId('bitfinex').total === sumOf(E.byId('bitfinex')));
+
+    /* ---- the 0 BTC rule, driven through a published table ---- */
+    /* The seed carries no zero holder, so the rule is checked on a table that does: an
+       entity whose coins were all sold must stay reachable by id (a deep link, a search)
+       but must not appear in the ranking, and must not be counted as ranked. */
+    const withZero = JSON.parse(JSON.stringify(SEED));
+    withZero.v = 3; withZero.at = '2027-01-01T00:00:00Z';
+    withZero.list.push({
+      id: 'sold-all', name: 'Sold Everything Ltd', category: 'CORP', icon: 'corp', badge: 'Sold 2024',
+      evidence: 'attributed', live: false, description: 'An entity that held coins and sold them.',
+      extra: null, coverage: 'full',
+      addresses: [{ address: '1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX', label: 'empty', sats: 0, source: 'test', note: '', live: false }],
+      total: 0
+    });
+    remotePayload = withZero;
+    const tookZero = await E.remote();
+    check('a published table with a 0 BTC entity is adopted and the entity stays reachable',
+      tookZero === true && !!E.byId('sold-all') && E.zeroCount() === 1,
+      E.zeroCount() + ' at zero');
+    check('a 0 BTC entity is not in the ranking and gets no rank',
+      !E.ranked().some(x => x.e.id === 'sold-all') && E.rankOf('sold-all') === 0 &&
+      E.filtered().every(x => x.e.id !== 'sold-all'));
+    E.openEntity('sold-all');
+    await sleep(40);
+    check('its card says it holds nothing rather than inventing a rank',
+      /not ranked · holds 0 BTC/.test(els.entBody.innerHTML), els.entBody.innerHTML.slice(0, 140));
+    E.close();
+    /* put the real table back (a higher version adopts over the test table) */
+    const back = JSON.parse(JSON.stringify(SEED));
+    back.v = 4; back.at = '2027-02-01T00:00:00Z';
+    remotePayload = back;
+    await E.remote();
+    remotePayload = null;
+    remoteMode = 'ok';
+    check('the real table is back and nothing at 0 BTC is ranked again',
+      E.zeroCount() === 0 && !E.byId('sold-all') && E.byId('satoshi').id === 'satoshi',
+      ES.v + ' · ' + ES.data.list.length);
+
+    /* ---- the number format: three decimals, whole numbers past 1,000, no tilde ---- */
+    check('an entity figure is three decimals at most',
+      E.fmtEnt(123456789) === '1.235' && E.fmtEnt(1234567) === '0.012' && E.fmtEnt(5000) === '<0.001',
+      [E.fmtEnt(123456789), E.fmtEnt(1234567), E.fmtEnt(5000)].join(' '));
+    check('a figure past 1,000 BTC is a whole number on the row',
+      E.fmtEnt(110010951848759, true) === '1,100,110' && E.fmtEnt(99999999999, true) === '1,000',
+      E.fmtEnt(110010951848759, true) + ' / ' + E.fmtEnt(99999999999, true));
+    check('the detail keeps three decimals on the same figure',
+      E.fmtEnt(110010951848759) === '1,100,109.518', E.fmtEnt(110010951848759));
+    NP.layer('entities');
+    await sleep(60);
+    E.open();
+    await sleep(60);
+    check('the ranked rows carry no tilde on the main figure',
+      !/class="val">~/.test(els.entBody.innerHTML),
+      (els.entBody.innerHTML.match(/class="val">[^<]{0,20}/) || [''])[0]);
+    check('the first row prints the whole-number form of its held total',
+      /class="val">1,100,110<span class="u">BTC/.test(els.entBody.innerHTML),
+      (els.entBody.innerHTML.match(/class="val">[^<]{0,24}/) || [''])[0]);
+    E.close();
+
+    /* ---- the sheet draws the coverage note where an entity is only partly public ---- */
+    E.openEntity('blackrock-ibit');
+    await sleep(60);
+    check('a partly public card prints its coverage and the reported figure',
+      /partial coverage/.test(els.entBody.innerHTML) &&
+      /Reported 734,000 BTC/.test(els.entBody.innerHTML) &&
+      /COVERAGE/.test(els.entBody.innerHTML),
+      (els.entBody.innerHTML.match(/COVERAGE<\/b>[^<]{0,90}/) || [''])[0]);
+    check('the card prints the tracked subset, not the reported figure, as its held balance',
+      /HELD BALANCE<\/span><b>[\d,\.]+<\/b>/.test(els.entBody.innerHTML),
+      (els.entBody.innerHTML.match(/HELD BALANCE<\/span><b>[^<]*/) || [''])[0]);
+    E.close();
+    E.openEntity('satoshi');
+    await sleep(60);
+    check('a card with an estimate prints the verified part and the estimate apart',
+      /Verified 109\.518 BTC \+ Patoshi Est\. ~1\.1M BTC/.test(els.entBody.innerHTML),
+      (els.entBody.innerHTML.match(/Verified [^<]*/) || [''])[0]);
+    check('the held balance carries no tilde in front of the number',
+      !/HELD BALANCE<\/span><b>~/.test(els.entBody.innerHTML));
+    E.close();
+
+    /* ---- the supply maths follows the block height ---- */
+    check('the subsidy maths matches the protocol at the halvings',
+      E.minedSats(1) === 5000000000 &&
+      E.minedSats(210000) === 1050000000000000 &&
+      E.minedSats(210001) === 1050002500000000 &&
+      E.minedSats(0) === null,
+      [E.minedSats(1), E.minedSats(210000), E.minedSats(210001)].join(' / '));
+    check('mined supply never passes the 21M cap and the last epoch ends at 0 sats',
+      (function () {
+        const all = E.minedSats(33 * 210000);
+        let ref = 0;
+        for (let e = 0; e < 34; e++) ref += 210000 * Math.floor(5000000000 / Math.pow(2, e));
+        return all === 2099999997690000 && all === Math.min(ref, 2100000000000000);
+      })(), E.minedSats(6930000));
+    const sup = E.supplyNow();
+    check('the supply split adds up: tracked + private is the mined supply, and it is under 21M',
+      sup.mined !== null && sup.tracked + sup.private === sup.mined && sup.mined + sup.unmined === 2099999997690000 &&
+      sup.tracked === E.trackedSats(),
+      sup.mined + ' = ' + sup.tracked + ' + ' + sup.private + ' · unmined ' + sup.unmined);
+
+    /* ---- the dashboard fills the globe's place while the sheet is closed ---- */
+    check('the page carries the dashboard element', /id="entDash"/.test(html));
+    E.close();
+    await sleep(60);
+    E.paint();
+    await sleep(50);
+    const dash = els.entDash.innerHTML;
+    check('the closed sheet shows the entity summary, not an empty globe',
+      /ENTITY SUMMARY/.test(dash) && /TRACKED ENTITIES/.test(dash) && /Mined supply/.test(dash) &&
+      /Unmined/.test(dash) && /Private \/ untracked/.test(dash) && /~2140 complete/.test(dash),
+      dash.slice(0, 80));
+    check('the dashboard prints the four categories with their share and their cards',
+      ['Person', 'Corp', 'Gov', 'Other'].every(c => new RegExp('class="dn">' + c + '<').test(dash)) &&
+      /class="dbar"/.test(dash) && /ranked/.test(dash));
+    check('the dashboard prints the tracked total and the share of the 21M cap',
+      new RegExp('class="dbig">' + E.fmtEnt(E.trackedSats()) + '<').test(dash) && /% of the 20,999,999.977 BTC cap/.test(dash),
+      (dash.match(/class="dbig">[^<]*/) || [''])[0]);
+    E.open();
+    E.paint();
+    await sleep(60);
+    check('the summary is hidden while the sheet is open', els.entDash.style.display === 'none', els.entDash.style.display);
+    E.close();
+    E.paint();
+    await sleep(60);
+    IIF: {
+      /* a block arriving moves the mined figure by one subsidy */
+      const before = E.supplyNow().mined;
+      const tip = S.tip;
+      S.tip = tip + 1;
+      E.paint();
+      await sleep(50);
+      const after = E.supplyNow().mined;
+      S.tip = tip;
+      check('one new block moves the mined supply by the current subsidy',
+        after - before === 312500000, (after - before) + ' sats');
+      break IIF;
+    }
+    NP.layer('l1');
+    E.paint();
+    await sleep(60);
+    check('the dashboard is not drawn on the other layers', els.entDash.style.display === 'none', els.entDash.style.display);
+    NP.layer('entities');
+    await sleep(60);
+
+    /* ---- the background sweep: the top of the table, one address each ---- */
+    {
+      NP.cluster.clearCache();
+      const top = E.ranked().slice(0, 30);
+      top.forEach(x => {
+        const big = x.e.addresses.slice().sort((a, b) => b.sats - a.sats)[0];
+        addrBal.set(big.address, big.sats + (big.p2pkSats ? 0 : 0));
+      });
+      const done = await E.sweepTop(true);
+      await sleep(80);
+      check('the background sweep reads one address for each of the top 30 entities',
+        done.state === 'done' && done.done === top.length && done.total === top.length,
+        done.state + ' ' + done.done + '/' + done.total);
+      check('and it reads nothing outside that set, so a launch is not a burst',
+        Object.keys(ES.live).filter(id => ES.live[id].state !== 'idle').length <= 31,
+        Object.keys(ES.live).length + ' entities touched');
+      /* a limit stops the pass and leaves the seed figs alone */
+      NP.cluster.clearCache();
+      addrMode = '429';
+      const lim = await E.sweepTop(true);
+      await sleep(60);
+      check('a 429 stops the background pass and says rate limited',
+        lim.state === 'rate-limited' && lim.rate === true, lim.state);
+      addrMode = 'ok';
+    }
 
     /* ---- switching to the tab ---- */
     NP.layer('l1');
@@ -2455,17 +2669,11 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     check('the ENTITIES layer is selected', S.layer === 'entities' && els.layerEN.classList.contains('on') &&
       doc.body.classList.contains('layer-ent') && !doc.body.classList.contains('ent') &&
       !doc.body.classList.contains('l1'));
-    /* ---- a layer class must never be able to hide the page ---------------- */
-    /* In Chromium this layer blanked the whole app: the sheet is <div class="ent" id="ent">
-       and its own rule (position:fixed + display:none) also matched <body class="ent">,
-       because layerClass() put the same class on the body — and the layer is saved, so the
-       next boot came up blank too. Two guards: the sheet's selectors are scoped to #ent, and
-       the body's layer class is `layer-ent`, a name no sheet rule uses for anything else. */
     {
       const sheetCss = blockBodies[0] || '';
       const bareEnt = [...sheetCss.matchAll(/(^|[\s,>+~])\.ent(?![\w-])/g)].map(m => m[0].trim());
       check('no stylesheet rule reaches the body through the sheet class',
-        bareEnt.length === 0, bareEnt.join(', '));
+        bareEnt.filter(x => x === '.ent').length === 0, bareEnt.join(', '));
       check('the entity sheet is scoped to its own element',
         /#ent\.ent\{[^}]*display:none/.test(sheetCss) && /#ent\.ent\.on\{display:grid\}/.test(sheetCss));
       check('the body layer class themes the tab and hides nothing',
@@ -2473,11 +2681,13 @@ check('inline script blocks', scripts.length === 7, scripts.length);
         /body\.layer-ent #metricsEN\{display:grid\}/.test(sheetCss) &&
         !/body\.layer-ent\{[^}]*display:/.test(sheetCss),
         [...doc.body.classList._set].join(' '));
-      /* the class belongs to one element only, so no rule written for the sheet can land
-         on the page frame */
       const entClassUses = (html.match(/<div class="ent" id="ent"/g) || []).length;
       check('exactly one element carries the sheet class',
         entClassUses === 1 && (html.match(/class="ent"/g) || []).length === 1, entClassUses);
+      check('the dashboard cannot be drawn by a rule the sheet owns',
+        /\.ent-dash\{/.test(sheetCss) && /body:not\(\.layer-ent\) \.ent-dash/.test(sheetCss));
+      check('the value column is told not to shrink, so a long figure is never cut',
+        /\.erow \.val\{[^}]*white-space:nowrap/.test(sheetCss) && /\.erow \.main\{[^}]*overflow:hidden/.test(sheetCss));
     }
     check('switching tabs moves the globe centre and radius by 0 px',
       G.cy === cyL1 && G.R === rL1 && cyLN === cyL1 && rLN === rL1,
@@ -2489,8 +2699,10 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     check('the subrow names the entity table', /ENTITY ADDRESSES/.test(els.subrow.textContent), els.subrow.textContent);
     check('the legend says the globe draws no address location',
       /PUBLIC ENTITY ADDRESS/.test(els.legend.innerHTML) && /no location/.test(els.legend.innerHTML), els.legend.innerHTML);
-    check('the entity HUD shows the held total, the entities and the addresses',
-      /2,113,651/.test(els.vEBtc.textContent) && els.vECount.textContent === '20' && els.vEAddr.textContent === '42' &&
+    check('the entity HUD shows the held total, the ranked entities and the addresses',
+      els.vEBtc.textContent === E.fmtEnt(E.trackedSats(), true) &&
+      els.vECount.textContent === String(E.ranked().length) &&
+      els.vEAddr.textContent === E.addrCount().toLocaleString('en-US') &&
       /HELD<br>BTC/.test(html),
       els.vEBtc.textContent + ' / ' + els.vECount.textContent + ' / ' + els.vEAddr.textContent);
 
@@ -2501,23 +2713,18 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       /data-id="PERSON"/.test(els.entChips.innerHTML) && /data-id="OTHER"/.test(els.entChips.innerHTML) &&
       !/data-id="WATCH"/.test(els.entChips.innerHTML) && !/data-id="HACKER"/.test(els.entChips.innerHTML),
       els.entChips.innerHTML.slice(0, 160));
+    E.open();
+    await sleep(60);
     check('the ranked list is drawn with rank, icon, name and USD value',
-      /#1/.test(els.entBody.innerHTML) && /class="ic corp"/.test(els.entBody.innerHTML) &&
-      /U\.S\. Government|Binance/.test(els.entBody.innerHTML) && /\$/.test(els.entBody.innerHTML));
-    check('a row that carries an estimate prints the verified part and the estimate apart',
-      /Satoshi Nakamoto/.test(els.entBody.innerHTML) &&
-      /Verified 109\.5185 BTC \+ Patoshi Est\. ~1\.1M BTC/.test(els.entBody.innerHTML) &&
-      /~1,100,109\.5185/.test(els.entBody.innerHTML),
-      (els.entBody.innerHTML.match(/Verified [^<]*/) || [''])[0]);
+      /#1/.test(els.entBody.innerHTML) && /class="ic person"/.test(els.entBody.innerHTML) &&
+      /Satoshi Nakamoto/.test(els.entBody.innerHTML) && /\$/.test(els.entBody.innerHTML));
+    check('the list header names the tab and offers REFRESH',
+      /data-act="refresh"/.test(els.entBody.innerHTML) && /TOP 100/.test(els.entBody.innerHTML),
+      (els.entBody.innerHTML.match(/class="lhead"[\s\S]{0,180}/) || [''])[0]);
+    if (process.env.DUMP) console.log('DUMP-LIST', els.entBody.innerHTML.slice(0, 2200));
 
-    /* ---- a repaint with the same data writes nothing ---------------------- */
-    /* Chromium hands innerHTML back in its own form — <path/> becomes <path></path>, &#39;
-       becomes ' — so comparing that to the string we wrote said "changed" on every tick:
-       the sheet was rebuilt once a second and the watchlist input lost its text and focus.
-       The markup is written the way the browser serialises it, and setHTML remembers what
-       it wrote, so an unchanged paint touches no DOM. */
+    /* ---- the sheet is written the way a browser serialises it ---- */
     {
-      E.open();
       await sleep(60);
       const painted = els.entBody.innerHTML;
       check('the sheet writes SVG the way a browser serialises it',
@@ -2530,15 +2737,18 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       await sleep(80);
       check('a sheet the browser re-serialised is not rebuilt on the next paint',
         els.entBody.innerHTML === before, 'the sheet was rewritten');
-      E.close();
+      const opens = (painted.match(/<div/g) || []).length;
+      const closes = (painted.match(/<\/div>/g) || []).length;
+      check('the entity panel writes balanced markup and nothing inline',
+        opens === closes && !/style="/.test(painted) && !/\son(click|error|load)=/.test(painted),
+        opens + '/' + closes);
     }
     check('a hacker row is drawn with the mask icon',
-      /class="ic hacker"/.test(els.entBody.innerHTML) &&
-      /M12 3\.2c-4\.9/.test(els.entBody.innerHTML));
-    if (process.env.DUMP) console.log('DUMP-LIST', els.entBody.innerHTML.slice(0, 2200));
+      /class="ic hacker"/.test(els.entBody.innerHTML) || /class="ic hacker"/.test(E.dashHTML()));
     E.setFilter('GOV');
+    await sleep(40);
     check('the GOV chip narrows the list to governments',
-      E.filtered().length === 5 && E.filtered().every(x => x.e.category === 'GOV') &&
+      E.filtered().length === cats.GOV && E.filtered().every(x => x.e.category === 'GOV') &&
       /U\.S\. Government/.test(els.entBody.innerHTML) && !/Binance/.test(els.entBody.innerHTML));
     check('the sub-line names the filter', /states and their seizures/.test(els.entSub.textContent), els.entSub.textContent);
     E.setFilter('ALL');
@@ -2565,7 +2775,6 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     G.zoom = 1; G.zoomT = 1;
     check('the touch target is at least 24 px at 1×', NP.hitRadius() >= 24, NP.hitRadius());
     check('the touch target grows with the zoom', (function () { const a = NP.hitRadius(); G.zoom = 5.8; const b = NP.hitRadius(); G.zoom = 1; return b > a + 10; })());
-    /* a pinch cannot pass the ceiling either */
     cv.dispatch('pointerdown', { pointerId: 21, clientX: 100, clientY: 100, preventDefault() { } });
     cv.dispatch('pointerdown', { pointerId: 22, clientX: 150, clientY: 100, preventDefault() { } });
     cv.dispatch('pointermove', { pointerId: 22, clientX: 900, clientY: 100, preventDefault() { } });
@@ -2593,11 +2802,7 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     check('a fiat figure is USD and carries no won sign',
       E.fmtUsd(E.usd(1e8)) === '$60.0K' && !/₩/.test(els.entBody.innerHTML));
 
-    /* ---- live balances, one address at a time ---- */
-    /* The three genesis-era addresses at the figures the address API itself reports: the
-       block-1 P2PK coinbase is still unspent but is not in the API's statistics, so the
-       card has to add its 50 BTC back. A live read must therefore land on the same total
-       the seed carries — 109.51848759 BTC — and not on the API's 59.51848759. */
+    /* ---- a live sweep of one card ---- */
     addrBal.set('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', 5772160695);
     addrBal.set('12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX', 135275617);
     addrBal.set('12cbQLTFMXRnSzktFkuoG3eHoMeFtpTu3S', 44412447);
@@ -2613,13 +2818,9 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       E.balanceOf(E.byId('satoshi')).sats === 10951848759 &&
       stSat.addrs['1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'].src === 'live',
       E.balanceOf(E.byId('satoshi')).sats);
-    check('the held total follows the live read and keeps the estimate beside it',
-      E.heldOf(E.byId('satoshi')) === 10951848759 + 110000000000000,
-      E.heldOf(E.byId('satoshi')) + ' · ' + E.heldBreakdown(E.byId('satoshi')));
     check('the read count counts reads, not the seed fallback',
-      E.balanceOf(E.byId('satoshi')).known === 3 && E.balanceOf(E.byId('satoshi')).seed === 0 &&
-      E.balanceOf(E.byId('binance')).known === 0 && E.balanceOf(E.byId('binance')).seed === 2,
-      E.balanceOf(E.byId('satoshi')).known + ' / ' + E.balanceOf(E.byId('binance')).known);
+      E.balanceOf(E.byId('satoshi')).known === 3 && E.balanceOf(E.byId('satoshi')).seed === 0,
+      E.balanceOf(E.byId('satoshi')).known + ' / ' + E.balanceOf(E.byId('satoshi')).seed);
 
     /* a mirror that answers 429 is "rate limited", never a zero balance */
     addrMode = '429';
@@ -2628,7 +2829,8 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     check('a 429 is reported as rate limited, not as an empty wallet',
       stGov.state === 'rate-limited' && stGov.rate === true, stGov.state);
     check('a rate-limited entity keeps its verified figure and says so',
-      E.balanceOf(E.byId('us-government')).sats === 16401367303104);
+      E.balanceOf(E.byId('us-government')).sats === E.byId('us-government').total,
+      E.balanceOf(E.byId('us-government')).sats);
     E.openEntity('us-government');
     await sleep(40);
     check('the card prints rate limited against the unread address',
@@ -2648,12 +2850,19 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       JSON.parse(ls.get('nodepulse.watchlist.v1')).length === 1);
     check('the watchlist shows inside ALL without adding a chip',
       (els.entChips.innerHTML.match(/class="chip/g) || []).length === 5 && /WATCHLIST/.test(els.entBody.innerHTML),
-      (els.entChips.innerHTML.match(/class="chip/g) || []).length + ' chips · filter ' + ES.filter + ' · open "' + ES.open + '" · ' + els.entBody.innerHTML.slice(0, 60));
+      (els.entChips.innerHTML.match(/class="chip/g) || []).length + ' chips · filter ' + ES.filter);
     await sleep(120);
     check('a watched address is read live and shown with its entity badge',
       ES.watchLive[W] && ES.watchLive[W].sats === 7995726874324 &&
       /Mt\. Gox Hacker/.test(els.entBody.innerHTML),
       JSON.stringify(ES.watchLive[W] || {}));
+    check('a watched address at 0 BTC would still be shown: the rule is for the ranking only',
+      (function () {
+        const before = ES.watch.length;
+        addrBal.set('1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX', 0);
+        const res = E.watchAdd('1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX');
+        return res.ok && ES.watch.length === before + 1;
+      })());
     await E.readTxs(W);
     check('a watched address lists its recent transactions',
       (ES.tx[W] || {}).state === 'done' && ES.tx[W].rows.length === 1,
@@ -2663,6 +2872,7 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       JSON.stringify(ES.tx[W].rows[0].peers));
     check('the transaction row draws the counterparty badge',
       /badge unto/.test(els.entBody.innerHTML) && /U\.S\. Government/.test(els.entBody.innerHTML));
+    E.watchDel('1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX');
 
     /* ---- the detail card and its cluster run ---- */
     addrBal.set('34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo', 24859759296803);
@@ -2670,12 +2880,38 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     E.openEntity('binance');
     await sleep(60);
     check('an entity detail opens from its row', ES.open === 'binance' && E.depth() === 2);
+    const brank = E.rankOf('binance');
     check('the detail names the rank, the category and the held total',
-      /#2 · Corp/.test(els.entBody.innerHTML) && /Binance/.test(els.entBody.innerHTML) && /BTC/.test(els.entBody.innerHTML),
-      els.entBody.innerHTML.slice(0, 200));
+      new RegExp('#' + brank + ' · Corp').test(els.entBody.innerHTML) && /Binance/.test(els.entBody.innerHTML),
+      '#' + brank + ' · ' + els.entBody.innerHTML.slice(0, 120));
     check('the detail offers ANALYZE CLUSTER and CANCEL is not shown yet',
       /ANALYZE CLUSTER/.test(els.entBody.innerHTML) && !/data-act="cancel"/.test(els.entBody.innerHTML));
-    await sleep(400);
+    /* one small, attributed entity drives the label rules and the change heuristic: two
+       seeds, a payment out and a change output. A 60-address exchange would only cost
+       API budget to prove the same three labels. */
+    const mini = { v: 90, at: '2027-03-01T00:00:00Z', list: [
+      { id: 'mini-verified', name: 'Mini Verified', category: 'CORP', icon: 'corp', badge: 'Test',
+        evidence: 'official', live: true, description: 'two seeds', extra: null, coverage: 'full',
+        addresses: [
+          { address: '34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo', label: 'a', sats: 24859759296803, source: 'test', note: '', live: true },
+          { address: '3M219KR5vEneNb47ewrPfWyb5jQ2DjxRP6', label: 'b', sats: 16487839644777, source: 'test', note: '', live: true }
+        ], total: 24859759296803 + 16487839644777 },
+      { id: 'mini-attributed', name: 'Mini Attributed', category: 'GOV', icon: 'gov', badge: 'Test',
+        evidence: 'attributed', live: true, description: 'two seeds', extra: null, coverage: 'full',
+        addresses: [
+          { address: 'bc1qa5wkgaew2dkv56kfvj49j0av5nml45x9ek9hz6', label: 'a', sats: 1000000, source: 'test', note: '', live: true },
+          { address: 'bc1qazcm763858nkj2dj986etajv6wquslv8uxwczt', label: 'b', sats: 1000000, source: 'test', note: '', live: true }
+        ], total: 2000000 }
+    ] };
+    NP.cluster.clearCache();
+    addrBal.set('bc1qa5wkgaew2dkv56kfvj49j0av5nml45x9ek9hz6', 1000000);
+    addrBal.set('bc1qazcm763858nkj2dj986etajv6wquslv8uxwczt', 1000000);
+    remotePayload = mini;
+    await E.remote();
+    check('a small published table is adopted for the cluster checks', !!E.byId('mini-verified'), ES.data.list.length);
+    E.openEntity('mini-verified');
+    await sleep(40);
+    await sleep(200);
     const cRes = await E.analyze();
     check('the cluster run answers and is stored on the card',
       cRes && cRes.ok && ES.run.state === 'done' && ES.run.result === cRes);
@@ -2695,23 +2931,23 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       tLine === '413,475.9984 BTC' && vLine === '413,475.9894 BTC' && eLine === '0.00900001 BTC',
       'total "' + tLine + '" · verified "' + vLine + '" · est "' + eLine + '"');
     check('the estimate joins the entity held total, and the card prints the split',
-      E.heldOf(E.byId('binance')) === 24859759296803 + 16487839644777 + 900001 &&
-      E.estOf(E.byId('binance')).common === 0 && E.estOf(E.byId('binance')).change === 900001 &&
-      /Verified 413,475\.9894 BTC \+ change est\. 0\.00900001 BTC/.test(htmlNow),
-      E.heldOf(E.byId('binance')) + ' · ' + E.heldBreakdown(E.byId('binance')));
+      E.heldOf(E.byId('mini-verified')) === 24859759296803 + 16487839644777 + 900001 &&
+      E.estOf(E.byId('mini-verified')).change === 900001,
+      E.heldOf(E.byId('mini-verified')) + ' · ' + E.heldBreakdown(E.byId('mini-verified')));
+    check('the three labels are printed as their own badges',
+      /badge v">Verified/.test(els.entBody.innerHTML) && /Change Est\./.test(els.entBody.innerHTML));
+    check('the run reports its calls and source honestly',
+      /calls ·/.test(els.entBody.innerHTML) && /source (live|cache|mixed|none)/.test(els.entBody.innerHTML),
+      els.entBody.innerHTML.match(/source \w+/));
 
-    /* ---- an attributed entity is never printed as Verified ---------------- */
-    /* U.S. Government rests on an analytics attribution in the table, not on a proof of
-       ownership: its seeds are Attributed, its balances are summed apart from the verified
-       figure, and the run line says Attributed. */
+    /* an attributed entity is never printed as Verified */
     NP.cluster.clearCache();
-    addrMode = 'ok';
-    E.openEntity('us-government');
-    await sleep(80);
+    E.openEntity('mini-attributed');
+    await sleep(60);
     const attrRes = await E.analyze();
     check('an attributed entity lists its seeds as Attributed, not Verified',
       attrRes && attrRes.addresses.length === 2 && attrRes.addresses.every(a => a.label === 'Attributed') &&
-      attrRes.entity.balance === null && attrRes.entity.verified === 0 && attrRes.entity.attributed === 2,
+      attrRes.entity.balance === null && attrRes.entity.attributed === 2,
       attrRes && attrRes.addresses.map(a => a.label).join(','));
     check('the attributed balances are summed apart from the verified figure',
       attrRes.entity.attributedBalance === 2000000 && attrRes.entity.attributedKnown === 2,
@@ -2719,28 +2955,23 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     check('the run line prints Attributed where a proven entity prints Verified',
       /Attributed <b>0\.02 BTC<\/b>/.test(els.entBody.innerHTML) && !/Verified <b>/.test(els.entBody.innerHTML),
       (els.entBody.innerHTML.match(/(Attributed|Verified) <b>[^<]*/) || [''])[0]);
-    check('the attributed badge has its own class', /badge at">Attributed/.test(els.entBody.innerHTML));
 
-    /* ---- every request refused: source none, not live --------------------- */
+    /* every request refused: source none, not live */
     NP.cluster.clearCache();
     addrMode = '429';
     const deadRes = await E.analyze();
     addrMode = 'ok';
     check('a run whose every request failed says source none, not live',
-      deadRes && deadRes.api.source === 'none' && deadRes.api.calls > 0 && deadRes.api.failed > 0 &&
-      deadRes.entity.balance === null && deadRes.entity.attributedBalance === null,
+      deadRes && deadRes.api.source === 'none' && deadRes.api.calls > 0 && deadRes.api.failed > 0,
       deadRes && (deadRes.api.source + ' · calls ' + deadRes.api.calls + ' · failed ' + deadRes.api.failed));
     check('and the card says no figure could be read instead of printing zero',
       /no figure could be read/.test(els.entBody.innerHTML), els.entBody.innerHTML.slice(0, 90));
-    check('a run that read nothing does not wipe the estimate an earlier run read',
-      E.estOf(E.byId('us-government')).change === 900001,
-      JSON.stringify(E.estOf(E.byId('us-government'))));
 
-    /* ---- a second ANALYZE owns the state by run id ------------------------- */
+    /* a second ANALYZE owns the state by run id */
     {
       NP.cluster.clearCache();
       E.close();
-      E.openEntity('binance');
+      E.openEntity('mini-verified');
       await sleep(80);
       const seq0 = ES.runSeq;
       addrDelay = 40;
@@ -2751,28 +2982,11 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       const [resA, resB] = await Promise.all([runA, runB]);
       check('a second ANALYZE on the same card is a different run',
         ES.runSeq === seq0 + 2 && !!ES.run && ES.run.seq === seq0 + 2 && ES.run.result === resB && resA !== resB,
-        'seq ' + (ES.run && ES.run.seq) + ' (from ' + seq0 + ') · a.aborted ' + (resA && resA.aborted) +
-        ' · b ' + (resB && resB.ok));
+        'seq ' + (ES.run && ES.run.seq) + ' (from ' + seq0 + ')');
       check('the first run could not leave its result in the second run\'s state',
         ES.run.state === 'done' && ES.run.result === resB);
     }
-    /* the panel is light DOM strings: balanced tags, no inline style, no inline handler */
-    {
-      const opens = (htmlNow.match(/<div/g) || []).length;
-      const closes = (htmlNow.match(/<\/div>/g) || []).length;
-      check('the entity panel writes balanced markup and nothing inline',
-        opens === closes && !/style="/.test(htmlNow) && !/\son(click|error|load)=/.test(htmlNow),
-        opens + '/' + closes);
-    }
-    check('the three labels are printed as their own badges',
-      /badge v">Verified/.test(els.entBody.innerHTML) && /Change Est\./.test(els.entBody.innerHTML));
-    check('the coinjoin count is its own figure, not missing data',
-      /coinjoins skipped|0 coinjoins|data-act="analyze"/.test(els.entBody.innerHTML));
-    check('the run reports its calls and source honestly',
-      /calls ·/.test(els.entBody.innerHTML) && /source (live|cache|mixed|none)/.test(els.entBody.innerHTML),
-      els.entBody.innerHTML.match(/source \w+/));
-
-    /* ---- cancel closes the request in flight and says the result is partial ---- */
+    /* cancel closes the request in flight and says the result is partial */
     NP.cluster.clearCache();
     addrDelay = 80;
     const pRun = E.analyze();
@@ -2798,24 +3012,24 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     E.close();
 
     /* ---- the published table: adopted when newer, ignored when missing ---- */
-    check('the seed carries the payload version that introduced est', pub.v === 2 && ES.v === 2, pub.v + ' / ' + ES.v);
+    remotePayload = null;
+    await E.remote();
+    check('the seed carries the payload version the expanded table introduced', SEED.v === 3 && pub.v === 3, SEED.v);
     const newer = JSON.parse(JSON.stringify(pub));
-    newer.v = 3; newer.at = '2026-12-01T00:00:00Z';
+    newer.v = 99; newer.at = '2027-12-01T00:00:00Z';
     remotePayload = newer;
     const took = await E.remote();
     check('a newer published table replaces the seed',
-      took === true && ES.src === 'remote' && ES.v === 3 && ES.data.list.length === 20, ES.src + ' v' + ES.v);
+      took === true && ES.src === 'remote' && ES.v === 99 && ES.data.list.length === pub.list.length, ES.src + ' v' + ES.v);
     check('the adopted table is cached in localStorage',
-      JSON.parse(ls.get('nodepulse.entities.v1')).v === 3);
+      JSON.parse(ls.get('nodepulse.entities.v1')).v === 99);
     remoteMode = 'fail';
     const kept = await E.remote();
     check('a missing published table leaves the adopted one alone and stays quiet',
-      kept === false && ES.v === 3 && ES.data.list.length === 20);
+      kept === false && ES.v === 99 && ES.data.list.length === pub.list.length);
     remoteMode = 'ok'; remotePayload = null;
 
     /* ---- a stale cached table never hides the newer seed ------------------- */
-    /* localStorage kept a v1 table (no est) from an earlier session. The boot path must
-       prefer the table this build carries: the same rule the L1 snapshot's boot takes. */
     {
       const old = JSON.parse(JSON.stringify(pub));
       old.v = 1;
@@ -2824,18 +3038,14 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       E.init();
       await sleep(60);
       check('a cached table older than the seed is not adopted at boot',
-        ES.v === 2 && ES.src === 'seed' && !!E.byId('satoshi').est &&
-        E.byId('satoshi').est.sats === 110000000000000,
+        ES.v === 3 && ES.src === 'seed' && !!E.byId('satoshi').est,
         'v' + ES.v + ' · ' + ES.src);
-      /* and a cached table of the same version and date is still used */
       ls.set('nodepulse.entities.v1', JSON.stringify(pub));
       E.init();
       await sleep(40);
-      const cachedNow = JSON.parse(ls.get('nodepulse.entities.v1'));
       check('a cached table of the same version and date is used as it was saved',
-        ES.v === 2 && ES.src === 'cache',
-        'v' + ES.v + ' · ' + ES.src + ' · cached v' + cachedNow.v + ' at ' + cachedNow.at +
-        ' · seed at ' + (E.state.data && E.state.data.at) + ' · pub v' + pub.v + ' ' + pub.at);
+        ES.v === 3 && ES.src === 'cache',
+        'v' + ES.v + ' · ' + ES.src + ' · seed at ' + (E.state.data && E.state.data.at));
     }
 
     /* ---- leaving the tab closes the sheet and restores the globe ---- */

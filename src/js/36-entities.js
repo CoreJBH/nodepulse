@@ -42,6 +42,11 @@
     var PRICE_TTL = 5 * 60 * 1000;
     var LIVE_TTL = 7 * 60 * 1000;      // the clustering engine's own cache window
     var WATCH_MAX = 20;
+    var RANK_CAP = 100;                // each tab shows at most this many ranked entities
+    var SWEEP_TOP = 30;                // background balance refresh covers the top N entities
+    var ADDR_CAP = 250;                // addresses one entity may carry
+    var MAX_SUPPLY = 2099999997690000; // 20,999,999.9769 BTC: the halving subsidy summed to its last satoshi
+    var SUBSIDY_EPOCH = 210000;        // blocks per halving epoch
     var TX_ROWS = 6;
     var CATS = ['ALL', 'PERSON', 'CORP', 'GOV', 'OTHER'];
     var CAT_LABEL = { ALL: 'All', PERSON: 'Person', CORP: 'Corp', GOV: 'Gov', OTHER: 'Other' };
@@ -87,7 +92,7 @@
       if (CATS.indexOf(raw.category) < 0) return null;
       var list = isArr(raw.addresses) ? raw.addresses : [];
       var addrs = [], total = 0, liveAny = false, est = normEst(raw.est);
-      for (var i = 0; i < list.length && addrs.length < 60; i++) {
+      for (var i = 0; i < list.length && addrs.length < ADDR_CAP; i++) {
         var a = list[i];
         if (!isObj(a) || !validAddr(a.address)) continue;
         var bal = sats(a.sats);
@@ -118,6 +123,11 @@
         extra: typeof raw.extra === 'string' ? raw.extra.slice(0, 900) : '',
         est: est,
         addresses: addrs,
+        /* A card whose public addresses cover only part of the entity says so; the
+           reported figure is the disclosure the coverage note names, never a read value. */
+        coverage: raw.coverage === 'partial' ? 'partial' : 'full',
+        reportedSats: sats(raw.reportedSats),
+        reportedNote: typeof raw.reportedNote === 'string' ? raw.reportedNote.slice(0, 400) : '',
         total: total
       };
     }
@@ -138,7 +148,7 @@
     function normPayload(raw) {
       if (!isObj(raw) || !isArr(raw.list)) return null;
       var list = [], seen = Object.create(null), tracked = 0;
-      for (var i = 0; i < raw.list.length && list.length < 200; i++) {
+      for (var i = 0; i < raw.list.length && list.length < 400; i++) {
         var e = normEntity(raw.list[i]);
         if (!e || seen[e.id]) continue;
         seen[e.id] = true;
@@ -278,6 +288,43 @@
        the estimates printed beside it. */
     function heldOf(e) { return balanceOf(e).sats + estOf(e).sats; }
 
+    /* --------------------------------------------------------- entity figures */
+    /* A number on this tab is written to three decimals at most, and as a whole number once
+       it passes 1,000 BTC: an eleven-character figure in a phone's right-hand column used to
+       be cut to its first five ("~1,100,109.5185" read as "~1,100"). The exact sats stay in
+       the payload; this is only how many of them the card prints. */
+    function fmtEnt(v, whole) {
+      if (!num(v)) return '—';
+      var b = v / 1e8;
+      if (b === 0) return '0';
+      if (b < 0) return '−' + fmtEnt(-v, whole);
+      if (whole && b >= 1000) return fmtInt(Math.round(b));
+      if (b < 0.001) return '<0.001';
+      var s = (Math.round(b * 1000) / 1000).toFixed(3).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+      var parts = s.split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return parts.join('.');
+    }
+
+    /* Mined supply from the block height, the way the protocol counts it: 210,000 blocks per
+       epoch and a subsidy that halves each epoch, rounded down to whole satoshis, which is
+       what makes the last coins stop being mined around block 6,930,000. */
+    function minedSats(height) {
+      if (!num(height) || height <= 0) return null;
+      var h = Math.min(Math.floor(height), 33 * SUBSIDY_EPOCH);
+      var total = 0, epoch = 0, left = h;
+      while (left > 0) {
+        var n = Math.min(left, SUBSIDY_EPOCH);
+        var sub = Math.floor(5000000000 / Math.pow(2, epoch));
+        total += n * sub;
+        left -= n; epoch++;
+      }
+      return Math.min(total, MAX_SUPPLY);
+    }
+    function heightNow() {
+      return (typeof S !== 'undefined' && S && num(S.tip)) ? S.tip : null;
+    }
+
     /* A large estimate reads in millions (the Patoshi ~1.1M BTC), a small one in the sats
        formatter's own precision; neither is ever rounded into the total it is added to. */
     function fmtBtcShort(v) {
@@ -292,10 +339,10 @@
        the table's own word: an entity listed on an analytics attribution says Attributed. */
     function heldBreakdown(e) {
       var b = balanceOf(e), o = estOf(e);
-      var out = (e.evidence === 'attributed' ? 'Attributed ' : 'Verified ') + fmtBtc(b.sats) + ' BTC';
+      var out = (e.evidence === 'attributed' ? 'Attributed ' : 'Verified ') + fmtEnt(b.sats) + ' BTC';
       if (o.seed) out += ' + ' + (e.est.label || 'Est.') + ' ~' + fmtBtcShort(o.seed) + ' BTC';
-      if (o.common) out += ' + common-input ' + fmtBtc(o.common) + ' BTC';
-      if (o.change) out += ' + change est. ' + fmtBtc(o.change) + ' BTC';
+      if (o.common) out += ' + common-input ' + fmtEnt(o.common) + ' BTC';
+      if (o.change) out += ' + change est. ' + fmtEnt(o.change) + ' BTC';
       return out;
     }
 
@@ -504,26 +551,33 @@
 
     /* ----------------------------------------------------------------- rank */
     /* Ranked by the BTC the entity is held to have — the addresses read plus the estimate
-       printed beside them — highest first. Every row that carries an estimate prints the
-       verified part with it, so the rank is never a number without its basis: Satoshi sits
-       at #1 on ~1.1M BTC of Patoshi estimate with 109.52 BTC verified and says exactly that. */
-    function ranked() {
-      if (ES.ranked) return ES.ranked;
-      var l = list().slice();
+       printed beside them — highest first, and only the entities that hold something: an
+       entity whose tracked total is 0 sats (all of its coins were sold, or the seizure was
+       liquidated) has no place in a ranking of holders, so it is left out rather than shown
+       at #87 with a zero. Each tab ranks its own field, and no tab lists more than RANK_CAP
+       rows, so #1..#100 is the whole of a tab even when the table behind it is larger. */
+    function rankList(cat) {
+      var l = list().filter(function (e) {
+        return heldOf(e) > 0 && (cat === 'ALL' || e.category === cat);
+      });
       l.sort(function (a, b) { return heldOf(b) - heldOf(a) || (a.name < b.name ? -1 : 1); });
-      var out = l.map(function (e, i) { return { e: e, rank: i + 1 }; });
-      ES.ranked = out;
-      return out;
+      if (l.length > RANK_CAP) l = l.slice(0, RANK_CAP);
+      return l.map(function (e, i) { return { e: e, rank: i + 1 }; });
     }
+    function ranked() { return rankList('ALL'); }
     function rankOf(id) {
-      var r = ranked();
+      var e = byId(id);
+      if (!e) return 0;
+      var r = rankList(e.category);
       for (var i = 0; i < r.length; i++) if (r[i].e.id === id) return r[i].rank;
       return 0;
     }
-    function filtered() {
-      var r = ranked();
-      if (ES.filter === 'ALL') return r;
-      return r.filter(function (x) { return x.e.category === ES.filter; });
+    function filtered() { return rankList(ES.filter); }
+    /* How many entities the ranking leaves out because they hold nothing right now. */
+    function zeroCount() {
+      var l = list(), n = 0;
+      for (var i = 0; i < l.length; i++) if (heldOf(l[i]) <= 0) n++;
+      return n;
     }
 
     /* ---------------------------------------------------------------- icons */
@@ -561,12 +615,13 @@
     var paintQueued = false;
 
     function entPaintNow(force) {
-      /* A background tick only rebuilds the sheet's DOM while it is on screen; the HUD and
-         the row under the title are always current, because they are what the tab shows
-         when the sheet is closed. A user action (`force`) always repaints, so a click and
-         the screen can never disagree. */
+      /* A background tick only rebuilds the sheet's DOM while it is on screen; the HUD, the
+         dashboard and the row under the title are always current, because they are what the
+         tab shows when the sheet is closed. A user action (`force`) always repaints, so a
+         click and the screen can never disagree. */
       if (force || isOpen()) paintSheet();
       paintEntHud();
+      paintDash();
       txt('subrow', subrowText());
     }
     function paintEntities() {
@@ -595,6 +650,9 @@
       var out = '';
       if (e.badge) out += '<span class="tag">' + esc(e.badge) + '</span>';
       out += '<span class="ev ' + esc(e.evidence) + '">' + esc(EVIDENCE[e.evidence]) + '</span>';
+      /* A card built from the public subset of an entity that keeps thousands of addresses
+         says so on its face, not only in the small print. */
+      if (e.coverage === 'partial') out += '<span class="tag dim">partial coverage</span>';
       if (!e.live) out += '<span class="tag dim">static</span>';
       return out;
     }
@@ -614,7 +672,7 @@
           '</div>' +
           (o.sats ? '<div class="estb">' + esc(heldBreakdown(e)) + '</div>' : '') +
         '</div>' +
-        '<div class="val">' + (o.sats ? '~' : '') + esc(fmtBtc(held)) + '<span class="u">BTC</span>' +
+        '<div class="val">' + esc(fmtEnt(held, true)) + '<span class="u">BTC</span>' +
           '<small>' + esc(fmtUsd(usd(held))) + '</small></div>' +
       '</div>';
     }
@@ -643,7 +701,7 @@
     function watchHTML() {
       var rows = ES.watch.map(function (w) {
         var st = ES.watchLive[w.address] || null;
-        var bal = st && sats(st.sats) !== null ? fmtBtc(st.sats) + ' BTC' : (st && st.err ? st.err : 'reading…');
+        var bal = st && sats(st.sats) !== null ? fmtEnt(st.sats) + ' BTC' : (st && st.err ? st.err : 'reading…');
         var ent = entityOfAddress(w.address);
         var tx = ES.tx[w.address];
         var body = '';
@@ -705,7 +763,7 @@
       return '<div class="arow">' +
         '<div class="atop"><button class="aaddr" data-act="atx" data-id="' + esc(a.address) + '">' +
           esc(shortHash(a.address, 12, 8)) + '</button>' +
-          '<span class="abal">' + esc(fmtBtc(bal)) + '<span class="u">BTC</span></span></div>' +
+          '<span class="abal">' + esc(fmtEnt(bal)) + '<span class="u">BTC</span></span></div>' +
         '<div class="alab">' + esc(a.label) + '</div>' +
         '<div class="ameta"><span class="badge ' + cls + '">' + esc(src) + '</span>' +
           '<span class="src">' + esc(sourceHost(a.source)) + '</span>' +
@@ -820,21 +878,29 @@
       var b = balanceOf(e), st = ES.live[e.id], o = estOf(e);
       var held = b.sats + o.sats;
       var addrs = e.addresses.map(addrRowHTML).join('');
+      var rank = rankOf(e.id);
+      var scope = e.category === 'ALL' ? '' : ' · ' + esc(CAT_LABEL[e.category] || e.category);
       return '<div class="det">' +
         '<div class="dhead">' +
           '<div class="dic ' + esc(e.icon) + '">' + icon(e.icon) + '</div>' +
-          '<div class="dttl"><div class="dsub">#' + rankOf(e.id) + ' · ' + esc(CAT_LABEL[e.category] || e.category) +
-            ' · held ' + (o.sats ? '~' : '') + esc(fmtBtc(held)) + ' BTC</div>' +
+          '<div class="dttl"><div class="dsub">' + (rank ? '#' + rank + scope : 'not ranked · holds 0 BTC') +
+            ' · held ' + esc(fmtEnt(held)) + ' BTC</div>' +
             '<h2>' + esc(e.name) + '</h2></div>' +
         '</div>' +
         '<div class="dtags">' + badgesHTML(e) + '<span class="st ' + esc(statusOf(st)) + '">' + esc(liveWord(statusOf(st))) + '</span></div>' +
         '<p class="ddesc">' + esc(e.description) + '</p>' +
         '<div class="dbal">' +
-          '<div><span class="k">HELD BALANCE</span>' + (o.sats ? '<b>~</b>' : '') + '<b>' + esc(fmtBtc(held)) + '</b><span class="u">BTC</span>' +
+          '<div><span class="k">HELD BALANCE</span><b>' + esc(fmtEnt(held)) + '</b><span class="u">BTC</span>' +
             (o.sats ? '<span class="bd">' + esc(heldBreakdown(e)) + '</span>' : '') + '</div>' +
           '<div><span class="k">USD</span><b>' + esc(fmtUsd(usd(held))) + '</b></div>' +
           '<div><span class="k">ADDRESSES</span><b>' + b.known + ' / ' + b.total + '</b><span class="u">read</span></div>' +
         '</div>' +
+        (e.reportedSats || e.coverage === 'partial'
+          ? '<div class="dcov"><b>COVERAGE</b> ' +
+            (e.reportedSats ? 'Reported ' + esc(fmtEnt(e.reportedSats)) + ' BTC' : 'Tracked addresses only') +
+            (e.reportedNote ? ' · ' + esc(e.reportedNote) : '') +
+            (e.coverage === 'partial' && !e.reported ? ' · partial coverage: the entity holds coins at addresses it does not publish.' : '') + '</div>'
+          : '') +
         '<div class="dnote">' + esc(priceNote()) + ' · the held figure is the sum of the addresses listed below plus the estimates named beside it, not the entity\'s whole holding.</div>' +
         (e.extra ? '<div class="dextra"><b>Note</b> ' + esc(e.extra) + '</div>' : '') +
         (e.est && e.est.note ? '<div class="dextra"><b>' + esc(e.est.label) + '</b> ' + esc(e.est.note) + '</div>' : '') +
@@ -848,6 +914,156 @@
       '</div>';
     }
 
+    /* --------------------------------------------- background balance refresh */
+    /* The table now carries hundreds of addresses. Asking mempool.space for all of them at
+       launch is a burst the mirrors answer with 429, and a 429 on the first cards would look
+       like every entity holds nothing. So the app shows the verified seed and the published
+       JSON at once — every figure on screen already carries a balance read from that API —
+       and then refreshes quietly in the background: the top SWEEP_TOP entities, one address
+       each (the largest one the table lists), one request at a time, 400 ms apart. A tapped
+       card still reads all of its own addresses, and REFRESH runs the top pass again. */
+    var sweepTopState = { state: 'idle', done: 0, total: 0, at: 0, err: '', rate: false };
+
+    function biggestAddr(e) {
+      var best = null;
+      for (var i = 0; i < e.addresses.length; i++) {
+        var a = e.addresses[i];
+        if (!best || a.sats > best.sats) best = a;
+      }
+      return best;
+    }
+
+    function sweepTop(force) {
+      if (sweepTopState.state === 'loading' && sweepTopState.p) return sweepTopState.p;
+      if (!force && sweepTopState.at && Date.now() - sweepTopState.at < LIVE_TTL) return Promise.resolve(sweepTopState);
+      var top = ranked().slice(0, SWEEP_TOP), i = 0;
+      sweepTopState = { state: 'loading', done: 0, total: top.length, at: 0, err: '', rate: false };
+      var settle;
+      var p = new Promise(function (res) { settle = res; });
+      sweepTopState.p = p;
+      function step() {
+        if (sweepTopState.state !== 'loading' || i >= top.length) {
+          sweepTopState.state = sweepTopState.rate ? 'rate-limited' : 'done';
+          sweepTopState.at = Date.now();
+          paintEntities();
+          settle(sweepTopState);
+          return;
+        }
+        var e = top[i++].e, a = biggestAddr(e);
+        if (!a) return step();
+        sweepTopState.done++;
+        Cluster.fetchAddressSummary(a.address, { ttlMs: LIVE_TTL }).then(function (sum) {
+          liveState(e.id).addrs[a.address] = { sats: sum.balance + a.p2pkSats, tx: sum.txCount, src: sum.source, at: sum.at };
+          paintEntities();
+          setTimeout(step, 400);
+        }, function (err) {
+          if (err && err.status === 429) { sweepTopState.rate = true; sweepTopState.err = 'rate limited'; }
+          /* A limit is a reason to stop asking, not a reason to change a figure: the seed
+             balance stays where it was and the card keeps saying when it was read. */
+          setTimeout(step, sweepTopState.rate ? 0 : 400);
+        });
+      }
+      step();
+      return p;
+    }
+
+    /* ---------------------------------------------------------------- supply */
+    /* What the dashboard prints above the ranking: the 21M cap, how much of it the chain has
+       paid out at the height on screen, how much of that this table can see, and the rest.
+       Read from S.tip, so a block arriving moves it by one subsidy. */
+    function supplyNow() {
+      var h = heightNow();
+      var mined = minedSats(h);
+      var tracked = trackedSats();
+      return {
+        height: h, mined: mined,
+        unmined: mined === null ? null : Math.max(0, MAX_SUPPLY - mined),
+        tracked: tracked,
+        private: mined === null ? null : Math.max(0, mined - tracked),
+        max: MAX_SUPPLY
+      };
+    }
+
+    function pct(part, whole) {
+      if (!num(part) || !num(whole) || whole <= 0) return '—';
+      var p = part / whole * 100;
+      return p >= 10 ? p.toFixed(1) : p >= 1 ? p.toFixed(2) : p.toFixed(3);
+    }
+
+    /* A bar's width is a class, not a style attribute: the page's CSP allows no inline
+       style, and build.py refuses a block that carries one. Five-percent steps.
+       `min` keeps a non-zero share visible as at least one step. */
+    function barWidth(share, min) {
+      var p = num(share) ? share : 0;
+      var step = Math.round(p / 5) * 5;
+      if (step < 5 && p > 0 && min) step = 5;
+      step = Math.max(0, Math.min(100, step));
+      return 'w' + step;
+    }
+
+    function catTotals() {
+      var out = {};
+      CATS.forEach(function (c) { if (c !== 'ALL') out[c] = { sats: 0, n: 0, ranked: 0 }; });
+      var l = list();
+      for (var i = 0; i < l.length; i++) {
+        var t = out[l[i].category];
+        if (!t) continue;
+        t.n++;
+        var h = heldOf(l[i]);
+        t.sats += h;
+        if (h > 0) t.ranked++;
+      }
+      return out;
+    }
+
+    /* The dashboard that fills the globe's place on this tab while the sheet is closed:
+       supply, what the table can see of it, and the four categories. No ranking here — the
+       full Top 100 is one press of the + button away. */
+    function dashHTML() {
+      var s = supplyNow(), t = trackedSats(), cat = catTotals();
+      var bars = CATS.filter(function (c) { return c !== 'ALL'; }).map(function (c) {
+        var x = cat[c], share = t > 0 ? x.sats / t * 100 : 0;
+        return '<div class="drow"><span class="dn">' + esc(CAT_LABEL[c]) + '</span>' +
+          '<span class="dbar"><i class="' + c.toLowerCase() + ' ' + barWidth(share) + '"></i></span>' +
+          '<span class="dv">' + esc(fmtEnt(x.sats)) + ' BTC · ' + esc(pct(x.sats, t)) + '%</span>' +
+          '<span class="dc">' + x.ranked + ' / ' + x.n + ' ranked</span></div>';
+      }).join('');
+      var mined = s.mined, priv = s.private;
+      var stack = mined === null ? '<div class="dsub2">waiting for the first block</div>' :
+        '<div class="dstack">' +
+          '<i class="tk ' + barWidth(s.tracked / s.max * 100, 1) + '"></i>' +
+          '<i class="pv ' + barWidth(priv / s.max * 100, 1) + '"></i>' +
+          '<i class="un ' + barWidth(s.unmined / s.max * 100, 1) + '"></i>' +
+        '</div>';
+      return '<div class="dhead2"><span>ENTITY SUMMARY</span><span>' + (s.height ? 'BLOCK #' + fmtInt(s.height) : '—') + '</span></div>' +
+        '<div class="dhero">' +
+          '<div class="dl">TRACKED ENTITIES</div>' +
+          '<div class="dbig">' + esc(fmtEnt(t)) + '<span>BTC</span></div>' +
+          '<div class="dsub2">' + esc(fmtUsd(usd(t))) + ' · ' + esc(pct(t, s.max)) + '% of the 20,999,999.977 BTC cap</div>' +
+        '</div>' +
+        '<div class="dsupply">' +
+          '<div class="drow"><span class="dn">Mined supply</span><span class="dv">' + (mined === null ? '—' : esc(fmtEnt(mined)) + ' BTC') + '</span><span class="dc">' + (mined === null ? '' : esc(pct(mined, s.max)) + '% of 21M') + '</span></div>' +
+          '<div class="drow"><span class="dn">Unmined</span><span class="dv">' + (s.unmined === null ? '—' : esc(fmtEnt(s.unmined)) + ' BTC') + '</span><span class="dc">~2140 complete · cap ' + esc(fmtEnt(s.max)) + '</span></div>' +
+          '<div class="drow"><span class="dn">Tracked entities</span><span class="dv">' + esc(fmtEnt(t)) + ' BTC</span><span class="dc">' + esc(pct(t, mined)) + '% of mined</span></div>' +
+          '<div class="drow"><span class="dn">Private / untracked</span><span class="dv">' + (priv === null ? '—' : esc(fmtEnt(priv)) + ' BTC') + '</span><span class="dc">' + (priv === null ? '' : esc(pct(priv, mined)) + '% of mined') + '</span></div>' +
+          stack + '</div>' +
+        '<div class="dhead2"><span>BY CATEGORY</span><span>' + ranked().length + ' ranked · ' + zeroCount() + ' at 0 BTC</span></div>' +
+        bars +
+        '<div class="dfoot2">Every figure is an address read from mempool.space at the time on the card; the supply line follows the live block height.</div>';
+    }
+
+    function paintDash() {
+      var el = $('entDash');
+      if (!el) return;
+      var show = (typeof S !== 'undefined' && S && S.layer === 'entities') && !isOpen() && !ES.open;
+      var html = show ? dashHTML() : '';
+      if (el.getAttribute('data-h') !== String(show)) {
+        el.setAttribute('data-h', String(show));
+        el.style.display = show ? 'block' : 'none';
+      }
+      if (show) setHTML('entDash', html);
+    }
+
     function bodyHTML() {
       if (ES.open) {
         var e = byId(ES.open);
@@ -855,8 +1071,14 @@
         ES.open = '';
       }
       var rows = filtered().map(rowHTML).join('');
-      if (ES.filter === 'ALL') rows = watchHTML() + rows;
-      if (!rows) rows = '<div class="empty">no entity in this category</div>';
+      var head = '<div class="lhead"><span>' + esc(CAT_LABEL[ES.filter] || ES.filter) + ' · TOP ' + Math.min(RANK_CAP, filtered().length) +
+        '</span><span>' + (zeroCount() ? zeroCount() + ' at 0 BTC not ranked · ' : '') +
+        (sweepTopState.state === 'loading' ? 'reading ' + sweepTopState.done + ' / ' + sweepTopState.total
+          : sweepTopState.rate ? 'rate limited' : 'seeded · ' + shortDate(ES.at)) + '</span>' +
+        '<button class="wbtn" data-act="refresh">REFRESH</button></div>';
+      if (ES.filter === 'ALL') rows = watchHTML() + head + rows;
+      else rows = head + rows;
+      if (!filtered().length) rows = '<div class="empty">no entity in this category holds bitcoin right now</div>';
       return '<div class="list">' + rows + '</div>';
     }
 
@@ -906,8 +1128,8 @@
 
     function paintEntHud() {
       if (!ES.data) return;
-      txt('vEBtc', fmtBtcCap(trackedSats()));
-      txt('vECount', String(list().length));
+      txt('vEBtc', fmtEnt(trackedSats(), true));
+      txt('vECount', String(ranked().length));
       txt('vEAddr', fmtInt(addrCount()));
     }
 
@@ -925,6 +1147,7 @@
       paintEntities();
       syncBack();
       loadPrice();
+      sweepTop(false);
       if (!ES.at) remote();
     }
     function back() {
@@ -1083,6 +1306,7 @@
       if (!a) return;
       if (a.act === 'filter') return setFilter(a.id);
       if (a.act === 'open') return openEntity(a.id);
+      if (a.act === 'refresh') return sweepTop(true);
       if (a.act === 'back') return back();
       if (a.act === 'close') return close();
       if (a.act === 'analyze') return analyze();
@@ -1142,6 +1366,11 @@
       loadPrice();
       /* the published table is asked for once the first paint is on screen */
       setTimeout(function () { remote(); }, 1200);
+      /* and then the top of the table is re-read quietly, one address at a time, so the
+         first screen is instant and no mirror sees a burst */
+      setTimeout(function () {
+        if (typeof S !== 'undefined' && S && S.layer === 'entities') sweepTop(false);
+      }, 2500);
       /* A watched address comes back with its balance and its latest transactions: three
          reads at most on a launch, one at a time through the clustering engine's cache. */
       for (var i = 0; i < ES.watch.length && i < 3; i++) {
@@ -1162,12 +1391,14 @@
     return {
       init: init, paint: paintEntities, open: open, close: close, back: back, depth: depth,
       isOpen: isOpen, setFilter: setFilter, openEntity: openEntity, analyze: analyze, cancel: cancel,
-      sweep: sweep, readTxs: readTxs, loadPrice: loadPrice, remote: remote,
+      sweep: sweep, sweepTop: sweepTop, readTxs: readTxs, loadPrice: loadPrice, remote: remote,
       watchAdd: watchAdd, watchDel: watchDel, toggleTx: toggleTx, act: onAct,
       usd: usd, fmtUsd: fmtUsd, ranked: ranked, filtered: filtered, byId: byId,
       balanceOf: balanceOf, liveState: liveState, trackedSats: trackedSats,
       heldOf: heldOf, estOf: estOf, runEstimate: runEstimate, heldBreakdown: heldBreakdown,
       addrCount: addrCount, entityOfAddress: entityOfAddress,
+      rankOf: rankOf, zeroCount: zeroCount, fmtEnt: fmtEnt, minedSats: minedSats,
+      supplyNow: supplyNow, dashHTML: dashHTML, rankCap: RANK_CAP, sweepTopState: function () { return sweepTopState; },
       state: ES, cats: CATS, remoteUrl: REMOTE_URL
     };
   })();
