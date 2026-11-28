@@ -452,8 +452,9 @@ and on demand:
 
 1. `python3 build.py` builds the single-file app and `python3 build.py --check` compiles the
    assembled application code.
-2. `node test/headless.js` runs the offline verification harness, and `node test/cluster.js`
-   checks the clustering engine.
+2. `node test/headless.js` runs the offline verification harness. (`node test/cluster.js`,
+   the clustering engine's suite, runs from the same checkout but is not yet a CI step:
+   adding one needs workflow-file permission the app connection does not hold.)
 3. The built HTML is copied to `android/app/src/main/assets/index.html`.
 4. `gradle :app:lintDebug :app:testDebugUnitTest` checks the shell.
 5. The four signing secrets are read. Without them a `v*` tag stops here, before anything is
