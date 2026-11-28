@@ -9,7 +9,7 @@
 ![zero dependencies](https://img.shields.io/badge/dependencies-0-0b1220?style=flat-square)
 ![single file](https://img.shields.io/badge/build-single%20file%20HTML-0b1220?style=flat-square)
 ![canvas 2d](https://img.shields.io/badge/render-Canvas%202D-38bdf8?style=flat-square)
-![tests](https://img.shields.io/badge/assertions-652%20passing-2ea043?style=flat-square)
+![tests](https://img.shields.io/badge/assertions-667%20passing-2ea043?style=flat-square)
 ![data](https://img.shields.io/badge/L1-bitnodes-38bdf8?style=flat-square)
 ![data](https://img.shields.io/badge/mainnet-mempool.space-orange?style=flat-square)
 
@@ -22,7 +22,10 @@ projection. The Lightning channel graph is a second layer, and **ENTITIES / Whal
 third: 235 publicly named entities over 1,899 verified addresses — 100 companies, 100
 others (hacks, ransomware, mixers, sanctioned parties, mining pools, non-profits), 31
 people (real names and BitcoinTalk pseudonyms alike) and 4 governments — ranked by the
-bitcoin actually tracked for them, every holder listed in full rather than a top 100.
+bitcoin actually tracked for them, every holder listed in full rather than a top 100. The
+tab opens on the **supply dashboard**: how much of the 20,999,999.977 BTC has been mined,
+how much of that sits with the entities the app tracks, and how the tracked total divides
+by kind.
 
 It runs with **zero dependencies**: no framework, no bundler, no package manager, no CDN, no
 external image or font request; the entire application is a single self-contained document
@@ -59,6 +62,53 @@ totals and the transport split but not placed on the globe.
 <img src="assets/screenshot-desktop.jpg" width="92%" alt="NodePulse on a desktop browser">
 </div>
 
+### The ENTITIES supply dashboard
+
+An address has no location, so the Entities layer places nothing on the globe — the tab
+opens on its own screen instead. The supply is counted from the block height on screen the
+way the protocol counts it — 210,000 blocks per epoch, the subsidy halving each time, rounded
+down to whole satoshis until the last coin falls around block 6,930,000 — and the USD figures
+come from `mempool.space/api/v1/prices`. The screen at the 2026-11-28 snapshot reads:
+
+| | BTC | share of mined |
+| --- | --- | --- |
+| Supply | 20,999,999.977 | — |
+| Mined (block 977,931) | 20,118,534.375 | 100 % |
+| Unmined | 881,465.602 | — |
+| Tracked entities (+ Patoshi est.) | 3,525,932.168 | 17.5 % |
+| Private / untracked | 16,592,602.207 | 82.5 % |
+| PERSON · 31 | 1,108,685.918 | 31.4 % |
+| CORP · 100 | 2,035,055.958 | 57.7 % |
+| GOV · 4 | 267,673.375 | 7.59 % |
+| OTHER · 100 | 114,516.918 | 3.25 % |
+
+* **One bar for the whole supply.** Tracked, private/untracked and unmined in three colours,
+the mined and unmined figures with the block they were read at and the protocol's next
+subsidy, and the tracked total against everything the chain cannot attribute (16.6 M BTC of
+the mined supply) — the Patoshi estimate carried as an estimate, never folded into the
+verified total without being named.
+* **`SHARE BY CATEGORY`** is one bar and four cards — PERSON, CORP, GOV, OTHER — and each card
+is a button that opens the ranking narrowed to that category. The `+` button still opens all
+235 entities.
+* **The ranking is of holders, not names.** An entity with a zero balance stays off the sheet
+unless an address on it is watched; the HUD counts every holder while a tab prints its top
+100. Every card says what its source says (`Proof of Reserves`, `Self-published`,
+`Analytics attribution`, `Self-disclosed`, `Issuer reserve`, `Attributed`), and a card that
+cannot be read says so instead of showing a figure with no basis.
+* **`ANALYZE CLUSTER`** walks the addresses of a ranking on demand, merging common-input
+spends and estimating change, with progress and `CANCEL` on screen and the rules in
+`docs/cluster-api.md`; the display keeps `Verified`, `Common-Input` and `Change Est.` apart
+and prints any total carrying an estimate with its verified part beside it.
+* **The table refreshes itself.** `dist/entities.json` published at
+`https://corejbh.github.io/nodepulse/entities.json` is fetched after the first paint; a newer
+table is adopted and cached, an older one is ignored, and a missing or malformed one changes
+nothing.
+
+<div align="center">
+<img src="assets/demo-entities-v1.2.0.gif" width="300" alt="NodePulse v1.2.0 on a 390×844 phone: the Bitcoin L1 globe, the ENTITIES tab opening on the supply dashboard, a CORP card opening the Whale Watch sheet with Binance at the top, and the + button opening all 235 entities">
+<img src="assets/screenshot-entities.jpg" width="300" alt="The ENTITIES supply dashboard on a 390 px phone: the 20,999,999.977 BTC supply bar in tracked, private/untracked and unmined colours, the mined and unmined rows, the tracked and private columns, and the four category cards PERSON 31.4 %, CORP 57.7 %, GOV 7.59 %, OTHER 3.25 %">
+</div>
+
 ---
 
 ## Core design principle — zero simulated data
@@ -82,6 +132,10 @@ is generated, interpolated from a model, or placed for visual balance.
 | L1 countries / continents | `bitnodes.io/api/v1/nodes/` (all pages) folded into the bundled snapshot by `fetch_l1.py` | build time |
 | Next-block fee projection | `mempool-blocks` stream | WebSocket |
 | Mining pool share of the last week | `/api/v1/mining/pools/1w` | REST |
+| Tracked entity balances | `/api/address/{address}` for each of the 1,899 addresses | REST |
+| Entity table (235 entities, 1,899 addresses) | `dist/entities.json` (table v3), published at `corejbh.github.io/nodepulse/entities.json` and adopted when newer | HTTPS |
+| Entity USD figures | `/api/v1/prices` | REST |
+| Mined / unmined supply | **computed, never fetched**: the halving schedule at the block height on screen, summed to the last satoshi | local |
 | Live block / mempool / fee pushes | `wss://mempool.space/api/v1/ws`, with `mempool.emzy.de` and `mempool.ninja` as mirror fallbacks | WebSocket |
 | Watchdog alerts | derived from the values above: last block age, fee spike, pool share, a hash change at a seen height | local |
 
@@ -212,7 +266,8 @@ byte-for-byte identical.
 
 ### 5. Zero-dependency build and an automated verification suite
 `build.py` inlines CSS, geometry, snapshots, application code, and the base64 app icon into
-one document — about 386 KB — with tokens that fail the build if any substitution is missed,
+one document — 1,183,376 bytes at `v1.2.0`, most of it the verified entity table — with
+tokens that fail the build if any substitution is missed,
 and it refuses to emit a file that could break out of its own `<script>` block. The
 application code is split by responsibility into thirteen files under `src/js/` that share one
 function scope (`00-core` … `90-boot`, the last one closing the IIFE); `build.py` joins them
@@ -243,7 +298,7 @@ build uploads anything. The app tries both in the background after its first pai
 
 | Harness | What it proves | Result |
 | --- | --- | --- |
-| `test/headless.js` | Builds `dist/nodepulse.html` and the `--test` build, then a DOM + rendering contract against stubbed canvas with real recorded payloads: all three layers, the entity seed and its ranking (the Patoshi estimate added to the held total with its verified part printed beside it, the block-1 P2PK 50 BTC kept on a live read, the read count that never counts a seed fallback, a boot that refuses a cached table older than the seed, a sheet a browser re-serialised is not rebuilt, an attributed entity printed as `Attributed`, a run whose every request failed saying `none`, a ranking that lists every holder with no 100-row cap, a card that leaves out the addresses holding 0 BTC while a watched one keeps its row), the five filter chips, the watchlist and its live read, `ANALYZE CLUSTER` with progress and `CANCEL` and the §8 display rules, the zoom ceiling and the zoom-scaled drag, the 24 px touch target, a globe that does not move when a tab changes, the daily Bitnodes snapshot (adopted, older ignored, malformed refused), both layers, bridge (single-piece and chunked delivery, a lost chunk, the timeout floor against the native one, one bridge attempt after three failed mirrors), snapshots, the browser-only Bitnodes stop, a cached answer kept out of LIVE, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads (including a string count in the country, transport-split and version rows), a failed node-detail fetch, a clock running behind the API, a pinch dropped by a lost focus, a five-second frame's inertia, a held reconnect behind a hidden page, an offline phone that asks no host, the English-only source and build, a cache poisoned field by field (a string channel count, an object capacity, a string Tor flag, an object alias, a number in the peers list, a junk retarget date), the CORS-blocked browser's static-snapshot labelling, the shell back call closing the card and then the panel, and an 800×450 landscape layout | **556 / 556 assertions pass** |
+| `test/headless.js` | Builds `dist/nodepulse.html` and the `--test` build, then a DOM + rendering contract against stubbed canvas with real recorded payloads: all three layers, the entity seed and its ranking (the Patoshi estimate added to the held total with its verified part printed beside it, the block-1 P2PK 50 BTC kept on a live read, the read count that never counts a seed fallback, a boot that refuses a cached table older than the seed, a sheet a browser re-serialised is not rebuilt, an attributed entity printed as `Attributed`, a run whose every request failed saying `none`, a ranking that lists every holder with no 100-row cap, a card that leaves out the addresses holding 0 BTC while a watched one keeps its row), the five filter chips, the watchlist and its live read, `ANALYZE CLUSTER` with progress and `CANCEL` and the §8 display rules, the zoom ceiling and the zoom-scaled drag, the 24 px touch target, a globe that does not move when a tab changes, the daily Bitnodes snapshot (adopted, older ignored, malformed refused), both layers, bridge (single-piece and chunked delivery, a lost chunk, the timeout floor against the native one, one bridge attempt after three failed mirrors), snapshots, the browser-only Bitnodes stop, a cached answer kept out of LIVE, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads (including a string count in the country, transport-split and version rows), a failed node-detail fetch, a clock running behind the API, a pinch dropped by a lost focus, a five-second frame's inertia, a held reconnect behind a hidden page, an offline phone that asks no host, the English-only source and build, a cache poisoned field by field (a string channel count, an object capacity, a string Tor flag, an object alias, a number in the peers list, a junk retarget date), the CORS-blocked browser's static-snapshot labelling, the shell back call closing the card and then the panel, the supply dashboard (the subsidy maths to the last satoshi, the split adding up to the mined supply, the four category shares of the tracked total, each card a press into its own ranking), and an 800×450 landscape layout | **571 / 571 assertions pass** |
 | `HttpBridgePolicyTest.java` | The bridge's policy on the JVM: the request-id shape, the four-host allowlist (scheme, credentials, port, lookalike names), a redirect to another host or to plain http refused while a hop inside the allowlist is followed, loopback/link-local/private/CGNAT/multicast/unspecified/IPv6-unique-local addresses refused, and the navigation policy two `shouldOverrideUrlLoading` overloads answer | `:app:testDebugUnitTest`, 10 tests |
 | `HttpBridgeChunkTest.java` | The 32 K chunk boundaries `HttpBridge` hands a body over with, walked at limits 1–9 over emoji and flag text: no chunk ends in a lone high surrogate or starts with a lone low one, and the parts join back into the body | `:app:testDebugUnitTest`, 7 tests |
 | `test/cluster.js` | The on-demand clustering engine, loaded exactly as `build.py` joins it (`00-core.js` + `35-cluster.js` in one `vm` scope) with `fetch` and `localStorage` stubbed: common-input merging and its direction (a payment the entity received never adopts the payer), change estimation and its refusals (two plausible outputs, two round outputs, mixed script types, three outputs), coinjoin exclusion by equal outputs and by fan-in/fan-out, the per-address and total call caps, cancel through `cancelCluster()` and through a caller's `AbortSignal`, the cache (hit, stale, poisoned), mirror fallback, a 429 run that stops asking, the four labels (a seed the table only attributes is `Attributed`, never `Verified`), and a run whose every request failed reporting source `none` | 96 checks, no browser required |
@@ -275,7 +330,7 @@ python3 build.py --check  # syntax gate: the assembled src/js modules, compiled 
 **Test it.**
 
 ```bash
-node test/headless.js               # 403 assertions, no browser required
+node test/headless.js               # 571 assertions, no browser required
 node test/cluster.js                # clustering engine, no browser required
 python3 build.py && node test/fill-truth.js   # browser harness, needs Playwright
 node test/perf.js                   # frame-time probe
@@ -310,13 +365,14 @@ enabled, an edge-to-edge `#040914` dark system bar treatment, and the NodePulse 
 
 * **Package:** `com.corejbh.nodepulse`
 * **Min / target SDK:** 24 / 34
-* **Version:** 1.1.13 (`versionCode` 15)
+* **Version:** 1.2.0 (`versionCode` 16)
 
-`v1.1.13` carries the shell under the owner's own package name (`com.corejbh.nodepulse`
-instead of `com.jbitmstr.nodepulse`). Android treats a new `applicationId` as a new app, so
-this build installs **beside** 1.1.12 rather than over it; what the old build saved on the
-phone stays with it, and uninstalling it later removes that data. The page, the bridge and
-the policy are unchanged.
+`v1.2.0` installs **over** 1.1.13 — same package `com.corejbh.nodepulse`, `versionCode` 15 →
+16 — so the app updates in place and keeps what it saved. The package name moved off
+`com.jbitmstr.nodepulse` in 1.1.13: a build under that old id installs beside this one
+instead of over it, and uninstalling it removes the data it kept. Between 1.1.13 and 1.2.0
+the page grew the ENTITIES layer and its supply dashboard; the shell, the bridge and the
+policy are unchanged.
 
 Release APKs are signed with the project's long-lived key (`CN=NodePulse, O=CoreJBH, C=KR`,
 RSA 4096, valid to 2054). The key and its passwords live outside the repository
@@ -488,7 +544,9 @@ and on demand:
    `apksigner verify --print-certs` prints what signed it, and the file is uploaded as the
    workflow artifact **`nodepulse-apk`** (`nodepulse.apk`).
 7. A `v*` tag attaches that same file to the GitHub release, and the run fails if the release
-   ends up carrying anything but `nodepulse.apk`.
+   ends up carrying anything but `nodepulse.apk` — the workflow's own name for it. The
+   releases published from the owner's key so far (`1.1.13`, `1.2.0`) carry
+   `nodepulse-<version>-release.apk` and its `.sha256` instead.
 
 Every third-party action in the workflow is pinned to the commit its release tag pointed at —
 `actions/checkout@11d5960a326750d5838078e36cf38b85af677262` (v4.3.1),
@@ -507,15 +565,28 @@ no longer package an APK without `assets/index.html` (which would boot to a blan
 even when `build.py` has not been run in that checkout first.
 
 **Get the APK.** There is exactly one kind of published APK: the signed release one,
-attached to the latest GitHub release.
+attached to the GitHub release for its version.
 
-* GitHub → **Releases** → latest → `nodepulse.apk`, or
-* from a shell: `gh release download -R CoreJBH/nodepulse -p nodepulse.apk`
+* GitHub → **Releases** → [`v1.2.0`](https://github.com/CoreJBH/nodepulse/releases/tag/v1.2.0)
+  → `nodepulse-v1.2.0-release.apk` — `901,092 bytes`, SHA-256
+  `31c6480e6ec82d6312eb6cd02e1f0e1c52ced75644b3e979e404fd85676ae797`, or
+* from a shell:
+
+```bash
+gh release download v1.2.0 -R CoreJBH/nodepulse -p 'nodepulse-v1.2.0-release.apk'
+sha256sum nodepulse-v1.2.0-release.apk
+# 31c6480e6ec82d6312eb6cd02e1f0e1c52ced75644b3e979e404fd85676ae797
+```
+
+The release carries `nodepulse-v1.2.0-release.apk.sha256` beside the APK, holding the same
+digest. The page inside that APK is `dist/nodepulse.html` rebuilt from `src/` and compared
+byte for byte with the asset it ships — 1,183,376 bytes, SHA-256
+`630edf279a4aeaf779bc4e592eebac5289b3dc3393368e7e4107477ce5f554de`.
 
 Install it on the phone (allow "install unknown apps" for the app or file manager you open it
-with). While the four signing secrets are not configured the repository publishes nothing to
-install: a `v*` tag fails closed instead of attaching an APK signed with another key, and a
-branch push ends after the checks.
+with). It updates 1.1.13 in place. Only an APK signed with the project's own key can do
+that, which is why a `v*` tag without the four signing secrets fails the workflow instead of
+publishing one.
 
 **Release signing fails closed.** A release APK is signed with the owner's long-lived key,
 read from `NODEPULSE_KEYSTORE_BASE64` / `NODEPULSE_KEYSTORE_PASSWORD` / `NODEPULSE_KEY_ALIAS`
@@ -549,6 +620,8 @@ src/
   js/10-net.js             the native bridge and the three-mirror walk
   js/20-market.js          mempool.space REST loaders
   js/30-l1.js              the Bitnodes answer, its freshness, transport split, country table
+  js/35-cluster.js         the on-demand clustering engine behind the Whale Watch ranking
+  js/36-entities.js        the ENTITIES tab: the verified seed, the supply dashboard, the sheet, the watchlist
   js/40-graph.js           channels-geo parse, topology-driven pick, channel cap, node cache
   js/45-store.js           every saved answer, re-typed field by field
   js/50-live.js            one socket at a time, pushed payloads, the watchdog
@@ -556,10 +629,11 @@ src/
   js/70-render.js          Canvas 2D globe, palettes, fill, hit test, pointers
   js/80-view.js            node card, layer switching, back depth
   js/90-boot.js            refresh cadence, bindings, boot (closes the IIFE)
-  data/                    world geometry, country table, real node + channel + L1 snapshots
-assets/                    app icon (64/180/192/512), README screenshots
+  data/                    world geometry, country table, real node + channel + L1 snapshots, the entity table
+assets/                    app icon (64/180/192/512), README screenshots, the v1.2.0 demo GIF
 build.py                   single-file assembly (modules + CSS + data + base64 icon)
 docs/webview-hardening.md  the WebViewAssetLoader + WebMessageListener migration plan
+docs/cluster-api.md        the clustering engine's public surface and display rules
 dist/nodepulse.html        build output, ready to open
 fixtures/                  recorded API payloads the headless test replays
 fetch_l1.py                Bitnodes crawler export -> src/data/l1-data.js (L1 snapshot)

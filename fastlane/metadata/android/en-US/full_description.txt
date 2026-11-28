@@ -8,7 +8,9 @@ Every number and every line on the globe is a value the network actually reporte
 
 A watchdog watches while the app is open: the age of the last block, a fee spike, a mining pool's share of the week, a hash change at a height already seen. It reports what changed instead of alerting for the sake of an alert.
 
-The globe is drawn with the Canvas 2D API: drag to rotate, scroll or pinch to zoom. The whole app is one self-contained document with no framework, no bundler, no package manager, no CDN and no external image or font request. The interface is in English and Korean, and the choice is remembered.
+ENTITIES / Whale Watch is a third screen. It opens on the supply dashboard: the whole 20,999,999.977 BTC as one bar — what the 235 tracked entities hold, what is private or untracked, and what is still unmined — with the mined and unmined figures beside the block they were read at, and one bar and four cards for PERSON, CORP, GOV and OTHER, each card a way into that category's ranking. The table behind it is 235 publicly named entities over 1,899 public addresses: 100 companies, 100 others (hacks, ransomware, mixers, sanctioned parties, mining pools, non-profits), 31 people and 4 governments, each address checksummed and each balance read on chain. Every card says what its source says — proof of reserves, self-published, analytics attribution, self-disclosed, issuer reserve — and a total that carries an estimate prints the verified part beside it.
+
+The globe is drawn with the Canvas 2D API: drag to rotate, scroll or pinch to zoom. The whole app is one self-contained document with no framework, no bundler, no package manager, no CDN and no external image or font request. The interface is in English only: the page ships one language and has no switch. For ENTITIES / Whale Watch, see below.
 
 No accounts, no analytics, no crash reporting, no advertising, no trackers, no Google Play Services. NodePulse makes HTTPS and WebSocket requests to the public endpoints it names (mempool.space, with mempool.emzy.de and mempool.ninja as fallbacks, and Bitnodes) and to nothing else.
 

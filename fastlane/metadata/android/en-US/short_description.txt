@@ -1,1 +1,1 @@
-Bitcoin full-node map and live network monitor, drawn from real data.
+Bitcoin node map, live network monitor and whale holdings, from real data.

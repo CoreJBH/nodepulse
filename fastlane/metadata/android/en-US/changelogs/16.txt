@@ -1,0 +1,17 @@
+The ENTITIES tab now opens on a supply dashboard.
+
+* The whole 20,999,999.977 BTC supply as one bar: what the 235 tracked
+  entities hold, what is private or untracked, and what is still unmined.
+* Mined and unmined figures with the block they were read at and the
+  protocol's next subsidy; 3,525,932 BTC tracked (17.5% of mined).
+* SHARE BY CATEGORY: one bar and four cards for PERSON, CORP, GOV and OTHER,
+  each a button into that category's ranking. + still opens all 235.
+* Whale Watch grew to 235 entities over 1,899 public addresses: 100 companies,
+  100 others (hacks, ransomware, mixers, sanctioned parties, mining pools,
+  non-profits), 31 people (BitcoinTalk nicknames now join their real names)
+  and 4 governments.
+* The list is a ranking of holders: a zero-balance entity stays off the sheet
+  unless one of its addresses is watched.
+* Label rows sized for the narrowest phones: no label running into its
+  neighbour and no figure under its badge at 390, 375, 360 and 320 px.
+* Installs over 1.1.13 in place (versionCode 16).
