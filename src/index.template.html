@@ -9,7 +9,7 @@
      computes over the exact bytes it has written, so no 'unsafe-inline' is needed and an
      injected block would have to match a hash that is already in the file. Nothing else
      is allowed: no frames, no forms, no plugins, no workers, no extra hosts. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src /*__CSP_SCRIPT__*/; style-src /*__CSP_STYLE__*/; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src /*__CSP_SCRIPT__*/; style-src /*__CSP_STYLE__*/; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja https://corejbh.github.io wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
 <meta name="theme-color" content="#040914">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="NodePulse — live monitoring of the Bitcoin L1 mainnet. Shows the Bitnodes full-node distribution and mempool.space block, mempool and fee data, and only data an API actually reported.">
@@ -45,6 +45,7 @@
     <div class="seg" role="tablist" aria-label="Select layer">
       <button class="lay on" id="layerL1" role="tab" aria-selected="true" data-layer="l1">BITCOIN L1</button>
       <button class="lay" id="layerLN" role="tab" aria-selected="false" data-layer="ln">LIGHTNING</button>
+      <button class="lay" id="layerEN" role="tab" aria-selected="false" data-layer="entities">ENTITIES</button>
     </div>
   </div>
   <div class="subrow" id="subrow">FULL NODE NETWORK · BITNODES</div>
@@ -136,10 +137,32 @@
     <div class="vr" aria-hidden="true"></div>
     <button class="metric" id="mCap"><div class="val" id="vCap">—</div><div class="lbl">CAPACITY <span class="u">BTC</span></div></button>
   </div>
+  <div class="metrics" id="metricsEN">
+    <button class="metric" id="eBtc"><div class="val" id="vEBtc">—</div><div class="lbl">TRACKED<br>BTC</div></button>
+    <div class="vr" aria-hidden="true"></div>
+    <button class="metric" id="eCount"><div class="val" id="vECount">—</div><div class="lbl">ENTITIES</div></button>
+    <div class="vr" aria-hidden="true"></div>
+    <button class="metric" id="eAddr"><div class="val" id="vEAddr">—</div><div class="lbl">PUBLIC<br>ADDRESSES</div></button>
+  </div>
 </div>
 
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Node details">
   <div class="card" id="card"></div>
+</div>
+
+<div class="ent" id="ent" role="dialog" aria-modal="true" aria-label="Entities and whale watch">
+  <div class="ent-sheet" id="entSheet">
+    <div class="ent-head">
+      <div class="ent-titles">
+        <div class="kicker" id="entKicker">ENTITIES · WHALE WATCH</div>
+        <h2 id="entTitle">Whale Watch</h2>
+        <p id="entSub">—</p>
+      </div>
+      <button class="close" id="entClose" data-act="close" aria-label="Close the entities panel">×</button>
+    </div>
+    <div class="ent-chips" id="entChips" role="tablist" aria-label="Filter entities by category"></div>
+    <div class="ent-body" id="entBody"></div>
+  </div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -150,6 +173,7 @@
 <script>/*__SEED__*/</script>
 <script>/*__CHANNELS__*/</script>
 <script>/*__L1__*/</script>
+<script>/*__ENTITIES__*/</script>
 <script>/*__APP__*/</script>
 </body>
 </html>

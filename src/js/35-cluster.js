@@ -601,8 +601,15 @@
           return Promise.reject(e);
         }
         bridged = true;
+        /* The last mirror's status is carried through the bridge attempt too: when all
+           three answered 429 and the bridge then failed, the honest reading is still
+           "rate limited", not "unknown", and the tab prints the difference. */
         var p = BR.get(API_HOSTS[0] + path).then(function (t) {
           try { return JSON.parse(t); } catch (e) { throw new Error('bad json'); }
+        }, function () {
+          var e = new Error('no host answered');
+          if (lastStatus) e.status = lastStatus;
+          throw e;
         });
         if (!signal || !signal.addEventListener) return p;
         return Promise.race([p, new Promise(function (_, rej) {

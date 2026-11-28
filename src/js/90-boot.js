@@ -25,9 +25,14 @@
       var el = $(id);
       if (el) el.addEventListener('click', function () { setPanel(true); });
     });
-    var b1 = $('layerL1'), b2 = $('layerLN');
+    var b1 = $('layerL1'), b2 = $('layerLN'), b3 = $('layerEN');
     if (b1) b1.addEventListener('click', function () { setLayer('l1'); });
     if (b2) b2.addEventListener('click', function () { setLayer('ln'); });
+    if (b3) b3.addEventListener('click', function () { setLayer('entities'); });
+    ['eBtc', 'eCount', 'eAddr'].forEach(function (id) {
+      var el = $(id);
+      if (el) el.addEventListener('click', function () { showEntSheet(); });
+    });
     var wp = $('watchPill');
     if (wp) {
       function openWatch() {
@@ -83,14 +88,17 @@
     var hadCache = restoreCache();
     Globe.init();
     bindUI();
-    document.body.classList.toggle('l1', S.layer === 'l1');
-    document.body.classList.toggle('ln', S.layer === 'ln');
+    layerClass(S.layer);
 
     /* every layer gets a truthful first paint from real bundled data before the
-       network answers: the Bitnodes snapshot for L1, the channel snapshot for LN */
+       network answers: the Bitnodes snapshot for L1, the channel snapshot for LN.
+       The saved daily snapshot is adopted first when it is newer than the bundled copy,
+       so the first paint is already the freshest table this page has seen. */
+    l1SnapBoot();
     applySnapshotL1('boot');
     applySeed();
     setLayer(S.layer);
+    if (typeof Ent !== 'undefined' && Ent) Ent.init();
     tickClock();
     every(1000, tickClock);
     paint();
@@ -112,6 +120,9 @@
     every(6 * 3600 * 1000, function () { refreshNodes(false); });
     every(45000, function () { if (stale()) { refreshCore(); if (S.ws !== 'open') connectWS(); } });
     every(15000, function () { paintStatus(); if (S.panelOpen) paintPanel(); });
+
+    /* the published daily snapshot is asked for once the first paint is on screen */
+    setTimeout(function () { l1SnapRemote(); }, 900);
 
     var hint = $('hint');
     if (hint) {
@@ -136,10 +147,19 @@
       pulse: function () { Globe.pulse(); },
       geoProbe: Globe.geoProbe,
       packets: Globe.packets,
+      hitRadius: Globe.hitRadius,
+      hitTest: Globe.hitTest,
+      zoomMax: Globe.zoomMax,
       openNode: function (i) { var c = Globe.state.clusters[i]; if (c) showNodeCard(c); },
       conts: aggregateContinents,
       layer: function (l) { if (l) setLayer(l); return S.layer; },
       loadL1: loadL1,
+      l1snap: {
+        src: l1SnapSrc, boot: l1SnapBoot, load: l1SnapRemote,
+        at: function () { var s = l1Snap(); return s ? s.capturedAt : 0; },
+        total: function () { var s = l1Snap(); return s ? s.totalNodes : 0; },
+        cells: function () { var s = l1Snap(); return s && s.coords ? s.coords.length : 0; }
+      },
       bridge: function () { return BR.on; },
       bridgeMs: function () { return BRIDGE_MS; },
       bridgeGet: function (url, ms) { return BR.get(url, ms); },
@@ -173,6 +193,7 @@
       },
       mblocks: function () { return S.mblocks; },
       cluster: Cluster,
+      ent: Ent,
       watch: function () { evalWatch(); return { list: S.wd ? S.wd.list : [], alerts: (S.wd ? S.wd.alerts : []) || [], sig: S.alertSig }; },
       reorg: reorgEvent
     };

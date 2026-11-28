@@ -13,7 +13,15 @@
     return !!(m && m.classList.contains('on'));
   }
 
-  function backDepth() { return cardOpen() ? 2 : (S.panelOpen ? 1 : 0); }
+  /* The entities sheet is a layer of its own: the list is one level, an entity detail is
+     two. Ent.depth() answers 0 when it is closed. */
+  function entDepth() { return (typeof Ent !== 'undefined' && Ent.depth) ? Ent.depth() : 0; }
+
+  function backDepth() {
+    var ed = entDepth();
+    if (ed) return ed;
+    return cardOpen() ? 2 : (S.panelOpen ? 1 : 0);
+  }
 
   function syncBack() {
     try {
@@ -22,12 +30,16 @@
   }
 
   window.NodepulseBack = function () {
+    if (entDepth() && Ent.back()) return true;
     if (cardOpen()) { closeNodeCard(); return true; }
     if (S.panelOpen) { setPanel(false); return true; }
     return false;
   };
 
   function setPanel(open) {
+    /* On the ENTITIES layer the panel button opens the entity sheet instead: there is no
+       L1/Lightning block for it to reveal. */
+    if (open && S.layer === 'entities') { showEntSheet(); return; }
     S.panelOpen = !!open;
     var top = $('topbar'), btn = $('toggle');
     if (top) top.classList.toggle('open', S.panelOpen);
@@ -40,10 +52,17 @@
     syncBack();
   }
 
+  function showEntSheet() {
+    if (typeof Ent === 'undefined') return;
+    if (S.panelOpen) setPanel(false);
+    Ent.open();
+  }
+
   /* ------------------------------------------------------------ node card */
   function showNodeCard(cluster) {
     if (S.layer === 'l1') showL1Card(cluster);
-    else showLNCard(cluster);
+    else if (S.layer === 'ln') showLNCard(cluster);
+    else return;                       // the entities globe carries no dots to open
     $('modal').classList.add('on');
     Globe.hold(true);
     var cb = $('cardClose');
@@ -65,7 +84,7 @@
   }
 
   function showL1Card(cluster) {
-    var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
+    var s = l1Snap();
     var l1 = S.l1 || {};
     var pt = cluster.pts && cluster.pts.length ? cluster.pts[0] : [cluster.lat, cluster.lon];
     var iso = cluster.iso || '';
@@ -138,18 +157,30 @@
   }
 
   /* ------------------------------------------------------------- layer */
+  /* Three layers share one globe and one stylesheet: L1 (cyan), Lightning (violet) and
+     Entities (the same cyan shell, with the entity accent on its own panel). The body
+     class is what every CSS rule keys off, so it is set in one place. */
+  function layerClass(layer) {
+    var b = document.body;
+    if (!b || !b.classList) return;
+    b.classList.toggle('l1', layer === 'l1');
+    b.classList.toggle('ln', layer === 'ln');
+    b.classList.toggle('ent', layer === 'entities');
+  }
+
   function setLayer(layer) {
-    if (layer !== 'l1' && layer !== 'ln') return;
+    if (layer !== 'l1' && layer !== 'ln' && layer !== 'entities') return;
     S.layer = layer;
-    document.body.classList.toggle('l1', layer === 'l1');
-    document.body.classList.toggle('ln', layer === 'ln');
+    layerClass(layer);
     mark($('layerL1'), 'on', layer === 'l1');
     mark($('layerLN'), 'on', layer === 'ln');
-    var b1 = $('layerL1'), b2 = $('layerLN');
+    mark($('layerEN'), 'on', layer === 'entities');
+    var b1 = $('layerL1'), b2 = $('layerLN'), b3 = $('layerEN');
     if (b1) b1.setAttribute('aria-selected', layer === 'l1' ? 'true' : 'false');
     if (b2) b2.setAttribute('aria-selected', layer === 'ln' ? 'true' : 'false');
+    if (b3) b3.setAttribute('aria-selected', layer === 'entities' ? 'true' : 'false');
     var cv = $('globe');
-    if (cv) cv.setAttribute('aria-label', L(layer === 'l1' ? 'ariaL1' : 'ariaLN'));
+    if (cv) cv.setAttribute('aria-label', L(layer === 'l1' ? 'ariaL1' : layer === 'ln' ? 'ariaLN' : 'ariaEN'));
     show('secL1Wrap', layer === 'l1');
     show('secVerWrap', layer === 'l1');
     show('secLNWrap', layer === 'ln');
@@ -161,12 +192,17 @@
     noteDirty = true;
     storePref();
     schedulePaint();
+    /* Switching to ENTITIES opens the sheet with the table; leaving closes it, so the
+       globe is not left behind an overlay the tab no longer owns. */
+    if (typeof Ent !== 'undefined' && Ent) {
+      if (layer === 'entities') Ent.open(); else Ent.close();
+    }
   }
 
   function storePref() { store(LS_PREF, { layer: S.layer }); }
   function loadPref() {
     var p = recall(LS_PREF);
     if (!p) return;
-    if (p.layer === 'l1' || p.layer === 'ln') S.layer = p.layer;
+    if (p.layer === 'l1' || p.layer === 'ln' || p.layer === 'entities') S.layer = p.layer;
   }
 

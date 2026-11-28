@@ -16,6 +16,129 @@
       p.clearnet >= 0 && p.tor >= 0 && p.i2p >= 0;
   }
 
+  /* --------------------------------------------------- the daily snapshot */
+  /* The Bitnodes snapshot is rebuilt once a day (fetch_l1.py) and bundled at build time,
+     which means the copy inside the page ages from the day it was built. The same table
+     is published at https://corejbh.github.io/nodepulse/l1-snapshot.json in this exact
+     shape; the app reads it after the first paint, keeps it in localStorage, and uses it
+     whenever it is newer than the bundled copy. A failure changes nothing and says
+     nothing: the bundled table is already a real Bitnodes export. */
+  var LS_L1SNAP = 'nodepulse.l1snap.v1';
+  var L1_SNAP_URL = 'https://corejbh.github.io/nodepulse/l1-snapshot.json';
+  var L1_SNAP_MS = 9000;
+  var L1_SNAP = null;        // the effective snapshot table
+  var L1_SNAP_SRC = 'builtin';   // builtin | cache | remote
+
+  /* The table the L1 layer reads. The bundled one until a newer published copy is in
+     hand, and always a table — no caller has to ask which. */
+  function l1Snap() {
+    if (L1_SNAP) return L1_SNAP;
+    if (typeof L1_SNAPSHOT !== 'undefined' && L1_SNAPSHOT) {
+      L1_SNAP = L1_SNAPSHOT;
+      L1_SNAP_SRC = 'builtin';
+    }
+    return L1_SNAP;
+  }
+  function l1SnapSrc() { l1Snap(); return L1_SNAP_SRC; }
+
+  /* Read one published table. Everything is re-typed: the file comes from another host
+     and a field it does not carry (or carries as a string) must not become a node count
+     or a coordinate. `ts` and `capturedAt` are both accepted, because the bundled file
+     uses the latter and the published one the former. */
+  function normSnap(raw) {
+    if (!isObj(raw)) return null;
+    var at = num(raw.ts) ? raw.ts : (num(raw.capturedAt) ? raw.capturedAt : 0);
+    if (!at || at < 1e9) return null;
+    if (!num(raw.totalNodes) || raw.totalNodes <= 0) return null;
+    if (!isArr(raw.coords) || !raw.coords.length) return null;
+    var coords = [], i;
+    for (i = 0; i < raw.coords.length && coords.length < 40000; i++) {
+      var p = raw.coords[i];
+      if (!isArr(p) || p.length < 2 || !num(p[0]) || !num(p[1])) continue;
+      if (Math.abs(p[0]) > 90 || Math.abs(p[1]) > 180) continue;
+      coords.push([p[0], p[1]]);
+    }
+    if (!coords.length) return null;
+    function pairs(v) {
+      if (!isArr(v)) return null;
+      var out = [];
+      for (var k = 0; k < v.length && out.length < 400; k++) {
+        var r = v[k];
+        if (!isArr(r) || r.length < 2 || typeof r[0] !== 'string' || !num(r[1])) continue;
+        out.push([r[0].slice(0, 40), r[1]]);
+      }
+      return out.length ? out : null;
+    }
+    var countries = pairs(raw.countries), names = isObj(raw.countryNames) ? raw.countryNames : null;
+    var cc = isObj(raw.coordCountry) ? raw.coordCountry : null;
+    return {
+      capturedAt: Math.floor(at),
+      source: typeof raw.source === 'string' ? raw.source : '',
+      totalNodes: raw.totalNodes,
+      reachableNodes: num(raw.reachableNodes) ? raw.reachableNodes : null,
+      height: num(raw.height) ? raw.height : null,
+      countries: countries,
+      countryNames: names,
+      coords: coords,
+      coordCount: num(raw.coordCount) ? raw.coordCount : coords.length,
+      coordCountry: cc,
+      userAgents: pairs(raw.userAgents),
+      topAsns: pairs(raw.topAsns),
+      versions: pairs(raw.versions),
+      platforms: validSplit(raw.platforms) ? raw.platforms : null,
+      partial: !(countries && names)
+    };
+  }
+
+  /* Adopt a table only when it is strictly newer than the one in hand: a cached copy
+     from an earlier day never rolls back a freshly built table. */
+  function adoptSnap(raw, src) {
+    var s = normSnap(raw);
+    if (!s) return false;
+    var cur = l1Snap();
+    if (cur && num(cur.capturedAt) && s.capturedAt <= cur.capturedAt) return false;
+    L1_SNAP = s; L1_SNAP_SRC = src;
+    return true;
+  }
+
+  /* Boot path: a saved table newer than the bundled one is used at once, so the very
+     first paint is the newest table the page has ever seen. */
+  function l1SnapBoot() {
+    var saved = recall(LS_L1SNAP);
+    if (isObj(saved) && isObj(saved.raw) && adoptSnap(saved.raw, 'cache')) return true;
+    return false;
+  }
+
+  /* A snapshot that was replaced is re-applied only where a snapshot is what is on
+     screen: a live Bitnodes read is never overwritten by a file. */
+  function l1SnapApply() {
+    if (S.l1 && S.l1.src === 'live') return false;
+    return applySnapshotL1((S.l1 && S.l1.why === 'cors') ? 'cors' : 'boot');
+  }
+
+  function l1SnapRemote() {
+    if (typeof fetch !== 'function' || (typeof offline === 'function' && offline())) return Promise.resolve(false);
+    var ctrl = null, timer = null, opt = { cache: 'no-cache', credentials: 'omit', mode: 'cors' };
+    if (typeof AbortController !== 'undefined') {
+      ctrl = new AbortController();
+      opt.signal = ctrl.signal;
+      timer = setTimeout(function () { try { ctrl.abort(); } catch (e) { } }, L1_SNAP_MS);
+    }
+    return fetch(L1_SNAP_URL, opt).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (raw) {
+      if (timer) clearTimeout(timer);
+      if (!adoptSnap(raw, 'remote')) return false;
+      store(LS_L1SNAP, { raw: raw, at: Date.now() });
+      l1SnapApply();
+      return true;
+    }).catch(function () {
+      if (timer) clearTimeout(timer);
+      return false;
+    });
+  }
+
   /* What the L1 block says about how fresh it is. The three states are kept apart on
      purpose: a live Bitnodes read, a saved answer served after a failed request, and the
      bundled build-time snapshot — and the snapshot says why it is one, so a browser that
@@ -26,6 +149,7 @@
     if (l1.src === 'live') return { tag: 'LIVE', text: L('fLive'), note: L('fLiveNote') };
     /* The measurement time has its own row above this one, so it is not repeated here. */
     if (l1.src === 'cache') return { tag: 'CACHE', text: L('fCache'), note: L('fCacheNote') };
+    if (l1.daily) return { tag: 'DAILY', text: L('fDaily'), note: L('fDailyNote') };
     if (l1.why === 'cors') return { tag: 'SNAPSHOT', text: L('fCors'), note: L('fCorsNote') };
     return { tag: 'SNAPSHOT', text: L('fSnap'), note: L('fSnapNote') };
   }
@@ -37,6 +161,9 @@
     if (!l1) return '';
     if (l1.src === 'live') return ' · ' + L('subLive');
     if (l1.src === 'cache') return ' · ' + L('subCache');
+    /* The published daily table is a snapshot too, but a fresher one than the copy built
+       into the page, and the row under the title says which it is. */
+    if (l1.daily) return ' · ' + L('subDaily');
     return ' · ' + L('subSnap') + (l1.why === 'cors' ? ' · CORS' : '');
   }
 
@@ -59,6 +186,9 @@
       src: d.src === 'live' ? 'live' : d.src === 'cache' ? 'cache' : 'snapshot',
       why: (d.src === 'live' || d.src === 'cache') ? d.src
         : (d.why === 'cors' || d.why === 'boot') ? d.why : 'fail',
+      /* True when the table on screen is the published daily snapshot rather than the copy
+         built into this page. The panel and the row under the title say which. */
+      daily: d.daily === true,
       loadAt: Date.now()
     };
     if (S.layer === 'l1') Globe.build();
@@ -111,14 +241,14 @@
   }
 
   function applySnapshotL1(why) {
-    var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
+    var s = l1Snap();
     if (!s) return false;
     applyL1({
       total: s.totalNodes, reachable: s.reachableNodes, height: s.height,
       at: (s.capturedAt || 0) * 1000, coords: s.coords || [],
       platforms: s.platforms || null, asns: s.topAsns || null,
       versions: s.versions || null, ua: s.userAgents || null,
-      src: 'snapshot', why: why
+      src: 'snapshot', why: why, daily: l1SnapSrc() !== 'builtin'
     });
     return true;
   }
@@ -204,7 +334,8 @@
     return meta[String(iso || '').toUpperCase()] || 'OT';
   }
   function countryName(iso, fallback) {
-    var names = (typeof L1_SNAPSHOT !== 'undefined' && L1_SNAPSHOT.countryNames) ? L1_SNAPSHOT.countryNames : {};
+    var s = l1Snap();
+    var names = (s && s.countryNames) ? s.countryNames : {};
     return names[String(iso || '').toUpperCase()] || fallback || iso || '';
   }
   function aggregateContinents(list) {
@@ -219,7 +350,7 @@
   }
   /* L1 country rows are [iso, count] pairs from the Bitnodes snapshot */
   function aggregateL1Countries() {
-    var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
+    var s = l1Snap();
     if (!s || !s.countries) return null;
     var acc = {}, total = 0;
     s.countries.forEach(function (r) {

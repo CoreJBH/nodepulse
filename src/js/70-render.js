@@ -84,6 +84,7 @@
       var w = window.innerWidth, h = window.innerHeight;
       G.dpr = Math.min(2, window.devicePixelRatio || 1);
       G.w = w; G.h = h;
+      G.hudBox = 0;                 // a new viewport: measure the HUD again
       if (!G.cv) G.cv = $('globe');
       if (!G.cv) return;
       applyRes();
@@ -118,6 +119,19 @@
        toast. The floor is now the toast line, and a small minimum keeps the globe visible
        on a very short viewport instead of letting it vanish. */
     var TOAST_GAP = 14, TOAST_H = 32, HINT_GAP = 62, MIN_BOX = 120, MIN_R = 56;
+    /* Zoom: 1 is the globe at its laid-out radius, 5.8 is close enough to read a city-sized
+       patch of coastline on a phone. The ceiling was 2.2, which made a pinch feel like it
+       had stopped working after the second gesture. The floor stays below 1 so the whole
+       sphere can still be pulled away from the edge of a short screen. */
+    var ZOOM_MIN = 0.8, ZOOM_MAX = 5.8;
+    /* Dragging rotates the globe by the angle under the finger: at 5.8× every pixel is
+       5.8× less of the sphere, so the same drag must turn it proportionally less or the
+       world flies past. The idle spin and the inertia follow the same factor. */
+    var DRAG_YAW = 0.0072, DRAG_PITCH = 0.0045, DRAG_V = 0.00025;
+    /* A finger is about 40 px wide. The hit radius was 26 px at every zoom, which is a
+       miss-and-try-again target once the dots are spread apart, so it grows with the zoom
+       and never drops below 28 px. */
+    var HIT_MIN = 28, HIT_ZOOM = 3.4;
 
     function setVar(name, px) {
       var el = document.documentElement;
@@ -131,7 +145,13 @@
       var sub = document.querySelector('.subrow');
       var hud = document.querySelector('.hud');
       var topH = (head ? head.offsetHeight : 56) + (layers ? layers.offsetHeight : 28) + (sub ? sub.offsetHeight : 18) + 16;
-      var hudH = hud ? hud.offsetHeight : 150;
+      /* The HUD's height is measured once per viewport and then kept. Measuring it on
+         every layer switch moved the globe's centre and radius by the few pixels the
+         legend or the strip happened to need in that tab — a visible jump for a change
+         that has nothing to do with the globe. resize() clears the reservation, so a
+         rotation, a window resize or a keyboard still gets a fresh measure. */
+      if (!(G.hudBox > 0)) G.hudBox = hud ? hud.offsetHeight : 150;
+      var hudH = G.hudBox;
       var toastTop = h - (hudH + TOAST_GAP + TOAST_H);
       var box = Math.max(MIN_BOX, toastTop - topH);
       G.cx = w / 2;
@@ -835,8 +855,19 @@
       buildArcs();
     }
 
+    /* The ENTITIES layer places nothing on the globe. An entity address has no location —
+       not a city, not a country — so drawing dots here would be inventing geography for
+       it. The sphere, its land and its graticule stay as the backdrop the panel sits on. */
+    function buildEmpty() {
+      G.clusters = [];
+      G.links = [];
+      buildArcs();
+    }
+
     function build() {
-      if (S.layer === 'l1') buildL1(); else buildLN();
+      if (S.layer === 'l1') buildL1();
+      else if (S.layer === 'entities') buildEmpty();
+      else buildLN();
     }
 
     function pulse() { G.flash = 1; if (!document.hidden) G.ripples.push({ t: 0 }); }
@@ -887,7 +918,10 @@
     }
 
     function hitTest(x, y) {
-      var best = null, bestD = 26;
+      /* A finger, not a cursor: the radius is a phone-sized target and widens with the
+         zoom so a dot that has been pulled apart from its neighbours is still easy to
+         hit. It never shrinks below HIT_MIN. */
+      var best = null, bestD = HIT_MIN + Math.max(0, G.zoom - 1) * HIT_ZOOM;
       for (var i = 0; i < G.clusters.length; i++) {
         var c = G.clusters[i];
         if (!c.on) continue;
@@ -927,16 +961,18 @@
         if (pinch && keys.length === 2) {
           var a = pointers[keys[0]], b = pointers[keys[1]];
           var d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
-          G.zoomT = clamp(pinch.z * (d / pinch.d), 0.8, 2.2);
+          G.zoomT = clamp(pinch.z * (d / pinch.d), ZOOM_MIN, ZOOM_MAX);
           e.preventDefault();
           return;
         }
         if (!G.dragging || !dragStart) return;
+        /* Sensitivity follows the zoom: one pixel drags 1/zoom as far across the surface. */
+        var s = 1 / Math.max(1, G.zoom);
         var dx = e.clientX - dragStart.x, dy = e.clientY - dragStart.y;
         dragMoved = Math.max(dragMoved, Math.abs(dx) + Math.abs(dy));
-        G.yaw = dragStart.yaw - dx * 0.0072;
-        G.pitch = clamp(dragStart.pitch + dy * 0.0045, -1.05, 1.05);
-        G.vYaw = -dx * 0.00025;
+        G.yaw = dragStart.yaw - dx * DRAG_YAW * s;
+        G.pitch = clamp(dragStart.pitch + dy * DRAG_PITCH * s, -1.05, 1.05);
+        G.vYaw = -dx * DRAG_V * s;
         e.preventDefault();
       });
       function release(e) {
@@ -977,7 +1013,7 @@
       cv.addEventListener('pointercancel', release);
       cv.addEventListener('wheel', function (e) {
         e.preventDefault();
-        G.zoomT = clamp(G.zoomT * Math.exp(-e.deltaY * 0.0014), 0.8, 2.2);
+        G.zoomT = clamp(G.zoomT * Math.exp(-e.deltaY * 0.0014), ZOOM_MIN, ZOOM_MAX);
         G.lastTouch = Date.now();
       }, { passive: false });
       cv.addEventListener('gesturestart', function (e) { e.preventDefault(); });
@@ -1017,6 +1053,10 @@
       retheme: function () { buildBackground(); buildBall(); buildGlow(); },
       setRes: setRes,
       hold: function (on) { G.hold = !!on; G.lastTouch = Date.now(); },
+      /* the zoom ceiling and the touch radius, for the HUD hint and the regression tests */
+      zoomMax: function () { return ZOOM_MAX; },
+      hitRadius: function () { return HIT_MIN + Math.max(0, G.zoom - 1) * HIT_ZOOM; },
+      hitTest: hitTest,
       state: G
     };
   })();
@@ -1024,7 +1064,7 @@
   /* country of an L1 cell: every coordinate in it that the Bitnodes snapshot
      geolocated, and only if they agree */
   function l1CellCountry(pts) {
-    var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
+    var s = l1Snap();
     if (!s || !s.coordCountry) return '';
     var seen = Object.create(null), any = '';
     for (var i = 0; i < pts.length; i++) {

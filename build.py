@@ -39,6 +39,11 @@ ASSETS = os.path.join(HERE, 'assets')
 OUT = os.path.abspath(os.path.join(HERE, '..', '..', 'bitcoin-network-monitor.html'))
 DIST = os.path.join(HERE, 'dist', 'nodepulse.html')
 TEST_DIST = os.path.join(HERE, 'dist', 'nodepulse.test.html')
+# The same entity payload the app inlines, written out as the file the app also tries to
+# refresh from at runtime (https://corejbh.github.io/nodepulse/entities.json). Publishing
+# it is a copy; nothing in the build uploads anything.
+ENTITIES_JSON = os.path.join(HERE, 'dist', 'entities.json')
+L1_SNAP_JSON = os.path.join(HERE, 'dist', 'l1-snapshot.json')
 
 APP_SRC = os.path.join(SRC, 'js')
 CHECK_OUT = os.path.join(HERE, '.build', 'app.js')
@@ -238,6 +243,7 @@ def main(argv):
         'seed': read(SRC, 'data', 'seed-nodes.js').strip(),
         'channels': read(SRC, 'data', 'channels-data.js').strip(),
         'l1': read(SRC, 'data', 'l1-data.js').strip(),
+        'entities': read(SRC, 'data', 'entities-data.js').strip(),
     }
     embedded = {k: escape_literals(v) for k, v in raw.items()}
     compared = 0
@@ -247,7 +253,7 @@ def main(argv):
             sys.exit('ERROR: escaping changed the parsed value of %s' % k)
         if same is True:
             compared += 1
-    world, country, seed, chan, l1 = (embedded[k] for k in ('world', 'country', 'seed', 'channels', 'l1'))
+    world, country, seed, chan, l1, ent = (embedded[k] for k in ('world', 'country', 'seed', 'channels', 'l1', 'entities'))
     app = app_source()
     if not test_build:
         app = strip_test_hook(app)
@@ -256,7 +262,7 @@ def main(argv):
     # inside <script>…</script>. A literal closing tag in any of them would end that
     # element early and let the rest of the text be parsed as markup (the CSP hash would
     # then name a block that no longer matches what the browser runs), so both are checked.
-    for name, blob in (('css', css), ('world', world), ('country', country), ('seed', seed), ('channels', chan), ('l1', l1), ('app', app)):
+    for name, blob in (('css', css), ('world', world), ('country', country), ('seed', seed), ('channels', chan), ('l1', l1), ('entities', ent), ('app', app)):
         low = blob.lower()
         if '</script' in low:
             sys.exit('ERROR: %s contains a closing script tag' % name)
@@ -269,6 +275,7 @@ def main(argv):
     out = out.replace('/*__SEED__*/', seed)
     out = out.replace('/*__CHANNELS__*/', chan)
     out = out.replace('/*__L1__*/', l1)
+    out = out.replace('/*__ENTITIES__*/', ent)
     out = out.replace('/*__APP__*/', app)
     out = out.replace('__ICON_FAVICON__', icon_b64('icon-64.png'))
     out = out.replace('__ICON_TOUCH__', icon_b64('icon-180.png'))
@@ -306,6 +313,44 @@ def main(argv):
     with open(DIST, 'w', encoding='utf-8') as f:
         f.write(out)
     print('wrote %s (%d bytes)' % (DIST, len(out.encode('utf-8'))))
+    # The entity table as a standalone file, for the published copy the app refreshes from.
+    payload = dataset_payload(raw['entities'])
+    if payload is None:
+        sys.exit('ERROR: src/data/entities-data.js is not a `var NAME = {…}` object')
+    try:
+        json.loads(payload)
+    except ValueError as e:
+        sys.exit('ERROR: src/data/entities-data.js is not valid JSON: %s' % e)
+    with open(ENTITIES_JSON, 'w', encoding='utf-8') as f:
+        f.write(payload + '\n')
+    print('wrote %s (%d bytes)' % (ENTITIES_JSON, len(payload.encode('utf-8'))))
+
+    # The Bitnodes snapshot in the shape the app refreshes it in: `ts` instead of
+    # capturedAt, and nothing the reader does not use. Publishing this file is what makes
+    # the L1 layer say DAILY SNAPSHOT instead of the build-time copy.
+    snap = json.loads(dataset_payload(raw['l1']) or '{}')
+    out_snap = {
+        'v': 1,
+        'ts': snap.get('capturedAt'),
+        'source': snap.get('source', ''),
+        'totalNodes': snap.get('totalNodes'),
+        'reachableNodes': snap.get('reachableNodes'),
+        'height': snap.get('height'),
+        'coords': snap.get('coords', []),
+        'coordCount': snap.get('coordCount', len(snap.get('coords', []))),
+        'coordCountry': snap.get('coordCountry', {}),
+        'countries': snap.get('countries', []),
+        'countryNames': snap.get('countryNames', {}),
+        'platforms': snap.get('platforms'),
+        'topAsns': snap.get('topAsns', []),
+        'versions': snap.get('versions', []),
+        'userAgents': snap.get('userAgents', []),
+    }
+    if not out_snap['ts'] or not out_snap['totalNodes'] or not out_snap['coords']:
+        sys.exit('ERROR: src/data/l1-data.js has no capturedAt/totalNodes/coords to publish')
+    with open(L1_SNAP_JSON, 'w', encoding='utf-8') as f:
+        f.write(json.dumps(out_snap, separators=(',', ':')) + '\n')
+    print('wrote %s (%d bytes)' % (L1_SNAP_JSON, os.path.getsize(L1_SNAP_JSON)))
     print('csp: %d script hash(es), %d style hash(es), no unsafe-inline'
           % (len(script_hashes), len(style_hashes)))
     print('embedded data: escaped, %d/%d datasets parsed to the same values'

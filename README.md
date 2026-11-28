@@ -4,12 +4,12 @@
 
 # NodePulse
 
-**Bitcoin L1 mainnet full-node map and real-time network monitor, with the Lightning channel graph one tap away.**
+**Bitcoin L1 mainnet full-node map and real-time network monitor, with the Lightning channel graph and the public whale / entity table one tap away.**
 
 ![zero dependencies](https://img.shields.io/badge/dependencies-0-0b1220?style=flat-square)
 ![single file](https://img.shields.io/badge/build-single%20file%20HTML-0b1220?style=flat-square)
 ![canvas 2d](https://img.shields.io/badge/render-Canvas%202D-38bdf8?style=flat-square)
-![tests](https://img.shields.io/badge/assertions-403%20passing-2ea043?style=flat-square)
+![tests](https://img.shields.io/badge/assertions-581%20passing-2ea043?style=flat-square)
 ![data](https://img.shields.io/badge/L1-bitnodes-38bdf8?style=flat-square)
 ![data](https://img.shields.io/badge/mainnet-mempool.space-orange?style=flat-square)
 
@@ -18,21 +18,25 @@
 NodePulse watches Bitcoin **L1 mainnet** first: the reachable full-node network as the
 Bitnodes crawler sees it — node count, clear-net/Tor/I2P split, country and continent spread,
 client versions — plus the chain tip, mempool pressure, fee market and the next-block fee
-projection. The Lightning channel graph is still there as a second layer, one tap away.
+projection. The Lightning channel graph is a second layer, and **ENTITIES / Whale Watch** a
+third: 20 publicly named entities over 42 verified addresses, ranked by the bitcoin actually
+tracked for them.
 
 It runs with **zero dependencies**: no framework, no bundler, no package manager, no CDN, no
 external image or font request; the entire application is a single self-contained document
 that draws every frame with the Canvas 2D API.
 
-## Two layers
+## Three layers
 
 | Layer | What the globe shows | Primary data |
 | --- | --- | --- |
 | **Bitcoin L1** (default) | every unique coordinate the Bitnodes crawler geolocated, one dot per 3° cell | `bitnodes.io/api/v1/snapshots/latest/?field=coordinates` |
 | **Lightning** | up to 22 nodes sampled from the real channel graph, one arc per open channel between drawn dots | `mempool.space/api/v1/lightning/channels-geo` |
+| **Entities** | nothing on the globe: an address has no location, so none is invented. The panel is the layer | the verified entity table, read live per address from `mempool.space/api/address/{address}` |
 
-The switcher sits under the title (`BITCOIN L1 | LIGHTNING`), and the chosen layer is
-remembered.
+The switcher sits under the title (`BITCOIN L1 | LIGHTNING | ENTITIES`), and the chosen layer
+is remembered. Switching tabs never moves the globe: the HUD height is measured once per
+viewport and kept, so the centre and radius are the same in all three.
 
 Each layer carries its own palette, so the globe you are looking at is readable at a glance:
 **Bitcoin L1** keeps the original cyan / deep-blue identity (`#38bdf8` on `#040914`), and
@@ -208,18 +212,35 @@ byte-for-byte identical.
 `build.py` inlines CSS, geometry, snapshots, application code, and the base64 app icon into
 one document — about 386 KB — with tokens that fail the build if any substitution is missed,
 and it refuses to emit a file that could break out of its own `<script>` block. The
-application code is split by responsibility into twelve files under `src/js/` that share one
+application code is split by responsibility into thirteen files under `src/js/` that share one
 function scope (`00-core` … `90-boot`, the last one closing the IIFE); `build.py` joins them
 in file-name order into the same single script block, so the split costs nothing at run time,
 the policy still names one hash, and the release build still has no second copy of the app to
 drift from. `python3 build.py --check` compiles the assembled code with `node --check`.
 `35-cluster.js` is the on-demand clustering engine for the ENTITIES / Whale Watch tab: it
 reads nothing at boot, and its public surface and display rules are written down in
-`docs/cluster-api.md`.
+`docs/cluster-api.md`. `36-entities.js` is the tab itself — the verified seed
+(`src/data/entities-data.js`), the per-address live reads, the watchlist, and the clustering
+card that keeps `Verified`, `Common-Input` and `Change Est.` apart (§8 of that document).
+
+### 6. Two published files, and what the app does without them
+The build writes two JSON files beside the HTML: `dist/entities.json` and
+`dist/l1-snapshot.json`. Publishing them at
+`https://corejbh.github.io/nodepulse/{entities,l1-snapshot}.json` is a copy — nothing in the
+build uploads anything. The app tries both in the background after its first paint:
+
+* a **newer** table is adopted and cached in `localStorage`, an older one is ignored, and a
+  missing or malformed one changes nothing at all;
+* the entity table is the verified seed either way, and the L1 panel keeps the copy built
+  into the page;
+* when the published Bitnodes snapshot is in use, the row under the title reads
+  `DAILY SNAPSHOT` instead of `SNAPSHOT`, and the panel names the date and the block — with
+  the HUD height and the globe's centre untouched, because that height is reserved once per
+  viewport rather than re-measured on a label change.
 
 | Harness | What it proves | Result |
 | --- | --- | --- |
-| `test/headless.js` | Builds `dist/nodepulse.html` and the `--test` build, then a DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge (single-piece and chunked delivery, a lost chunk, the timeout floor against the native one, one bridge attempt after three failed mirrors), snapshots, the browser-only Bitnodes stop, a cached answer kept out of LIVE, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads (including a string count in the country, transport-split and version rows), a failed node-detail fetch, a clock running behind the API, a pinch dropped by a lost focus, a five-second frame's inertia, a held reconnect behind a hidden page, an offline phone that asks no host, the English-only source and build, a cache poisoned field by field (a string channel count, an object capacity, a string Tor flag, an object alias, a number in the peers list, a junk retarget date), the CORS-blocked browser's static-snapshot labelling, the shell back call closing the card and then the panel, and an 800×450 landscape layout | **398 / 398 assertions pass** |
+| `test/headless.js` | Builds `dist/nodepulse.html` and the `--test` build, then a DOM + rendering contract against stubbed canvas with real recorded payloads: all three layers, the entity seed and its ranking (Patoshi excluded from the total, the block-1 P2PK correction), the five filter chips, the watchlist and its live read, `ANALYZE CLUSTER` with progress and `CANCEL` and the §8 display rules, the zoom ceiling and the zoom-scaled drag, the 24 px touch target, a globe that does not move when a tab changes, the daily Bitnodes snapshot (adopted, older ignored, malformed refused), both layers, bridge (single-piece and chunked delivery, a lost chunk, the timeout floor against the native one, one bridge attempt after three failed mirrors), snapshots, the browser-only Bitnodes stop, a cached answer kept out of LIVE, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads (including a string count in the country, transport-split and version rows), a failed node-detail fetch, a clock running behind the API, a pinch dropped by a lost focus, a five-second frame's inertia, a held reconnect behind a hidden page, an offline phone that asks no host, the English-only source and build, a cache poisoned field by field (a string channel count, an object capacity, a string Tor flag, an object alias, a number in the peers list, a junk retarget date), the CORS-blocked browser's static-snapshot labelling, the shell back call closing the card and then the panel, and an 800×450 landscape layout | **488 / 488 assertions pass** |
 | `HttpBridgePolicyTest.java` | The bridge's policy on the JVM: the request-id shape, the four-host allowlist (scheme, credentials, port, lookalike names), a redirect to another host or to plain http refused while a hop inside the allowlist is followed, loopback/link-local/private/CGNAT/multicast/unspecified/IPv6-unique-local addresses refused, and the navigation policy two `shouldOverrideUrlLoading` overloads answer | `:app:testDebugUnitTest`, 10 tests |
 | `HttpBridgeChunkTest.java` | The 32 K chunk boundaries `HttpBridge` hands a body over with, walked at limits 1–9 over emoji and flag text: no chunk ends in a lone high surrogate or starts with a lone low one, and the parts join back into the body | `:app:testDebugUnitTest`, 7 tests |
 | `test/cluster.js` | The on-demand clustering engine, loaded exactly as `build.py` joins it (`00-core.js` + `35-cluster.js` in one `vm` scope) with `fetch` and `localStorage` stubbed: common-input merging and its direction (a payment the entity received never adopts the payer), change estimation and its refusals (two plausible outputs, two round outputs, mixed script types, three outputs), coinjoin exclusion by equal outputs and by fan-in/fan-out, the per-address and total call caps, cancel through `cancelCluster()` and through a caller's `AbortSignal`, the cache (hit, stale, poisoned), mirror fallback, a 429 run that stops asking, and the label split | 93 checks, no browser required |
@@ -452,9 +473,10 @@ and on demand:
 
 1. `python3 build.py` builds the single-file app and `python3 build.py --check` compiles the
    assembled application code.
-2. `node test/headless.js` runs the offline verification harness. (`node test/cluster.js`,
-   the clustering engine's suite, runs from the same checkout but is not yet a CI step:
-   adding one needs workflow-file permission the app connection does not hold.)
+2. `node test/cluster.js` runs the clustering engine's suite and `node test/headless.js` the
+   offline verification harness. The workflow step that runs both is written in this tree;
+   a GitHub App cannot push a file under `.github/workflows/`, so that one line lands with
+   the owner's next commit.
 3. The built HTML is copied to `android/app/src/main/assets/index.html`.
 4. `gradle :app:lintDebug :app:testDebugUnitTest` checks the shell.
 5. The four signing secrets are read. Without them a `v*` tag stops here, before anything is

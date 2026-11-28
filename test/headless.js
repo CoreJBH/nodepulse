@@ -152,12 +152,72 @@ const fetchLog = [];
    geo-cache test). Both are empty unless a test fills them. */
 const bodyOverride = new Map();
 let failPks = [];
+
+/* --- the entity table, its price and the address endpoints the tab reads ---
+   A test flips these to drive the paths the ENTITIES panel has to display honestly: a 429
+   from every mirror, a published table that is newer (or missing), a transaction list slow
+   enough for CANCEL to land in the middle of it. */
+let remoteMode = 'ok';            // ok | fail
+let remotePayload = null;         // the published table, when a test provides one
+let l1Payload = null;             // the published daily Bitnodes snapshot, same
+let addrMode = 'ok';              // ok | 429
+let addrDelay = 0;                // ms a transaction list takes, for the cancel test
+const addrBal = new Map();        // address -> sats the fake address answer reports
+const TX_PEER = 'bc1qa5wkgaew2dkv56kfvj49j0av5nml45x9ek9hz6';   // U.S. Government, Silk Road seizure
+function fakeAnswer(body) {
+  return Promise.resolve({
+    ok: true, status: 200,
+    text: () => Promise.resolve(typeof body === 'string' ? body : JSON.stringify(body)),
+    json: () => Promise.resolve(body)
+  });
+}
+/* one confirmed payment out of `addr`: a round 0.04 BTC to the U.S. Government wallet and
+   a non-round 900,001 sat change output to an address this scan has not seen. That is the
+   one shape the change heuristic reads, so the panel gets a Change Est. to keep apart from
+   the verified figure. */
+function fakeTx(addr) {
+  return {
+    txid: 'f'.repeat(64),
+    vin: [{ prevout: { scriptpubkey_address: addr, value: 1500000, scriptpubkey_type: 'v0_pubkeyhash' } }],
+    vout: [
+      { scriptpubkey_address: TX_PEER, value: 4000000, scriptpubkey_type: 'v1_pubkeyhash' },
+      { scriptpubkey_address: 'bc1qchange000000000000000000000000000000', value: 900001, scriptpubkey_type: 'v1_pubkeyhash' }
+    ],
+    status: { confirmed: true, block_time: 1795000000 },
+    fee: 100000
+  };
+}
 function fakeFetch(url) {
   fetchLog.push(url);
   const pathOnly = url.replace(/^https?:\/\/[^/]+/, '');
   const host = url.replace(/^(https?:\/\/[^/]+).*/, '$1');
   if (fetchMode === 'fail') return Promise.reject(new Error('network down'));
+  if (host === 'https://corejbh.github.io') {
+    if (/\/l1-snapshot\.json$/.test(pathOnly)) {
+      if (!l1Payload) return Promise.reject(new Error('no published snapshot'));
+      return fakeAnswer(l1Payload);
+    }
+    if (remoteMode !== 'ok' || !remotePayload) return Promise.reject(new Error('no published table'));
+    return fakeAnswer(remotePayload);
+  }
   if (host !== 'https://mempool.space') return Promise.reject(new Error('mirror refused'));
+  if (pathOnly === '/api/v1/prices') return fakeAnswer({ time: 1795842607, USD: 60000, EUR: 54000, GBP: 45000 });
+  if (addrMode === '429' && /^\/api\/address\//.test(pathOnly)) {
+    return Promise.resolve({ ok: false, status: 429, json: () => Promise.reject(new Error('429')), text: () => Promise.reject(new Error('429')) });
+  }
+  const mAddr = pathOnly.match(/^\/api\/address\/([A-Za-z0-9]{25,90})(\/txs)?$/);
+  if (mAddr) {
+    const addr = mAddr[1], bal = addrBal.has(addr) ? addrBal.get(addr) : 1000000;
+    if (mAddr[2]) {
+      if (addrDelay) return new Promise(res => setTimeout(() => res(fakeAnswer([fakeTx(addr)])), addrDelay));
+      return fakeAnswer([fakeTx(addr)]);
+    }
+    return fakeAnswer({
+      address: addr,
+      chain_stats: { funded_txo_count: 2, funded_txo_sum: bal, spent_txo_count: 0, spent_txo_sum: 0, tx_count: 3 },
+      mempool_stats: { funded_txo_count: 0, funded_txo_sum: 0, spent_txo_count: 0, spent_txo_sum: 0, tx_count: 0 }
+    });
+  }
   if (failPks.length && failPks.some(pk => pathOnly === '/api/v1/lightning/nodes/' + pk)) {
     return Promise.reject(new Error('node detail down'));
   }
@@ -374,7 +434,7 @@ for (const m of html.matchAll(/<(script|style)>([\s\S]*?)<\/\1>/g)) {
   blockHashes.push("'sha256-" + crypto.createHash('sha256').update(m[2], 'utf8').digest('base64') + "'");
 }
 check('CSP names every inline script/style block by hash',
-  blockHashes.length === 7 && blockHashes.every(h => csp.indexOf(h) >= 0),
+  blockHashes.length === 8 && blockHashes.every(h => csp.indexOf(h) >= 0),
   blockHashes.length + ' blocks, policy ' + (csp ? 'present' : 'missing'));
 check('CSP allows no unsafe-inline', csp.indexOf("'unsafe-inline'") < 0, csp.slice(0, 80));
 /* Exactly the hosts the app reads: bitnodes.io for the L1 layer and the three mempool.space
@@ -383,6 +443,8 @@ check('CSP allows no unsafe-inline', csp.indexOf("'unsafe-inline'") < 0, csp.sli
    native bridge, which is an allowance no code needs. */
 const CSP_HOSTS = new Set([
   'https://bitnodes.io', 'https://mempool.space', 'https://mempool.emzy.de', 'https://mempool.ninja',
+  /* the published entity table the Tab refreshes from; nothing else on that host is read */
+  'https://corejbh.github.io',
   'wss://mempool.space', 'wss://mempool.emzy.de', 'wss://mempool.ninja'
 ]);
 const cspHosts = csp.match(/(?:https|wss):\/\/[a-z.]+/g) || [];
@@ -403,7 +465,7 @@ check('build has no inline event handler attribute',
 /* blocks 1..5 are the five embedded datasets: whatever string they carry, none of them
    can close the script block or open a comment inside it */
 check('embedded datasets cannot close their script block',
-  blockBodies.slice(1, 6).every(b => !/<\/script/i.test(b) && !/<!--/.test(b)));
+  blockBodies.slice(1, 7).every(b => !/<\/script/i.test(b) && !/<!--/.test(b)));
 check('title present', /<title>NodePulse/.test(html));
 check('no proximity-link label left', !/NODE LINK/.test(html), 'proximity link wording still in the build');
 check('legend names real lightning channels', /LIGHTNING CHANNEL/.test(html));
@@ -424,7 +486,7 @@ check('all three websocket mirrors are in the build',
   /mempool\.emzy\.de/.test(html) && /mempool\.ninja/.test(html) && /WS_HOSTS/.test(html));
 
 const scripts = [...testHtml.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
-check('inline script blocks', scripts.length === 6, scripts.length);
+check('inline script blocks', scripts.length === 7, scripts.length);
 
 /* ---- the Android shell's own contract, read from its source ----
    The Java side cannot be executed here, so the checks below hold it to the shape the
@@ -1920,6 +1982,9 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   /* ---- a phone that reports itself offline does not walk the mirrors at all ---- */
   {
     ls = new Map();
+    /* earlier sandboxes each schedule a 1.2 s table refresh; let those land before the
+       window is opened, so the count below is this page's alone */
+    await sleep(1300);
     const fetches = fetchLog.length;
     const bridges = bridgeCalls.length;
     const offl = makeSandbox({ bridge: true, online: false });
@@ -1931,13 +1996,80 @@ check('inline script blocks', scripts.length === 6, scripts.length);
     const OF = offl.window.NODEPULSE;
     check('an offline page asks no host at all',
       fetchLog.length === fetches && bridgeCalls.length === bridges,
-      (fetchLog.length - fetches) + ' fetch / ' + (bridgeCalls.length - bridges) + ' bridge');
+      (fetchLog.length - fetches) + ' fetch / ' + (bridgeCalls.length - bridges) + ' bridge ' + fetchLog.slice(fetches).join(','));
     let r = 'pending';
     await OF.loadTip().then(() => { r = 'ok'; }, () => { r = 'err'; });
     check('an offline request fails at once instead of timing out',
       r === 'err' && fetchLog.length === fetches, r + ' ' + (fetchLog.length - fetches));
     check('the offline page still shows the bundled snapshot',
       !!OF.state.l1 && OF.state.l1.src === 'snapshot', OF.state.l1 && OF.state.l1.src);
+  }
+
+  /* ---- the published daily Bitnodes snapshot ----
+     The L1 table ages from the day the page was built. A bridge-less browser can never
+     read bitnodes.io itself, so the published daily file is what keeps that panel current;
+     when it lands, the row under the title must say so, and the globe must not move. */
+  {
+    const D = makeSandbox({ bridge: false });
+    const ctxD = vm.createContext(D.sandbox);
+    for (let i = 0; i < scripts.length; i++) {
+      try { vm.runInContext(scripts[i], ctxD, { filename: 'daily-' + i + '.js', timeout: 8000 }); }
+      catch (e) { check('the daily-snapshot page executes', false, e && e.stack); }
+    }
+    await sleep(400);
+    const DP = D.window.NODEPULSE;
+    const st = DP.state, dg = DP.globe;
+    check('a bridge-less page falls back to the bundled snapshot',
+      st.l1 && st.l1.src === 'snapshot' && DP.l1snap.src() === 'builtin', st.l1 && st.l1.src + ' ' + DP.l1snap.src());
+    check('the row says the static snapshot before the daily file arrives',
+      /SNAPSHOT/.test(D.els.subrow.textContent) && !/DAILY/.test(D.els.subrow.textContent), D.els.subrow.textContent);
+    const cy0 = dg.cy, R0 = dg.R, toast0 = D.doc.documentElement.style.getPropertyValue('--toast-bottom');
+
+    const builtinAt = DP.l1snap.at();
+    l1Payload = { v: 1, ts: builtinAt - 86400, totalNodes: 1000, coords: [[1, 2], [3, 4]] };
+    check('an older published snapshot never rolls the table back',
+      (await DP.l1snap.load()) === false && DP.l1snap.src() === 'builtin' && DP.l1snap.cells() !== 2);
+
+    const day = Math.floor(Date.now() / 1000) - 3600;
+    l1Payload = {
+      v: 1, ts: day, source: 'https://bitnodes.io/api/v1/snapshots/latest/', totalNodes: 21999,
+      reachableNodes: 22300, height: 978001, coords: [[10, 20], [11, 21], [12, 22]],
+      coordCountry: { '10.0000,20.0000': 'US' }, countries: [['US', 5], ['DE', 2]],
+      countryNames: { US: 'United States', DE: 'Germany' }, platforms: { clearnet: 21000, tor: 900, i2p: 99 },
+      topAsns: [['TOR', 900], ['I2P', 99]], versions: [['/Satoshi:33.0.0/', 9000]],
+      userAgents: [['/Satoshi:33.0.0/', 9000, 978001]]
+    };
+    const took = await DP.l1snap.load();
+    await sleep(60);
+    check('a newer published snapshot is adopted as DAILY',
+      took === true && DP.l1snap.src() === 'remote' && DP.l1snap.cells() === 3 && DP.l1snap.total() === 21999,
+      DP.l1snap.src() + ' ' + DP.l1snap.cells() + ' ' + DP.l1snap.total());
+    check('the adopted table is saved for the next launch',
+      JSON.parse(ls.get('nodepulse.l1snap.v1')).raw.ts === day);
+    check('the L1 row now says DAILY SNAPSHOT, not static snapshot',
+      /DAILY SNAPSHOT/.test(D.els.subrow.textContent) && !/· SNAPSHOT$/.test(D.els.subrow.textContent),
+      D.els.subrow.textContent);
+    DP.panel(true);
+    await sleep(120);
+    check('the panel freshness row names the daily snapshot',
+      /daily snapshot/i.test(D.els.pL1Fresh.innerHTML) && /DAILY/.test(D.els.l1Tag.textContent),
+      D.els.pL1Fresh.innerHTML.slice(0, 80) + ' / ' + D.els.l1Tag.textContent);
+    check('the globe redraws with the adopted coordinates',
+      dg.clusters.reduce((a, c) => a + c.count, 0) === 3, dg.clusters.reduce((a, c) => a + c.count, 0));
+    check('the daily snapshot moves the globe and the HUD by 0 px',
+      dg.cy === cy0 && dg.R === R0 && D.doc.documentElement.style.getPropertyValue('--toast-bottom') === toast0,
+      [cy0, dg.cy, R0, dg.R].join(' / '));
+    check('the panel prints the adopted total and date',
+      /21,999/.test(D.els.pL1.innerHTML) && /daily snapshot/.test(D.els.pL1.innerHTML), D.els.pL1.innerHTML);
+
+    /* a published file that is missing or broken changes nothing at all */
+    l1Payload = null;
+    check('a missing daily file leaves the adopted table and its label in place',
+      (await DP.l1snap.load()) === false && DP.l1snap.src() === 'remote' && /DAILY SNAPSHOT/.test(D.els.subrow.textContent));
+    l1Payload = { v: 1, ts: day + 86400, totalNodes: 5, coords: [] };
+    check('a malformed daily file is refused outright',
+      (await DP.l1snap.load()) === false && DP.l1snap.cells() === 3);
+    l1Payload = null;
   }
 
   /* ---- failure mode: no network at all ----
@@ -2214,14 +2346,327 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   {
     const files = fs.readdirSync(path.join(ROOT, 'src', 'js')).sort();
     check('the application is split into numbered modules',
-      files.length === 12 && files[0] === '00-core.js' && files[11] === '90-boot.js', files.join(','));
+      files.length === 13 && files[0] === '00-core.js' && files[12] === '90-boot.js', files.join(','));
     check('src/app.js is gone, so no second copy can drift', !fs.existsSync(path.join(ROOT, 'src', 'app.js')));
-    const appBlock = blockBodies[6] || '';
+    const appBlock = blockBodies[7] || '';
     const notes = ['Core:', 'Network:', 'Market:', 'Bitcoin L1:', 'Entities:', 'Lightning graph:', 'Saved answers:',
       'Live feeds', 'UI painting:', 'Globe:', 'Cards and view state:', 'Boot:'];
     check('every module is inside the one script block',
       notes.every(k => appBlock.indexOf('/* ' + k) >= 0),
       notes.filter(k => appBlock.indexOf('/* ' + k) < 0).join(','));
+  }
+
+  /* ================================ ENTITIES / Whale Watch ================ */
+  /* The tab has to answer three questions honestly: who the entity is (a public source
+     names it), what it holds right now (an address API, not a guess), and how sure the
+     clustering is (three labels kept apart). These checks drive each of them. */
+  {
+    const E = NP.ent, ES = E.state;
+
+    /* ---- the page and the template ---- */
+    check('the ENTITIES tab is in the page',
+      /id="layerEN"/.test(html) && /ENTITIES<\/button>/.test(html));
+    check('the entity seed is its own inline dataset block',
+      /var ENTITIES = \{/.test(blockBodies[6] || '') && /"category": "PERSON"/.test(blockBodies[6] || ''));
+    check('the published table is written beside the build',
+      fs.existsSync(path.join(ROOT, 'dist', 'entities.json')));
+    const pub = JSON.parse(fs.readFileSync(path.join(ROOT, 'dist', 'entities.json'), 'utf8'));
+    check('the published table carries the same table as the seed',
+      pub.list.length === ES.data.list.length && pub.tracked === ES.data.tracked,
+      pub.list.length + ' / ' + pub.tracked);
+    check('the app is told where to refresh the table from',
+      html.indexOf('https://corejbh.github.io/nodepulse/entities.json') > 0 && csp.indexOf('https://corejbh.github.io') > 0);
+    check('the entity seed carries no Korean and no won figure',
+      !/[\uac00-\ud7af\u20a9]/.test(blockBodies[6] || '') && !/KRW/.test(blockBodies[6] || ''));
+
+    /* ---- the seed itself ---- */
+    check('20 entities and 42 public addresses are loaded',
+      ES.data.list.length === 20 && E.addrCount() === 42,
+      ES.data.list.length + ' entities, ' + E.addrCount() + ' addresses');
+    const cats = {};
+    ES.data.list.forEach(e => { cats[e.category] = (cats[e.category] || 0) + 1; });
+    check('every category the chips offer is populated',
+      ['PERSON', 'CORP', 'GOV', 'OTHER'].every(c => cats[c] >= 3),
+      JSON.stringify(cats));
+    check('each category has the entities the brief named',
+      ['satoshi', 'hal-finney', 'laszlo-hanyecz', 'tim-draper'].every(id => (E.byId(id) || {}).category === 'PERSON') &&
+      ['us-government', 'el-salvador', 'bhutan', 'uk-government', 'germany'].every(id => (E.byId(id) || {}).category === 'GOV') &&
+      ['blackrock-ibit', 'fidelity-fbtc', 'binance', 'bitfinex', 'robinhood'].every(id => (E.byId(id) || {}).category === 'CORP') &&
+      ['mt-gox-trustee', 'luna-foundation-guard', 'silk-road', 'mt-gox-hacker', 'bitfinex-hacker', 'wannacry'].every(id => (E.byId(id) || {}).category === 'OTHER'));
+    check('four hacker cards keep their own icon inside OTHER',
+      ES.data.list.filter(e => e.icon === 'hacker').length === 4 &&
+      ES.data.list.filter(e => e.icon === 'hacker').every(e => e.category === 'OTHER'));
+    check('the Satoshi card keeps the Patoshi badge and never sums the estimate',
+      E.byId('satoshi').badge === 'Patoshi Pattern' &&
+      E.byId('satoshi').total === 10951848759 &&
+      /Patoshi Pattern/.test(E.byId('satoshi').extra) &&
+      !/1,1|1,122,693|1122693/.test(String(E.balanceOf(E.byId('satoshi')).sats)));
+    const b1 = E.byId('satoshi').addresses.find(a => a.address === '12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX');
+    check('the block-1 address carries the unspent P2PK correction, not the API partial',
+      b1 && b1.sats === 5135275617 && /P2PK/.test(b1.note), b1 && b1.sats);
+    check('the historic zero-balance entities are marked static, not live',
+      !E.byId('hal-finney').live && !E.byId('germany').live && !E.byId('mt-gox-trustee').live &&
+      !E.byId('bitfinex-hacker').live && E.byId('germany').badge === 'Sold 2024');
+    check('the six new addresses are in the seed with their sources',
+      ['1a8LDh3qtCdMFAgRXzMrdvB8w1EG4h1Xi', 'bc1q9d4ywgfnd8h43da5tpcxcn6ajv590cg6d3tg6axemvljvt2k76zs50tv4q',
+        '1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF', '1CGA4srJbPWhtJb7ezgY6GQf4PKhFuzD9w',
+        '115p7UMMngoj1pMvkpHijcRdfJNXj6LrLn', '12t9YDPgwueZ9NyMgw519p7AA8isjr6SMw']
+        .every(a => !!E.entityOfAddress(a)),
+      JSON.stringify(Object.keys(ES.data.list.reduce((m, e) => { e.addresses.forEach(x => m[x.address] = 1); return m; }, {})).length));
+
+    /* ---- ranking ---- */
+    const r = E.ranked();
+    check('entities are ranked by the BTC tracked for them, highest first',
+      r.every((x, i) => i === 0 || E.balanceOf(r[i - 1].e).sats >= E.balanceOf(x.e).sats));
+    check('the rank numbers are dense and start at #1', r.every((x, i) => x.rank === i + 1));
+    check('a total is the sum of the addresses listed, never an entity wide estimate',
+      E.byId('blackrock-ibit').total === 90000000000 && E.byId('uk-government').total === 5374481565362);
+
+    /* ---- switching to the tab ---- */
+    NP.layer('l1');
+    await sleep(40);
+    runFrames(rafQueue, 1);
+    const cyL1 = G.cy, rL1 = G.R, toastL1 = doc.documentElement.style.getPropertyValue('--toast-bottom');
+    NP.layer('ln');
+    await sleep(20);
+    const cyLN = G.cy, rLN = G.R;
+    NP.layer('entities');
+    await sleep(60);
+    runFrames(rafQueue, 1);
+    check('the ENTITIES layer is selected', S.layer === 'entities' && els.layerEN.classList.contains('on') &&
+      doc.body.classList.contains('ent') && !doc.body.classList.contains('l1'));
+    check('switching tabs moves the globe centre and radius by 0 px',
+      G.cy === cyL1 && G.R === rL1 && cyLN === cyL1 && rLN === rL1,
+      [cyL1, G.cy, rL1, G.R].join(' / '));
+    check('switching tabs leaves the toast offset alone',
+      doc.documentElement.style.getPropertyValue('--toast-bottom') === toastL1, toastL1);
+    check('the entities globe places no dot: an address has no location',
+      G.clusters.length === 0 && G.links.length === 0 && G.arcs.length === 0);
+    check('the subrow names the entity table', /ENTITY ADDRESSES/.test(els.subrow.textContent), els.subrow.textContent);
+    check('the legend says the globe draws no address location',
+      /PUBLIC ENTITY ADDRESS/.test(els.legend.innerHTML) && /no location/.test(els.legend.innerHTML), els.legend.innerHTML);
+    check('the entity HUD shows the tracked total, the entities and the addresses',
+      /1,013,651/.test(els.vEBtc.textContent) && els.vECount.textContent === '20' && els.vEAddr.textContent === '42',
+      els.vEBtc.textContent + ' / ' + els.vECount.textContent + ' / ' + els.vEAddr.textContent);
+
+    /* ---- chips: exactly five, ALL first ---- */
+    check('there are exactly five filter chips and ALL is selected',
+      (els.entChips.innerHTML.match(/class="chip/g) || []).length === 5 &&
+      /class="chip on"[^>]*data-act="filter" data-id="ALL"/.test(els.entChips.innerHTML) &&
+      /data-id="PERSON"/.test(els.entChips.innerHTML) && /data-id="OTHER"/.test(els.entChips.innerHTML) &&
+      !/data-id="WATCH"/.test(els.entChips.innerHTML) && !/data-id="HACKER"/.test(els.entChips.innerHTML),
+      els.entChips.innerHTML.slice(0, 160));
+    check('the ranked list is drawn with rank, icon, name and USD value',
+      /#1/.test(els.entBody.innerHTML) && /class="ic corp"/.test(els.entBody.innerHTML) &&
+      /U\.S\. Government|Binance/.test(els.entBody.innerHTML) && /\$/.test(els.entBody.innerHTML));
+    check('a hacker row is drawn with the mask icon',
+      /class="ic hacker"/.test(els.entBody.innerHTML) &&
+      /M12 3\.2c-4\.9/.test(els.entBody.innerHTML));
+    if (process.env.DUMP) console.log('DUMP-LIST', els.entBody.innerHTML.slice(0, 2200));
+    E.setFilter('GOV');
+    check('the GOV chip narrows the list to governments',
+      E.filtered().length === 5 && E.filtered().every(x => x.e.category === 'GOV') &&
+      /U\.S\. Government/.test(els.entBody.innerHTML) && !/Binance/.test(els.entBody.innerHTML));
+    check('the sub-line names the filter', /states and their seizures/.test(els.entSub.textContent), els.entSub.textContent);
+    E.setFilter('ALL');
+
+    /* ---- zoom, drag and the touch radius ---- */
+    check('the zoom ceiling is 5.5–6.0', NP.zoomMax() >= 5.5 && NP.zoomMax() <= 6.0, NP.zoomMax());
+    const cv = els.globe;
+    G.zoom = 1; G.zoomT = 1;
+    for (let i = 0; i < 12; i++) cv.dispatch('wheel', { deltaY: -600, preventDefault() { } });
+    check('a wheel zoom reaches the new ceiling and stops there', G.zoomT === NP.zoomMax(), G.zoomT);
+    const yaw1 = G.yaw;
+    cv.dispatch('pointerdown', { pointerId: 11, clientX: 120, clientY: 200, preventDefault() { } });
+    cv.dispatch('pointermove', { pointerId: 11, clientX: 220, clientY: 200, preventDefault() { } });
+    cv.dispatch('pointerup', { pointerId: 11, clientX: 220, clientY: 200, preventDefault() { } });
+    const dragFar = Math.abs(G.yaw - yaw1);
+    G.zoom = 5.8; G.zoomT = 5.8;
+    const yaw2 = G.yaw;
+    cv.dispatch('pointerdown', { pointerId: 12, clientX: 120, clientY: 200, preventDefault() { } });
+    cv.dispatch('pointermove', { pointerId: 12, clientX: 220, clientY: 200, preventDefault() { } });
+    cv.dispatch('pointerup', { pointerId: 12, clientX: 220, clientY: 200, preventDefault() { } });
+    const dragNear = Math.abs(G.yaw - yaw2);
+    check('the same drag turns the globe proportionally less when zoomed in',
+      dragNear < dragFar * 0.25 && dragNear > 0, dragFar.toFixed(3) + ' → ' + dragNear.toFixed(3));
+    G.zoom = 1; G.zoomT = 1;
+    check('the touch target is at least 24 px at 1×', NP.hitRadius() >= 24, NP.hitRadius());
+    check('the touch target grows with the zoom', (function () { const a = NP.hitRadius(); G.zoom = 5.8; const b = NP.hitRadius(); G.zoom = 1; return b > a + 10; })());
+    /* a pinch cannot pass the ceiling either */
+    cv.dispatch('pointerdown', { pointerId: 21, clientX: 100, clientY: 100, preventDefault() { } });
+    cv.dispatch('pointerdown', { pointerId: 22, clientX: 150, clientY: 100, preventDefault() { } });
+    cv.dispatch('pointermove', { pointerId: 22, clientX: 900, clientY: 100, preventDefault() { } });
+    check('a pinch clamps at the same ceiling', G.zoomT === NP.zoomMax(), G.zoomT);
+    cv.dispatch('pointerup', { pointerId: 21, clientX: 100, clientY: 100, preventDefault() { } });
+    cv.dispatch('pointerup', { pointerId: 22, clientX: 900, clientY: 100, preventDefault() { } });
+    G.zoom = 1; G.zoomT = 1;
+
+    /* ---- a tap lands on a dot at 24 px, and a 500 px away tap does not ---- */
+    NP.layer('ln');
+    await sleep(40);
+    runFrames(rafQueue, 6);
+    const dot = G.clusters.find(c => c.on);
+    const near = dot ? NP.hitTest(dot.sx + 20, dot.sy + 14) : null;   // 24.4 px away
+    const nearId = near ? G.clusters.indexOf(near) : -1;
+    check('a tap 24 px from a dot lands on a dot', !!dot && nearId >= 0 && NP.hitRadius() >= 24,
+      dot ? 'radius ' + NP.hitRadius().toFixed(1) : 'no dot');
+    check('a tap far from every dot opens nothing', !NP.hitTest(dot.sx + 500, dot.sy + 500));
+    NP.layer('entities');
+    await sleep(30);
+
+    /* ---- the price, in USD only ---- */
+    await E.loadPrice();
+    check('the BTC price comes from mempool.space', ES.price === 60000 && ES.priceSrc === 'mempool.space', ES.price);
+    check('a fiat figure is USD and carries no won sign',
+      E.fmtUsd(E.usd(1e8)) === '$60.0K' && !/₩/.test(els.entBody.innerHTML));
+
+    /* ---- live balances, one address at a time ---- */
+    addrBal.set('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', 7000000000);
+    addrBal.set('12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX', 6000000000);
+    addrBal.set('12cbQLTFMXRnSzktFkuoG3eHoMeFtpTu3S', 44412447);
+    await E.sweep('satoshi');
+    const stSat = ES.live.satoshi;
+    check('the entity detail sweep reads every live address in turn',
+      stSat.state === 'live' && stSat.done === 3 && Object.keys(stSat.addrs).length === 3,
+      stSat.state + ' ' + stSat.done);
+    check('the live balance replaces the seed figure and is marked live',
+      E.balanceOf(E.byId('satoshi')).sats === 13044412447 &&
+      stSat.addrs['1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'].src === 'live',
+      E.balanceOf(E.byId('satoshi')).sats);
+
+    /* a mirror that answers 429 is "rate limited", never a zero balance */
+    addrMode = '429';
+    await E.sweep('us-government');
+    const stGov = ES.live['us-government'];
+    check('a 429 is reported as rate limited, not as an empty wallet',
+      stGov.state === 'rate-limited' && stGov.rate === true, stGov.state);
+    check('a rate-limited entity keeps its verified figure and says so',
+      E.balanceOf(E.byId('us-government')).sats === 16401367303104);
+    E.openEntity('us-government');
+    await sleep(40);
+    check('the card prints rate limited against the unread address',
+      /rate limited/.test(els.entBody.innerHTML), els.entBody.innerHTML.slice(0, 120));
+    E.close();
+    addrMode = 'ok';
+
+    /* ---- the watchlist: any address, in the ALL list, no sixth chip ---- */
+    const W = '1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF';
+    const wBad = E.watchAdd('not-an-address');
+    check('a malformed address is refused with a reason', !wBad.ok && /bitcoin address/.test(wBad.err), wBad.err);
+    addrBal.set(W, 7995726874324);
+    const wOk = E.watchAdd(W);
+    check('a valid address joins the watchlist', wOk.ok && ES.watch.length === 1, wOk.err);
+    check('a duplicate address is refused', !E.watchAdd(W).ok);
+    check('the watchlist is saved to localStorage',
+      JSON.parse(ls.get('nodepulse.watchlist.v1')).length === 1);
+    check('the watchlist shows inside ALL without adding a chip',
+      (els.entChips.innerHTML.match(/class="chip/g) || []).length === 5 && /WATCHLIST/.test(els.entBody.innerHTML),
+      (els.entChips.innerHTML.match(/class="chip/g) || []).length + ' chips · filter ' + ES.filter + ' · open "' + ES.open + '" · ' + els.entBody.innerHTML.slice(0, 60));
+    await sleep(120);
+    check('a watched address is read live and shown with its entity badge',
+      ES.watchLive[W] && ES.watchLive[W].sats === 7995726874324 &&
+      /Mt\. Gox Hacker/.test(els.entBody.innerHTML),
+      JSON.stringify(ES.watchLive[W] || {}));
+    await E.readTxs(W);
+    check('a watched address lists its recent transactions',
+      (ES.tx[W] || {}).state === 'done' && ES.tx[W].rows.length === 1,
+      (ES.tx[W] || {}).state);
+    check('the other side of a transaction is named when it is a known entity',
+      ES.tx[W].rows[0].peers.some(p => p.entity === 'U.S. Government'),
+      JSON.stringify(ES.tx[W].rows[0].peers));
+    check('the transaction row draws the counterparty badge',
+      /badge unto/.test(els.entBody.innerHTML) && /U\.S\. Government/.test(els.entBody.innerHTML));
+
+    /* ---- the detail card and its cluster run ---- */
+    addrBal.set('34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo', 24859759296803);
+    addrBal.set('3M219KR5vEneNb47ewrPfWyb5jQ2DjxRP6', 16487839644777);
+    E.openEntity('binance');
+    await sleep(60);
+    check('an entity detail opens from its row', ES.open === 'binance' && E.depth() === 2);
+    check('the detail names the rank, the category and the tracked total',
+      /#1 · Corp/.test(els.entBody.innerHTML) && /Binance/.test(els.entBody.innerHTML) && /BTC/.test(els.entBody.innerHTML),
+      els.entBody.innerHTML.slice(0, 200));
+    check('the detail offers ANALYZE CLUSTER and CANCEL is not shown yet',
+      /ANALYZE CLUSTER/.test(els.entBody.innerHTML) && !/data-act="cancel"/.test(els.entBody.innerHTML));
+    await sleep(400);
+    const cRes = await E.analyze();
+    check('the cluster run answers and is stored on the card',
+      cRes && cRes.ok && ES.run.state === 'done' && ES.run.result === cRes);
+    check('every address of the entity is verified in the result',
+      cRes.addresses.length === 2 && cRes.addresses.every(a => a.label === 'Verified'),
+      cRes.addresses.map(a => a.label).join(','));
+    check('the verified total is the sum of the read balances',
+      cRes.entity.balance === 24859759296803 + 16487839644777, cRes.entity.balance);
+    check('a change estimate is listed apart from the clusters',
+      cRes.change.length === 1 && cRes.change[0].value === 900001, JSON.stringify(cRes.change));
+    const htmlNow = els.entBody.innerHTML;
+    if (process.env.DUMP) console.log('DUMP-DETAIL', htmlNow.slice(0, 6000));
+    const vLine = (htmlNow.match(/Verified <b>([^<]*)<\/b>/) || [])[1] || '';
+    const eLine = (htmlNow.match(/est\. <b>([^<]*)<\/b>/) || [])[1] || '';
+    check('the estimate is not added to the verified figure',
+      vLine === '413,475.9894 BTC' && eLine === '0.00900001 BTC',
+      'verified "' + vLine + '" · est "' + eLine + '"');
+    /* the panel is light DOM strings: balanced tags, no inline style, no inline handler */
+    {
+      const opens = (htmlNow.match(/<div/g) || []).length;
+      const closes = (htmlNow.match(/<\/div>/g) || []).length;
+      check('the entity panel writes balanced markup and nothing inline',
+        opens === closes && !/style="/.test(htmlNow) && !/\son(click|error|load)=/.test(htmlNow),
+        opens + '/' + closes);
+    }
+    check('the three labels are printed as their own badges',
+      /badge v">Verified/.test(els.entBody.innerHTML) && /Change Est\./.test(els.entBody.innerHTML));
+    check('the coinjoin count is its own figure, not missing data',
+      /coinjoins skipped|0 coinjoins|data-act="analyze"/.test(els.entBody.innerHTML));
+    check('the run reports its calls and source honestly',
+      /calls ·/.test(els.entBody.innerHTML) && /source (live|cache|mixed|none)/.test(els.entBody.innerHTML),
+      els.entBody.innerHTML.match(/source \w+/));
+
+    /* ---- cancel closes the request in flight and says the result is partial ---- */
+    NP.cluster.clearCache();
+    addrDelay = 80;
+    const pRun = E.analyze();
+    await sleep(30);
+    check('a run in flight offers CANCEL', ES.run.state === 'running' && /data-act="cancel"/.test(els.entBody.innerHTML));
+    const stopped = E.cancel();
+    const cAbort = await pRun;
+    addrDelay = 0;
+    check('CANCEL aborts the socket and stops the run', stopped === true);
+    check('a cancelled run answers with what it already had and says so',
+      cAbort && cAbort.aborted === true && ES.run.state === 'aborted' &&
+      /cancelled · partial result/.test(els.entBody.innerHTML),
+      cAbort && cAbort.aborted);
+    check('CANCEL with no run in flight does nothing', E.cancel() === false);
+
+    /* ---- back() walks detail → list → closed ---- */
+    check('the sheet reports its depth to the shell', E.depth() === 2);
+    check('back goes from the detail to the list', E.back() === true && E.depth() === 1);
+    check('back closes the sheet', E.back() === true && E.depth() === 0);
+    check('the shell back handler closes the sheet first', typeof window.NodepulseBack === 'function');
+    E.open();
+    check('the sheet opens from the panel button on this tab', E.isOpen() && E.depth() === 1);
+    E.close();
+
+    /* ---- the published table: adopted when newer, ignored when missing ---- */
+    const newer = JSON.parse(JSON.stringify(pub));
+    newer.v = 2; newer.at = '2026-12-01T00:00:00Z';
+    remotePayload = newer;
+    const took = await E.remote();
+    check('a newer published table replaces the seed',
+      took === true && ES.src === 'remote' && ES.v === 2 && ES.data.list.length === 20, ES.src + ' v' + ES.v);
+    check('the adopted table is cached in localStorage',
+      JSON.parse(ls.get('nodepulse.entities.v1')).v === 2);
+    remoteMode = 'fail';
+    const kept = await E.remote();
+    check('a missing published table leaves the adopted one alone and stays quiet',
+      kept === false && ES.v === 2 && ES.data.list.length === 20);
+    remoteMode = 'ok'; remotePayload = null;
+
+    /* ---- leaving the tab closes the sheet and restores the globe ---- */
+    NP.layer('l1');
+    await sleep(40);
+    check('leaving ENTITIES closes the sheet and restores the L1 layer',
+      !E.isOpen() && S.layer === 'l1' && doc.body.classList.contains('l1') && !doc.body.classList.contains('ent'));
   }
 
   /* ---- report ---- */

@@ -24,6 +24,10 @@
     paintStatus();
     paintMetrics();
     if (S.panelOpen) paintPanel();
+    /* the entity sheet is throttled inside Ent.paint(), so calling it on every paint only
+       queues one DOM pass — and it keeps the HUD, the subrow and an open card in step
+       with a balance or a price that arrived since the last pass. */
+    if (typeof Ent !== 'undefined' && Ent && Ent.paint) Ent.paint();
     var hud = document.querySelector('.hud');
     if (hud && Math.abs(hud.offsetHeight - lastHudH) > 2) {
       lastHudH = hud.offsetHeight;
@@ -59,15 +63,25 @@
      is that because the request has not answered yet or because this browser can never
      read bitnodes.io at all. */
   function subrowText() {
+    if (S.layer === 'entities') {
+      var n = (typeof Ent !== 'undefined' && Ent && Ent.state && Ent.state.data) ? Ent.state.data.list.length : 0;
+      return L('subEN') + (n ? ' · ' + n + ' ENTITIES' : '');
+    }
     return S.layer === 'l1' ? L('subL1') + l1Badge() : L('subLN');
   }
 
   var legendSig = '';
   function paintLegend() {
-    var html = S.layer === 'l1'
-      ? '<span class="l"><span class="dot"></span>' + esc(L('legL1dot')) + '</span><span class="l">' + esc(L('legL1note')) + '</span>' +
-        ((!S.l1 || S.l1.src !== 'live') ? '<span class="l">' + esc(L('legL1static')) + '</span>' : '')
-      : '<span class="l"><span class="dot"></span>' + esc(L('legLNdot')) + '</span><span class="l"><span class="line"></span>' + esc(L('legLNline')) + '</span>';
+    var html;
+    if (S.layer === 'entities') {
+      html = '<span class="l"><span class="dot"></span>' + esc(L('legENdot')) + '</span>' +
+        '<span class="l">' + esc(L('legENnote')) + '</span>';
+    } else {
+      html = S.layer === 'l1'
+        ? '<span class="l"><span class="dot"></span>' + esc(L('legL1dot')) + '</span><span class="l">' + esc(L('legL1note')) + '</span>' +
+          ((!S.l1 || S.l1.src !== 'live') ? '<span class="l">' + esc(L('legL1static')) + '</span>' : '')
+        : '<span class="l"><span class="dot"></span>' + esc(L('legLNdot')) + '</span><span class="l"><span class="line"></span>' + esc(L('legLNline')) + '</span>';
+    }
     if (html === legendSig) return;
     legendSig = html;
     var el = $('legend');
@@ -111,6 +125,7 @@
       mark(el, 'pending', p[1] === null || p[1] === undefined);
       mark(el, 'stale', !!p[1] && stale());
     });
+    if (S.layer === 'entities' && typeof Ent !== 'undefined' && Ent && Ent.paint) Ent.paint();
 
     var sMem = $('sMem'), sFee = $('sFee'), sNext = $('sNext');
     var memTxt = '—';
@@ -163,7 +178,7 @@
     var pl1 = $('pL1');
     if (pl1) {
       pl1.innerHTML = l1 && num(l1.total)
-        ? fmtInt(l1.total) + '<small>' + (l1.src === 'live' ? L('live') : l1.src === 'cache' ? L('cache') : L('snap')) +
+        ? fmtInt(l1.total) + '<small>' + (l1.src === 'live' ? L('live') : l1.src === 'cache' ? L('cache') : (l1.daily ? L('snapDaily') : L('snap'))) +
           (l1.reachable && l1.reachable !== l1.total ? ' · metadata ' + fmtInt(l1.reachable) : '') + '</small>'
         : '—';
     }
@@ -231,7 +246,7 @@
     });
     setHTML('dist', out);
     if (S.layer === 'l1') {
-      var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
+      var s = l1Snap();
       txt('distTotal', fmtInt(total) + ' · ' + (agg.countries || 0) + ' countries' +
         (s && s.capturedAt ? ' · ' + L('snapBasis') + ' ' + dateOf(s.capturedAt * 1000).slice(0, 10) : ''));
     } else {
@@ -308,19 +323,21 @@
       var at = num(l1.at) ? dateOf(l1.at) : '—';
       return ' — currently the cached Bitnodes answer of ' + at + ', because the live request did not answer';
     }
+    if (l1 && l1.daily) return ' — currently the published daily snapshot ' + snapAt + ', read from corejbh.github.io';
     return ' — currently the built-in snapshot ' + snapAt + ', because the live request did not answer';
   }
 
   function l1PointsClause(l1) {
     if (l1 && l1.src === 'live') return 'live';
     if (l1 && l1.src === 'cache') return 'cached answer';
+    if (l1 && l1.daily) return 'daily snapshot';
     return 'snapshot';
   }
 
   function paintNote() {
     var e = $('note');
     if (!e) return;
-    var s = (typeof L1_SNAPSHOT !== 'undefined') ? L1_SNAPSHOT : null;
+    var s = l1Snap();
     var l1 = S.l1;
     var snapAt = s && s.capturedAt ? dateOf(s.capturedAt * 1000).slice(0, 16) : '—';
     e.innerHTML =
