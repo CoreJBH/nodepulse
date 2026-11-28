@@ -4,7 +4,7 @@
    exchange itself, a court record, the chain itself, or a named analytics attribution)
    and the mempool.space address API was read for its balance. Nothing is guessed; an
    address whose public listing could not be found is left out, and the entity's `extra`
-   field says so. Verification run 2026-11-28 10:26:08 UTC at block 977928.
+   field says so. Verification run 2026-11-28 10:34:39 UTC at block 977928.
 
    Shape:  { v, at, block, price, priceAt, tracked, list: [entity] }
            entity  = { id, name, category, icon, badge, evidence, live, description,
@@ -40,10 +40,10 @@
    set below, so a table saved under an older version is replaced rather than kept. */
 var ENTITIES = {
   "v": 3,
-  "at": "2026-11-28T10:26:08Z",
+  "at": "2026-11-28T10:34:39Z",
   "block": 977928,
-  "price": 59304,
-  "priceAt": "2026-11-28T10:26:08Z",
+  "price": 59281,
+  "priceAt": "2026-11-28T10:34:39Z",
   "tracked": 242535587638868,
   "list": [
     {
@@ -6891,8 +6891,8 @@ var ENTITIES = {
       "badge": "OFAC SDN",
       "evidence": "official",
       "live": true,
-      "description": "A Chinese national designated for running a bitcoin-laundering network for North Korean IT workers and for the Lazarus Group's proceeds.",
-      "extra": "SDN list entry 43421 (cyber-enabled activity and money laundering for the DPRK), bitcoin addresses 23; the balance was read from mempool.space.",
+      "description": "The primary administrator of the 911 S5 botnet, which OFAC says compromised about 19 million IP addresses and whose users filed tens of thousands of fraudulent pandemic-relief claims. He was designated in May 2024 together with three companies he owns in Thailand.",
+      "extra": "SDN list entry 43421 (cyber-enabled activity), bitcoin addresses 23; the balance was read from mempool.space.",
       "est": null,
       "coverage": "partial",
       "addresses": [
@@ -9800,7 +9800,7 @@ var ENTITIES = {
       "badge": "OFAC SDN",
       "evidence": "official",
       "live": true,
-      "description": "Designated by OFAC in 2023 as part of the fentanyl-trafficking network that used bitcoin to launder proceeds.",
+      "description": "Designated by OFAC under its narcotics-trafficking authority; the SDN list carries six bitcoin addresses in this party's name.",
       "extra": "SDN list entry 25308 (narcotics trafficking), bitcoin addresses 6; the balance was read from mempool.space.",
       "est": null,
       "coverage": "partial",
@@ -12012,8 +12012,8 @@ var ENTITIES = {
       "badge": "OFAC SDN",
       "evidence": "official",
       "live": true,
-      "description": "A front company OFAC designated in 2023 for moving bitcoin for the fentanyl trade.",
-      "extra": "SDN list entry 30518 (narcotics trafficking), bitcoin addresses 1; the balance was read from mempool.space.",
+      "description": "A company designated under the cyber and election-interference authorities, with its bitcoin addresses entered in the SDN list.",
+      "extra": "SDN list entry 30518 (cyber-enabled activity), bitcoin addresses 1; the balance was read from mempool.space.",
       "est": null,
       "coverage": "partial",
       "addresses": [
@@ -14284,7 +14284,7 @@ var ENTITIES = {
       "badge": "OFAC SDN",
       "evidence": "official",
       "live": true,
-      "description": "A fundraising campaign designated by OFAC as supporting terrorism; the address was published in the SDN list.",
+      "description": "An organisation designated by OFAC under its terrorism authority; the SDN list records a bitcoin address in its name.",
       "extra": "SDN list entry 47635 (terrorism), bitcoin addresses 1; the balance was read from mempool.space.",
       "est": null,
       "coverage": "partial",
@@ -15110,7 +15110,7 @@ var ENTITIES = {
       "badge": "OFAC SDN",
       "evidence": "official",
       "live": true,
-      "description": "A company designated under the fentanyl sanctions programme.",
+      "description": "A company designated under the illicit-drugs sanctions programme.",
       "extra": "SDN list entry 45314 (narcotics trafficking), bitcoin addresses 1; the balance was read from mempool.space.",
       "est": null,
       "coverage": "partial",
@@ -16609,7 +16609,7 @@ var ENTITIES = {
       "badge": "OFAC SDN",
       "evidence": "official",
       "live": true,
-      "description": "Designated by OFAC as part of the fentanyl-laundering network.",
+      "description": "Designated by OFAC under its narcotics-trafficking authority.",
       "extra": "SDN list entry 26323 (narcotics trafficking), bitcoin addresses 1; the balance was read from mempool.space.",
       "est": null,
       "coverage": "partial",
@@ -17912,8 +17912,8 @@ var ENTITIES = {
       "badge": "OFAC SDN",
       "evidence": "official",
       "live": true,
-      "description": "Designated by OFAC under its counter-narcotics authority.",
-      "extra": "SDN list entry 30520 (narcotics trafficking), bitcoin addresses 1; the balance was read from mempool.space.",
+      "description": "Designated by OFAC under the cyber and election-interference authorities.",
+      "extra": "SDN list entry 30520 (cyber-enabled activity), bitcoin addresses 1; the balance was read from mempool.space.",
       "est": null,
       "coverage": "partial",
       "addresses": [
@@ -18032,7 +18032,7 @@ var ENTITIES = {
       "badge": "OFAC SDN",
       "evidence": "official",
       "live": true,
-      "description": "A hosting provider designated for supporting ransomware operations.",
+      "description": "A hosting provider OFAC designated for supporting cybercrime infrastructure.",
       "extra": "SDN list entry 52830 (cyber-enabled activity), bitcoin addresses 1; the balance was read from mempool.space.",
       "est": null,
       "coverage": "partial",
@@ -18276,8 +18276,8 @@ var ENTITIES = {
       "badge": "OFAC SDN",
       "evidence": "official",
       "live": true,
-      "description": "Designated by OFAC as part of the fentanyl-laundering network.",
-      "extra": "SDN list entry 28263 (narcotics trafficking), bitcoin addresses 1; the balance was read from mempool.space.",
+      "description": "Designated by OFAC under the cyber authorities alongside North Korea-related designations.",
+      "extra": "SDN list entry 28263 (cyber-enabled activity), bitcoin addresses 1; the balance was read from mempool.space.",
       "est": null,
       "coverage": "partial",
       "addresses": [
