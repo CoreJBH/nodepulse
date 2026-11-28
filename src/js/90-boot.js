@@ -172,6 +172,7 @@
         };
       },
       mblocks: function () { return S.mblocks; },
+      cluster: Cluster,
       watch: function () { evalWatch(); return { list: S.wd ? S.wd.list : [], alerts: (S.wd ? S.wd.alerts : []) || [], sig: S.alertSig }; },
       reorg: reorgEvent
     };

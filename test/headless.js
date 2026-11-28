@@ -2214,10 +2214,10 @@ check('inline script blocks', scripts.length === 6, scripts.length);
   {
     const files = fs.readdirSync(path.join(ROOT, 'src', 'js')).sort();
     check('the application is split into numbered modules',
-      files.length === 11 && files[0] === '00-core.js' && files[10] === '90-boot.js', files.join(','));
+      files.length === 12 && files[0] === '00-core.js' && files[11] === '90-boot.js', files.join(','));
     check('src/app.js is gone, so no second copy can drift', !fs.existsSync(path.join(ROOT, 'src', 'app.js')));
     const appBlock = blockBodies[6] || '';
-    const notes = ['Core:', 'Network:', 'Market:', 'Bitcoin L1:', 'Lightning graph:', 'Saved answers:',
+    const notes = ['Core:', 'Network:', 'Market:', 'Bitcoin L1:', 'Entities:', 'Lightning graph:', 'Saved answers:',
       'Live feeds', 'UI painting:', 'Globe:', 'Cards and view state:', 'Boot:'];
     check('every module is inside the one script block',
       notes.every(k => appBlock.indexOf('/* ' + k) >= 0),

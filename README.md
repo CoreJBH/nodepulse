@@ -208,17 +208,21 @@ byte-for-byte identical.
 `build.py` inlines CSS, geometry, snapshots, application code, and the base64 app icon into
 one document — about 386 KB — with tokens that fail the build if any substitution is missed,
 and it refuses to emit a file that could break out of its own `<script>` block. The
-application code is split by responsibility into eleven files under `src/js/` that share one
+application code is split by responsibility into twelve files under `src/js/` that share one
 function scope (`00-core` … `90-boot`, the last one closing the IIFE); `build.py` joins them
 in file-name order into the same single script block, so the split costs nothing at run time,
 the policy still names one hash, and the release build still has no second copy of the app to
 drift from. `python3 build.py --check` compiles the assembled code with `node --check`.
+`35-cluster.js` is the on-demand clustering engine for the ENTITIES / Whale Watch tab: it
+reads nothing at boot, and its public surface and display rules are written down in
+`docs/cluster-api.md`.
 
 | Harness | What it proves | Result |
 | --- | --- | --- |
 | `test/headless.js` | Builds `dist/nodepulse.html` and the `--test` build, then a DOM + rendering contract against stubbed canvas with real recorded payloads: both layers, bridge (single-piece and chunked delivery, a lost chunk, the timeout floor against the native one, one bridge attempt after three failed mirrors), snapshots, the browser-only Bitnodes stop, a cached answer kept out of LIVE, mempool-blocks, all four watchdog alerts, mirror fallback, malformed REST and WebSocket payloads (including a string count in the country, transport-split and version rows), a failed node-detail fetch, a clock running behind the API, a pinch dropped by a lost focus, a five-second frame's inertia, a held reconnect behind a hidden page, an offline phone that asks no host, the English-only source and build, a cache poisoned field by field (a string channel count, an object capacity, a string Tor flag, an object alias, a number in the peers list, a junk retarget date), the CORS-blocked browser's static-snapshot labelling, the shell back call closing the card and then the panel, and an 800×450 landscape layout | **398 / 398 assertions pass** |
 | `HttpBridgePolicyTest.java` | The bridge's policy on the JVM: the request-id shape, the four-host allowlist (scheme, credentials, port, lookalike names), a redirect to another host or to plain http refused while a hop inside the allowlist is followed, loopback/link-local/private/CGNAT/multicast/unspecified/IPv6-unique-local addresses refused, and the navigation policy two `shouldOverrideUrlLoading` overloads answer | `:app:testDebugUnitTest`, 10 tests |
 | `HttpBridgeChunkTest.java` | The 32 K chunk boundaries `HttpBridge` hands a body over with, walked at limits 1–9 over emoji and flag text: no chunk ends in a lone high surrogate or starts with a lone low one, and the parts join back into the body | `:app:testDebugUnitTest`, 7 tests |
+| `test/cluster.js` | The on-demand clustering engine, loaded exactly as `build.py` joins it (`00-core.js` + `35-cluster.js` in one `vm` scope) with `fetch` and `localStorage` stubbed: common-input merging and its direction (a payment the entity received never adopts the payer), change estimation and its refusals (two plausible outputs, two round outputs, mixed script types, three outputs), coinjoin exclusion by equal outputs and by fan-in/fan-out, the per-address and total call caps, cancel through `cancelCluster()` and through a caller's `AbortSignal`, the cache (hit, stale, poisoned), mirror fallback, a 429 run that stops asking, and the label split | 93 checks, no browser required |
 | `test/fill-truth.js` | Rendered continent fill compared with the land polygons over 50 camera angles, 743 k sampled pixels | ≈ 0.4 % false-positive / 0.26 % false-negative, all on sub-pixel Antarctic coastline edges |
 | `test/perf.js` | Frame cadence at a 390×844 phone viewport, DPR clamped to 2, then with 4× CPU throttling | p50 16.7 ms (60 fps), p95 33.4 ms under throttle |
 | `test/offline.js` | Boot with every network route aborted: snapshot geometry, status disclosure, no JS errors | pass |
@@ -248,6 +252,7 @@ python3 build.py --check  # syntax gate: the assembled src/js modules, compiled 
 
 ```bash
 node test/headless.js               # 403 assertions, no browser required
+node test/cluster.js                # clustering engine, no browser required
 python3 build.py && node test/fill-truth.js   # browser harness, needs Playwright
 node test/perf.js                   # frame-time probe
 ```
@@ -447,7 +452,8 @@ and on demand:
 
 1. `python3 build.py` builds the single-file app and `python3 build.py --check` compiles the
    assembled application code.
-2. `node test/headless.js` runs the offline verification harness.
+2. `node test/headless.js` runs the offline verification harness, and `node test/cluster.js`
+   checks the clustering engine.
 3. The built HTML is copied to `android/app/src/main/assets/index.html`.
 4. `gradle :app:lintDebug :app:testDebugUnitTest` checks the shell.
 5. The four signing secrets are read. Without them a `v*` tag stops here, before anything is
