@@ -4,7 +4,7 @@
 
    The rule of the rest of the app applies here without exception: every figure on screen
    is a figure an API returned, and every address is one a public source names. The seed
-   (src/data/entities-data.js) is the verified table — 20 entities, 42 addresses, each
+   (src/data/entities-data.js) is the verified table — 235 entities, 1,899 addresses, each
    confirmed against mempool.space — and this module never invents an address, a balance
    or a rank beyond it.
 
