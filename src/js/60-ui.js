@@ -64,7 +64,7 @@
      read bitnodes.io at all. */
   function subrowText() {
     if (S.layer === 'entities') {
-      var n = (typeof Ent !== 'undefined' && Ent && Ent.state && Ent.state.data && Ent.ranked) ? Ent.ranked().length : 0;
+      var n = (typeof Ent !== 'undefined' && Ent && Ent.state && Ent.state.data && Ent.heldCount) ? Ent.heldCount() : 0;
       return L('subEN') + (n ? ' · ' + n + ' ENTITIES' : '');
     }
     return S.layer === 'l1' ? L('subL1') + l1Badge() : L('subLN');

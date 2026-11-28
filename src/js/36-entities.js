@@ -573,6 +573,12 @@
       return 0;
     }
     function filtered() { return rankList(ES.filter); }
+    /* How many entities hold something — the table can be larger than the 100 a tab prints. */
+    function heldCount() {
+      var l = list(), n = 0;
+      for (var i = 0; i < l.length; i++) if (heldOf(l[i]) > 0) n++;
+      return n;
+    }
     /* How many entities the ranking leaves out because they hold nothing right now. */
     function zeroCount() {
       var l = list(), n = 0;
@@ -1047,7 +1053,7 @@
           '<div class="drow"><span class="dn">Tracked entities</span><span class="dv">' + esc(fmtEnt(t)) + ' BTC</span><span class="dc">' + esc(pct(t, mined)) + '% of mined</span></div>' +
           '<div class="drow"><span class="dn">Private / untracked</span><span class="dv">' + (priv === null ? '—' : esc(fmtEnt(priv)) + ' BTC') + '</span><span class="dc">' + (priv === null ? '' : esc(pct(priv, mined)) + '% of mined') + '</span></div>' +
           stack + '</div>' +
-        '<div class="dhead2"><span>BY CATEGORY</span><span>' + ranked().length + ' ranked · ' + zeroCount() + ' at 0 BTC</span></div>' +
+        '<div class="dhead2"><span>BY CATEGORY</span><span>' + heldCount() + ' holders · ' + zeroCount() + ' at 0 BTC</span></div>' +
         bars +
         '<div class="dfoot2">Every figure is an address read from mempool.space at the time on the card; the supply line follows the live block height.</div>';
     }
@@ -1070,15 +1076,15 @@
         if (e) return detailHTML(e);
         ES.open = '';
       }
-      var rows = filtered().map(rowHTML).join('');
-      var head = '<div class="lhead"><span>' + esc(CAT_LABEL[ES.filter] || ES.filter) + ' · TOP ' + Math.min(RANK_CAP, filtered().length) +
+      var list0 = filtered();
+      var rows = list0.map(rowHTML).join('');
+      var head = '<div class="lhead"><span>' + esc(CAT_LABEL[ES.filter] || ES.filter) + ' · TOP ' + Math.min(RANK_CAP, list0.length) +
         '</span><span>' + (zeroCount() ? zeroCount() + ' at 0 BTC not ranked · ' : '') +
         (sweepTopState.state === 'loading' ? 'reading ' + sweepTopState.done + ' / ' + sweepTopState.total
           : sweepTopState.rate ? 'rate limited' : 'seeded · ' + shortDate(ES.at)) + '</span>' +
         '<button class="wbtn" data-act="refresh">REFRESH</button></div>';
-      if (ES.filter === 'ALL') rows = watchHTML() + head + rows;
-      else rows = head + rows;
-      if (!filtered().length) rows = '<div class="empty">no entity in this category holds bitcoin right now</div>';
+      if (!list0.length) rows = '<div class="empty">no entity in this category holds bitcoin right now</div>';
+      rows = (ES.filter === 'ALL' ? watchHTML() : '') + head + rows;
       return '<div class="list">' + rows + '</div>';
     }
 
@@ -1129,7 +1135,7 @@
     function paintEntHud() {
       if (!ES.data) return;
       txt('vEBtc', fmtEnt(trackedSats(), true));
-      txt('vECount', String(ranked().length));
+      txt('vECount', String(heldCount()));
       txt('vEAddr', fmtInt(addrCount()));
     }
 
@@ -1397,7 +1403,7 @@
       balanceOf: balanceOf, liveState: liveState, trackedSats: trackedSats,
       heldOf: heldOf, estOf: estOf, runEstimate: runEstimate, heldBreakdown: heldBreakdown,
       addrCount: addrCount, entityOfAddress: entityOfAddress,
-      rankOf: rankOf, zeroCount: zeroCount, fmtEnt: fmtEnt, minedSats: minedSats,
+      rankOf: rankOf, zeroCount: zeroCount, heldCount: heldCount, fmtEnt: fmtEnt, minedSats: minedSats,
       supplyNow: supplyNow, dashHTML: dashHTML, rankCap: RANK_CAP, sweepTopState: function () { return sweepTopState; },
       state: ES, cats: CATS, remoteUrl: REMOTE_URL
     };

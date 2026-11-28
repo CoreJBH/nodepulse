@@ -2701,7 +2701,7 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       /PUBLIC ENTITY ADDRESS/.test(els.legend.innerHTML) && /no location/.test(els.legend.innerHTML), els.legend.innerHTML);
     check('the entity HUD shows the held total, the ranked entities and the addresses',
       els.vEBtc.textContent === E.fmtEnt(E.trackedSats(), true) &&
-      els.vECount.textContent === String(E.ranked().length) &&
+      els.vECount.textContent === String(E.heldCount()) &&
       els.vEAddr.textContent === E.addrCount().toLocaleString('en-US') &&
       /HELD<br>BTC/.test(html),
       els.vEBtc.textContent + ' / ' + els.vECount.textContent + ' / ' + els.vEAddr.textContent);

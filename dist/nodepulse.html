@@ -9,7 +9,7 @@
      computes over the exact bytes it has written, so no 'unsafe-inline' is needed and an
      injected block would have to match a hash that is already in the file. Nothing else
      is allowed: no frames, no forms, no plugins, no workers, no extra hosts. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-MbI2Cdy5pqzedyHpsU/PSj+nIeilJEc/JrZUj9wLcaU=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-JlGKZAB6Wtxi+SpRL+/hnwqmq6540nCTuPEM/KRdriE=' 'sha256-ILJGWpjk8hItsO340Vuk3s/SibKUKg8Q4oY2GorwYy0='; style-src 'sha256-aK+G3EnPpQVecjcTnB15ODxWsmwXy2DuCKzdocbnTNo='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja https://corejbh.github.io wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-MbI2Cdy5pqzedyHpsU/PSj+nIeilJEc/JrZUj9wLcaU=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-JlGKZAB6Wtxi+SpRL+/hnwqmq6540nCTuPEM/KRdriE=' 'sha256-9hQMfqmveW4u2Zqi+s2fVabDMU+7Xcjv2Cd6otU8Mds='; style-src 'sha256-aK+G3EnPpQVecjcTnB15ODxWsmwXy2DuCKzdocbnTNo='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja https://corejbh.github.io wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
 <meta name="theme-color" content="#040914">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="NodePulse — live monitoring of the Bitcoin L1 mainnet. Shows the Bitnodes full-node distribution and mempool.space block, mempool and fee data, and only data an API actually reported.">
@@ -17469,6 +17469,12 @@ var ENTITIES = {
       return 0;
     }
     function filtered() { return rankList(ES.filter); }
+    /* How many entities hold something — the table can be larger than the 100 a tab prints. */
+    function heldCount() {
+      var l = list(), n = 0;
+      for (var i = 0; i < l.length; i++) if (heldOf(l[i]) > 0) n++;
+      return n;
+    }
     /* How many entities the ranking leaves out because they hold nothing right now. */
     function zeroCount() {
       var l = list(), n = 0;
@@ -17943,7 +17949,7 @@ var ENTITIES = {
           '<div class="drow"><span class="dn">Tracked entities</span><span class="dv">' + esc(fmtEnt(t)) + ' BTC</span><span class="dc">' + esc(pct(t, mined)) + '% of mined</span></div>' +
           '<div class="drow"><span class="dn">Private / untracked</span><span class="dv">' + (priv === null ? '—' : esc(fmtEnt(priv)) + ' BTC') + '</span><span class="dc">' + (priv === null ? '' : esc(pct(priv, mined)) + '% of mined') + '</span></div>' +
           stack + '</div>' +
-        '<div class="dhead2"><span>BY CATEGORY</span><span>' + ranked().length + ' ranked · ' + zeroCount() + ' at 0 BTC</span></div>' +
+        '<div class="dhead2"><span>BY CATEGORY</span><span>' + heldCount() + ' holders · ' + zeroCount() + ' at 0 BTC</span></div>' +
         bars +
         '<div class="dfoot2">Every figure is an address read from mempool.space at the time on the card; the supply line follows the live block height.</div>';
     }
@@ -17966,15 +17972,15 @@ var ENTITIES = {
         if (e) return detailHTML(e);
         ES.open = '';
       }
-      var rows = filtered().map(rowHTML).join('');
-      var head = '<div class="lhead"><span>' + esc(CAT_LABEL[ES.filter] || ES.filter) + ' · TOP ' + Math.min(RANK_CAP, filtered().length) +
+      var list0 = filtered();
+      var rows = list0.map(rowHTML).join('');
+      var head = '<div class="lhead"><span>' + esc(CAT_LABEL[ES.filter] || ES.filter) + ' · TOP ' + Math.min(RANK_CAP, list0.length) +
         '</span><span>' + (zeroCount() ? zeroCount() + ' at 0 BTC not ranked · ' : '') +
         (sweepTopState.state === 'loading' ? 'reading ' + sweepTopState.done + ' / ' + sweepTopState.total
           : sweepTopState.rate ? 'rate limited' : 'seeded · ' + shortDate(ES.at)) + '</span>' +
         '<button class="wbtn" data-act="refresh">REFRESH</button></div>';
-      if (ES.filter === 'ALL') rows = watchHTML() + head + rows;
-      else rows = head + rows;
-      if (!filtered().length) rows = '<div class="empty">no entity in this category holds bitcoin right now</div>';
+      if (!list0.length) rows = '<div class="empty">no entity in this category holds bitcoin right now</div>';
+      rows = (ES.filter === 'ALL' ? watchHTML() : '') + head + rows;
       return '<div class="list">' + rows + '</div>';
     }
 
@@ -18025,7 +18031,7 @@ var ENTITIES = {
     function paintEntHud() {
       if (!ES.data) return;
       txt('vEBtc', fmtEnt(trackedSats(), true));
-      txt('vECount', String(ranked().length));
+      txt('vECount', String(heldCount()));
       txt('vEAddr', fmtInt(addrCount()));
     }
 
@@ -18293,7 +18299,7 @@ var ENTITIES = {
       balanceOf: balanceOf, liveState: liveState, trackedSats: trackedSats,
       heldOf: heldOf, estOf: estOf, runEstimate: runEstimate, heldBreakdown: heldBreakdown,
       addrCount: addrCount, entityOfAddress: entityOfAddress,
-      rankOf: rankOf, zeroCount: zeroCount, fmtEnt: fmtEnt, minedSats: minedSats,
+      rankOf: rankOf, zeroCount: zeroCount, heldCount: heldCount, fmtEnt: fmtEnt, minedSats: minedSats,
       supplyNow: supplyNow, dashHTML: dashHTML, rankCap: RANK_CAP, sweepTopState: function () { return sweepTopState; },
       state: ES, cats: CATS, remoteUrl: REMOTE_URL
     };
@@ -19203,7 +19209,7 @@ var ENTITIES = {
      read bitnodes.io at all. */
   function subrowText() {
     if (S.layer === 'entities') {
-      var n = (typeof Ent !== 'undefined' && Ent && Ent.state && Ent.state.data && Ent.ranked) ? Ent.ranked().length : 0;
+      var n = (typeof Ent !== 'undefined' && Ent && Ent.state && Ent.state.data && Ent.heldCount) ? Ent.heldCount() : 0;
       return L('subEN') + (n ? ' · ' + n + ' ENTITIES' : '');
     }
     return S.layer === 'l1' ? L('subL1') + l1Badge() : L('subLN');
