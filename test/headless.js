@@ -2373,6 +2373,16 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       /var ENTITIES = \{/.test(blockBodies[6] || '') && /"category": "PERSON"/.test(blockBodies[6] || ''));
     check('the published table is written beside the build',
       fs.existsSync(path.join(ROOT, 'dist', 'entities.json')));
+    /* The published files must carry the same field names the site's own refresher writes:
+       tools/update_l1_snapshot.py (CoreJBH.github.io) rewrites nodepulse/l1-snapshot.json
+       from the crawler every day, and a build that wrote `ts` where the site writes
+       `capturedAt` (or dropped `round` and `sampleNodes`) made one URL mean two shapes. */
+    const pubSnap = JSON.parse(fs.readFileSync(path.join(ROOT, 'dist', 'l1-snapshot.json'), 'utf8'));
+    check('the published L1 snapshot uses the crawler\'s own field names',
+      typeof pubSnap.capturedAt === 'number' && !('ts' in pubSnap) && !('v' in pubSnap) &&
+      'round' in pubSnap && 'sampleNodes' in pubSnap && Array.isArray(pubSnap.coords) &&
+      Array.isArray(pubSnap.countries) && !!pubSnap.platforms,
+      Object.keys(pubSnap).join(','));
     const pub = JSON.parse(fs.readFileSync(path.join(ROOT, 'dist', 'entities.json'), 'utf8'));
     check('the published table carries the same table as the seed',
       pub.list.length === ES.data.list.length && pub.tracked === ES.data.tracked,
@@ -2499,6 +2509,29 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       /Verified 109\.5185 BTC \+ Patoshi Est\. ~1\.1M BTC/.test(els.entBody.innerHTML) &&
       /~1,100,109\.5185/.test(els.entBody.innerHTML),
       (els.entBody.innerHTML.match(/Verified [^<]*/) || [''])[0]);
+
+    /* ---- a repaint with the same data writes nothing ---------------------- */
+    /* Chromium hands innerHTML back in its own form — <path/> becomes <path></path>, &#39;
+       becomes ' — so comparing that to the string we wrote said "changed" on every tick:
+       the sheet was rebuilt once a second and the watchlist input lost its text and focus.
+       The markup is written the way the browser serialises it, and setHTML remembers what
+       it wrote, so an unchanged paint touches no DOM. */
+    {
+      E.open();
+      await sleep(60);
+      const painted = els.entBody.innerHTML;
+      check('the sheet writes SVG the way a browser serialises it',
+        !/<(path|circle|line|polyline|polygon|rect|ellipse)\b[^>]*\/>/.test(painted), painted.slice(0, 90));
+      const asBrowser = h => h.replace(/<(path|circle|line|polyline|polygon|rect|ellipse)([^>]*?)\/>/g, '<$1$2></$1>')
+        .replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+      els.entBody.innerHTML = asBrowser(painted);
+      const before = els.entBody.innerHTML;
+      E.paint();
+      await sleep(80);
+      check('a sheet the browser re-serialised is not rebuilt on the next paint',
+        els.entBody.innerHTML === before, 'the sheet was rewritten');
+      E.close();
+    }
     check('a hacker row is drawn with the mask icon',
       /class="ic hacker"/.test(els.entBody.innerHTML) &&
       /M12 3\.2c-4\.9/.test(els.entBody.innerHTML));
@@ -2561,21 +2594,32 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       E.fmtUsd(E.usd(1e8)) === '$60.0K' && !/₩/.test(els.entBody.innerHTML));
 
     /* ---- live balances, one address at a time ---- */
-    addrBal.set('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', 7000000000);
-    addrBal.set('12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX', 6000000000);
+    /* The three genesis-era addresses at the figures the address API itself reports: the
+       block-1 P2PK coinbase is still unspent but is not in the API's statistics, so the
+       card has to add its 50 BTC back. A live read must therefore land on the same total
+       the seed carries — 109.51848759 BTC — and not on the API's 59.51848759. */
+    addrBal.set('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', 5772160695);
+    addrBal.set('12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX', 135275617);
     addrBal.set('12cbQLTFMXRnSzktFkuoG3eHoMeFtpTu3S', 44412447);
     await E.sweep('satoshi');
     const stSat = ES.live.satoshi;
     check('the entity detail sweep reads every live address in turn',
       stSat.state === 'live' && stSat.done === 3 && Object.keys(stSat.addrs).length === 3,
       stSat.state + ' ' + stSat.done);
+    check('a live read keeps the unspent 50 BTC P2PK coinbase the API leaves out',
+      stSat.addrs['12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX'].sats === 135275617 + 5000000000,
+      stSat.addrs['12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX'].sats);
     check('the live balance replaces the seed figure and is marked live',
-      E.balanceOf(E.byId('satoshi')).sats === 13044412447 &&
+      E.balanceOf(E.byId('satoshi')).sats === 10951848759 &&
       stSat.addrs['1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'].src === 'live',
       E.balanceOf(E.byId('satoshi')).sats);
     check('the held total follows the live read and keeps the estimate beside it',
-      E.heldOf(E.byId('satoshi')) === 13044412447 + 110000000000000,
+      E.heldOf(E.byId('satoshi')) === 10951848759 + 110000000000000,
       E.heldOf(E.byId('satoshi')) + ' · ' + E.heldBreakdown(E.byId('satoshi')));
+    check('the read count counts reads, not the seed fallback',
+      E.balanceOf(E.byId('satoshi')).known === 3 && E.balanceOf(E.byId('satoshi')).seed === 0 &&
+      E.balanceOf(E.byId('binance')).known === 0 && E.balanceOf(E.byId('binance')).seed === 2,
+      E.balanceOf(E.byId('satoshi')).known + ' / ' + E.balanceOf(E.byId('binance')).known);
 
     /* a mirror that answers 429 is "rate limited", never a zero balance */
     addrMode = '429';
@@ -2655,6 +2699,63 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       E.estOf(E.byId('binance')).common === 0 && E.estOf(E.byId('binance')).change === 900001 &&
       /Verified 413,475\.9894 BTC \+ change est\. 0\.00900001 BTC/.test(htmlNow),
       E.heldOf(E.byId('binance')) + ' · ' + E.heldBreakdown(E.byId('binance')));
+
+    /* ---- an attributed entity is never printed as Verified ---------------- */
+    /* U.S. Government rests on an analytics attribution in the table, not on a proof of
+       ownership: its seeds are Attributed, its balances are summed apart from the verified
+       figure, and the run line says Attributed. */
+    NP.cluster.clearCache();
+    addrMode = 'ok';
+    E.openEntity('us-government');
+    await sleep(80);
+    const attrRes = await E.analyze();
+    check('an attributed entity lists its seeds as Attributed, not Verified',
+      attrRes && attrRes.addresses.length === 2 && attrRes.addresses.every(a => a.label === 'Attributed') &&
+      attrRes.entity.balance === null && attrRes.entity.verified === 0 && attrRes.entity.attributed === 2,
+      attrRes && attrRes.addresses.map(a => a.label).join(','));
+    check('the attributed balances are summed apart from the verified figure',
+      attrRes.entity.attributedBalance === 2000000 && attrRes.entity.attributedKnown === 2,
+      attrRes.entity.attributedBalance + ' over ' + attrRes.entity.attributedKnown);
+    check('the run line prints Attributed where a proven entity prints Verified',
+      /Attributed <b>0\.02 BTC<\/b>/.test(els.entBody.innerHTML) && !/Verified <b>/.test(els.entBody.innerHTML),
+      (els.entBody.innerHTML.match(/(Attributed|Verified) <b>[^<]*/) || [''])[0]);
+    check('the attributed badge has its own class', /badge at">Attributed/.test(els.entBody.innerHTML));
+
+    /* ---- every request refused: source none, not live --------------------- */
+    NP.cluster.clearCache();
+    addrMode = '429';
+    const deadRes = await E.analyze();
+    addrMode = 'ok';
+    check('a run whose every request failed says source none, not live',
+      deadRes && deadRes.api.source === 'none' && deadRes.api.calls > 0 && deadRes.api.failed > 0 &&
+      deadRes.entity.balance === null && deadRes.entity.attributedBalance === null,
+      deadRes && (deadRes.api.source + ' · calls ' + deadRes.api.calls + ' · failed ' + deadRes.api.failed));
+    check('and the card says no figure could be read instead of printing zero',
+      /no figure could be read/.test(els.entBody.innerHTML), els.entBody.innerHTML.slice(0, 90));
+    check('a run that read nothing does not wipe the estimate an earlier run read',
+      E.estOf(E.byId('us-government')).change === 900001,
+      JSON.stringify(E.estOf(E.byId('us-government'))));
+
+    /* ---- a second ANALYZE owns the state by run id ------------------------- */
+    {
+      NP.cluster.clearCache();
+      E.close();
+      E.openEntity('binance');
+      await sleep(80);
+      const seq0 = ES.runSeq;
+      addrDelay = 40;
+      const runA = E.analyze();
+      await sleep(12);
+      const runB = E.analyze();
+      addrDelay = 0;
+      const [resA, resB] = await Promise.all([runA, runB]);
+      check('a second ANALYZE on the same card is a different run',
+        ES.runSeq === seq0 + 2 && !!ES.run && ES.run.seq === seq0 + 2 && ES.run.result === resB && resA !== resB,
+        'seq ' + (ES.run && ES.run.seq) + ' (from ' + seq0 + ') · a.aborted ' + (resA && resA.aborted) +
+        ' · b ' + (resB && resB.ok));
+      check('the first run could not leave its result in the second run\'s state',
+        ES.run.state === 'done' && ES.run.result === resB);
+    }
     /* the panel is light DOM strings: balanced tags, no inline style, no inline handler */
     {
       const opens = (htmlNow.match(/<div/g) || []).length;
@@ -2711,6 +2812,31 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     check('a missing published table leaves the adopted one alone and stays quiet',
       kept === false && ES.v === 3 && ES.data.list.length === 20);
     remoteMode = 'ok'; remotePayload = null;
+
+    /* ---- a stale cached table never hides the newer seed ------------------- */
+    /* localStorage kept a v1 table (no est) from an earlier session. The boot path must
+       prefer the table this build carries: the same rule the L1 snapshot's boot takes. */
+    {
+      const old = JSON.parse(JSON.stringify(pub));
+      old.v = 1;
+      delete old.list[0].est;
+      ls.set('nodepulse.entities.v1', JSON.stringify(old));
+      E.init();
+      await sleep(60);
+      check('a cached table older than the seed is not adopted at boot',
+        ES.v === 2 && ES.src === 'seed' && !!E.byId('satoshi').est &&
+        E.byId('satoshi').est.sats === 110000000000000,
+        'v' + ES.v + ' · ' + ES.src);
+      /* and a cached table of the same version and date is still used */
+      ls.set('nodepulse.entities.v1', JSON.stringify(pub));
+      E.init();
+      await sleep(40);
+      const cachedNow = JSON.parse(ls.get('nodepulse.entities.v1'));
+      check('a cached table of the same version and date is used as it was saved',
+        ES.v === 2 && ES.src === 'cache',
+        'v' + ES.v + ' · ' + ES.src + ' · cached v' + cachedNow.v + ' at ' + cachedNow.at +
+        ' · seed at ' + (E.state.data && E.state.data.at) + ' · pub v' + pub.v + ' ' + pub.at);
+    }
 
     /* ---- leaving the tab closes the sheet and restores the globe ---- */
     NP.layer('l1');

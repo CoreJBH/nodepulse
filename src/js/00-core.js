@@ -124,7 +124,17 @@
   /* ------------------------------------------------------------------ dom */
   function $(id) { return document.getElementById(id); }
   function txt(id, s) { var e = $(id); if (e && e.textContent !== s) e.textContent = s; }
-  function setHTML(id, s) { var e = $(id); if (e && e.innerHTML !== s) e.innerHTML = s; }
+  /* Compare what was last written, not what the browser serialised back. A browser hands
+     innerHTML its own form (<path/> becomes <path></path>, &#39; becomes ', attributes are
+     re-quoted), so `e.innerHTML !== s` came out true on every tick even when nothing had
+     changed: the panel rebuilt itself once a second and the watchlist input lost its text
+     and focus. The signature is the string we wrote, so an unchanged paint writes nothing. */
+  function setHTML(id, s) {
+    var e = $(id);
+    if (!e || e._htmlSig === s) return;
+    e._htmlSig = s;
+    e.innerHTML = s;
+  }
   function mark(el, name, on) { if (!el) return; if (on) { el.classList.add(name); } else { el.classList.remove(name); } }
   function show(id, on) { var e = $(id); if (e) e.style.display = on ? '' : 'none'; }
   /* Every answer from a mirror is parsed JSON, which may be any value: a proxy or a

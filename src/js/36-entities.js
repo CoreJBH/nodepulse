@@ -24,9 +24,10 @@
        counterparty that is another known entity.
      · keeps a watchlist of any address the user adds, in localStorage.
      · runs Cluster.analyzeEntity() for the entity on screen and shows its result by the
-       display rules of docs/cluster-api.md §8: the total names its Verified and Est. parts,
-       the three labels stay separate badges, the coinjoin count is its own number, and a
-       truncated, rate-limited or empty run says so instead of showing a stale figure as live.
+       display rules of docs/cluster-api.md §8: the total names its seed and Est. parts, the
+       labels stay separate badges (a seed the table lists on an attribution is Attributed,
+       never Verified), the coinjoin count is its own number, and a truncated, rate-limited
+       or empty run says so instead of showing a stale figure as live.
 
    The panel is light DOM strings, like the rest of the app: no inline handlers (the CSP
    forbids them), one delegated click listener, and the same esc() on every value that came
@@ -59,7 +60,7 @@
       tx: Object.create(null),
       ests: Object.create(null),          // entity id -> what its last clustering run read beyond the seeds
       price: null, priceAt: 0, priceSrc: '',
-      run: null, remote: 'idle', err: '',
+      run: null, runSeq: 0, remote: 'idle', err: '',
       index: null, ranked: null
     };
 
@@ -96,6 +97,9 @@
           address: a.address,
           label: typeof a.label === 'string' ? a.label.slice(0, 160) : '',
           sats: bal,
+          /* Coins the address is known to hold but the address API leaves out of its
+             statistics (the block-1 P2PK coinbase). A live read adds it back. */
+          p2pkSats: sats(a.p2pkSats) || 0,
           source: typeof a.source === 'string' ? a.source : '',
           note: typeof a.note === 'string' ? a.note.slice(0, 400) : '',
           live: live
@@ -197,7 +201,10 @@
 
     /* The balances a card shows: the live read where one exists, the verified seed value
        where it does not, and a count of how many of the addresses each covers. Nothing is
-       ever extrapolated from one address to another. */
+       ever extrapolated from one address to another. `known` counts the addresses whose
+       balance was actually read (live or from the engine's cache) — a card that fell back
+       to the seed figure says "0 / 3 read", not "3 / 3 read" on an empty wallet that was
+       never asked. */
     function balanceOf(e) {
       var st = ES.live[e.id], out = { sats: 0, known: 0, total: e.addresses.length, live: 0, cached: 0, seed: 0 };
       for (var i = 0; i < e.addresses.length; i++) {
@@ -206,8 +213,7 @@
           out.sats += row.sats; out.known++;
           if (row.src === 'live') out.live++; else out.cached++;
         } else {
-          out.sats += a.sats; out.known++;
-          out.seed++;
+          out.sats += a.sats; out.seed++;          // the verified seed figure, not a read
         }
       }
       return out;
@@ -221,9 +227,10 @@
        balance was not read contributes nothing: an estimate is a figure that was read,
        never one that was assumed. */
     function runEstimate(r) {
-      var out = { verified: 0, common: 0, change: 0, commonN: 0, changeN: 0, sats: 0 };
+      var out = { verified: 0, attributed: 0, common: 0, change: 0, commonN: 0, changeN: 0, sats: 0 };
       if (!r) return out;
       if (r.entity && sats(r.entity.balance) !== null) out.verified = r.entity.balance;
+      if (r.entity && sats(r.entity.attributedBalance) !== null) out.attributed = r.entity.attributedBalance;
       var seen = Object.create(null), i, j, a, m;
       if (isArr(r.addresses)) for (i = 0; i < r.addresses.length; i++) {
         a = r.addresses[i];
@@ -281,10 +288,11 @@
       }
       return fmtBtc(v);
     }
-    /* The breakdown printed with every total that carries an estimate. */
+    /* The breakdown printed with every total that carries an estimate. The seed part carries
+       the table's own word: an entity listed on an analytics attribution says Attributed. */
     function heldBreakdown(e) {
       var b = balanceOf(e), o = estOf(e);
-      var out = 'Verified ' + fmtBtc(b.sats) + ' BTC';
+      var out = (e.evidence === 'attributed' ? 'Attributed ' : 'Verified ') + fmtBtc(b.sats) + ' BTC';
       if (o.seed) out += ' + ' + (e.est.label || 'Est.') + ' ~' + fmtBtcShort(o.seed) + ' BTC';
       if (o.common) out += ' + common-input ' + fmtBtc(o.common) + ' BTC';
       if (o.change) out += ' + change est. ' + fmtBtc(o.change) + ' BTC';
@@ -313,15 +321,18 @@
       var st = liveState(id);
       if (st.state === 'loading') return st.p;
       var targets = [];
-      for (var i = 0; i < e.addresses.length; i++) if (e.addresses[i].live) targets.push(e.addresses[i].address);
+      for (var i = 0; i < e.addresses.length; i++) if (e.addresses[i].live) targets.push(e.addresses[i]);
       st.total = targets.length; st.done = 0; st.rate = false; st.failed = 0; st.err = '';
       if (!targets.length) { st.state = 'static'; st.at = Date.now(); paintEntities(); return Promise.resolve(st); }
       st.state = 'loading';
-      st.p = targets.reduce(function (p, addr) {
+      st.p = targets.reduce(function (p, a) {
         return p.then(function () {
           if (st.state !== 'loading') return null;      // cancelled or re-run
-          return Cluster.fetchAddressSummary(addr, { ttlMs: LIVE_TTL }).then(function (sum) {
-            st.addrs[addr] = { sats: sum.balance, tx: sum.txCount, src: sum.source, at: sum.at };
+          return Cluster.fetchAddressSummary(a.address, { ttlMs: LIVE_TTL }).then(function (sum) {
+            /* The block-1 coinbase: its 50 BTC P2PK output is unspent but is not in the
+               address statistics, so a live answer must have it added back or the card
+               would lose the one output that makes the address Satoshi's. */
+            st.addrs[a.address] = { sats: sum.balance + a.p2pkSats, tx: sum.txCount, src: sum.source, at: sum.at };
           }, function (err) {
             st.failed++;
             if (err && err.status === 429) { st.rate = true; st.err = 'rate limited'; }
@@ -518,21 +529,28 @@
     /* ---------------------------------------------------------------- icons */
     /* Minimal line icons, 24x24, stroke only, in the two entity accents (#00E5FF and
        #3B82F6 from app.css --ec / --ec2). A hacker card keeps its mask even though the
-       category chip above it reads OTHER. */
+       category chip above it reads OTHER.
+
+       Every child tag is written with an explicit closing tag. A browser serialises SVG
+       back as <path …></path>, so a self-closing <path …/> in the string we wrote never
+       equals e.innerHTML afterwards: the panel would decide its markup had changed on
+       every tick, rebuild itself, and wipe the watchlist input's text and focus once a
+       second. The markup here is what the browser hands back, so a repaint with the same
+       data writes nothing. */
     function icon(kind, cls) {
       var d;
       if (kind === 'person') {
-        d = '<circle cx="12" cy="8" r="3.4"/><path d="M4.8 20c0-3.6 3.2-6 7.2-6s7.2 2.4 7.2 6"/>';
+        d = '<circle cx="12" cy="8" r="3.4"></circle><path d="M4.8 20c0-3.6 3.2-6 7.2-6s7.2 2.4 7.2 6"></path>';
       } else if (kind === 'corp') {
-        d = '<path d="M3.4 20.2V9.4h8.2v10.8M11.6 20.2V4.6h9V20.2"/><path d="M6 12.2h2.2M6 15.4h2.2M14.4 8h3M14.4 11.4h3M14.4 14.8h3"/>';
+        d = '<path d="M3.4 20.2V9.4h8.2v10.8M11.6 20.2V4.6h9V20.2"></path><path d="M6 12.2h2.2M6 15.4h2.2M14.4 8h3M14.4 11.4h3M14.4 14.8h3"></path>';
       } else if (kind === 'gov') {
-        d = '<path d="M3 20.4h18M4.6 20.4V10M19.4 20.4V10M12 3.4 3 9.6h18L12 3.4Z"/><path d="M8.4 20.4v-7M12 20.4v-7M15.6 20.4v-7"/>';
+        d = '<path d="M3 20.4h18M4.6 20.4V10M19.4 20.4V10M12 3.4 3 9.6h18L12 3.4Z"></path><path d="M8.4 20.4v-7M12 20.4v-7M15.6 20.4v-7"></path>';
       } else if (kind === 'hacker') {
-        d = '<path d="M12 3.2c-4.9 0-8.2 3.5-8.2 8.1 0 3.4 1.4 5.4 2.6 6.5l.5 2.9h10.2l.5-2.9c1.2-1.1 2.6-3.1 2.6-6.5 0-4.6-3.3-8.1-8.2-8.1Z"/>' +
-            '<path d="M7.6 11.6h3.2M13.2 11.6h3.2"/><path d="M9.4 16.4c1.6.9 3.6.9 5.2 0"/>';
+        d = '<path d="M12 3.2c-4.9 0-8.2 3.5-8.2 8.1 0 3.4 1.4 5.4 2.6 6.5l.5 2.9h10.2l.5-2.9c1.2-1.1 2.6-3.1 2.6-6.5 0-4.6-3.3-8.1-8.2-8.1Z"></path>' +
+            '<path d="M7.6 11.6h3.2M13.2 11.6h3.2"></path><path d="M9.4 16.4c1.6.9 3.6.9 5.2 0"></path>';
       } else {
-        d = '<circle cx="8.6" cy="8.4" r="2.9"/><path d="M2.8 19c0-3.1 2.6-5.2 5.8-5.2s5.8 2.1 5.8 5.2"/>' +
-            '<circle cx="16.6" cy="9.6" r="2.4"/><path d="M14.6 13.6c2.9-.4 6.4 1.3 6.4 4.6"/>';
+        d = '<circle cx="8.6" cy="8.4" r="2.9"></circle><path d="M2.8 19c0-3.1 2.6-5.2 5.8-5.2s5.8 2.1 5.8 5.2"></path>' +
+            '<circle cx="16.6" cy="9.6" r="2.4"></circle><path d="M14.6 13.6c2.9-.4 6.4 1.3 6.4 4.6"></path>';
       }
       return '<svg class="ico' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
         'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
@@ -701,7 +719,15 @@
       return m ? m[1] : (u || '');
     }
 
-    /* docs/cluster-api.md §8, line by line: the three labels stay apart, the coinjoin
+    /* The badge class for a cluster label: verified green, attributed amber, a change
+       estimate yellow, common-input cyan. */
+    function labelClass(l) {
+      return l === Cluster.labels.verified ? 'v'
+        : l === Cluster.labels.attributed ? 'at'
+        : l === Cluster.labels.change ? 'ce' : 'ci';
+    }
+
+    /* docs/cluster-api.md §8, line by line: the labels stay apart, the coinjoin
        count is its own figure, and a run that was cut, limited or empty says which. */
     function clusterHTML() {
       var run = ES.run;
@@ -727,14 +753,18 @@
         return '<div class="cnote warn">' + esc(run.err || 'the run did not answer') + '</div>' +
           '<button class="cta" data-act="analyze">TRY AGAIN</button>';
       }
-      var verifiedSats = null, o = runEstimate(r);
-      if (r.entity && sats(r.entity.balance) !== null) verifiedSats = r.entity.balance;
-      var totalSats = (verifiedSats === null ? 0 : verifiedSats) + o.sats;
+      /* The seed part is called what the table calls it: an entity whose addresses rest on
+         an analytics attribution prints ``Attributed'', never ``Verified''. An estimate a
+         run read is added to both, and the whole line is skipped when nothing was read. */
+      var seed = null, o = runEstimate(r);
+      if (r.entity && sats(r.entity.balance) !== null) seed = { word: 'Verified', sats: r.entity.balance };
+      else if (r.entity && sats(r.entity.attributedBalance) !== null) seed = { word: 'Attributed', sats: r.entity.attributedBalance };
+      var totalSats = (seed === null ? 0 : seed.sats) + o.sats;
       var head = '<div class="csrc">' +
         (r.api && r.api.source === 'none'
           ? '<span class="warn">unverified · no figure could be read</span>'
           : '<span>TOTAL <b>' + fmtBtc(totalSats) + ' BTC</b></span>' +
-            '<span>· Verified <b>' + (verifiedSats === null ? 'unknown' : fmtBtc(verifiedSats) + ' BTC') + '</b></span>' +
+            '<span>· ' + (seed ? esc(seed.word) : 'Seed') + ' <b>' + (seed === null ? 'unknown' : fmtBtc(seed.sats) + ' BTC') + '</b></span>' +
             '<span>· Est. <b>' + fmtBtc(o.sats) + ' BTC</b> · ' + fmtInt(o.commonN) + ' common-input, ' +
             fmtInt(o.changeN) + ' ' + plural(o.changeN, 'change output', 'change outputs') + '</span>') +
         '</div>';
@@ -751,14 +781,16 @@
       var clusters = '';
       (r.clusters || []).slice(0, 8).forEach(function (c) {
         var rows = c.addresses.slice(0, 12).map(function (a) {
-          return '<div class="cm"><span class="badge ' + (a.label === Cluster.labels.verified ? 'v' : 'ci') + '">' + esc(a.label) + '</span>' +
+          return '<div class="cm"><span class="badge ' + labelClass(a.label) + '">' + esc(a.label) + '</span>' +
             '<span class="ca" data-act="atx" data-id="' + esc(a.address) + '">' + esc(shortHash(a.address, 10, 6)) + '</span>' +
             (sats(a.balance) === null ? '<span class="cb2">not read</span>' : '<span class="cb2">' + fmtBtc(a.balance) + '</span>') +
             '</div>';
         }).join('');
+        var attributed = num(c.attributed) ? c.attributed : 0;
         clusters += '<div class="cr">' +
-          '<div class="crh"><span class="badge ' + (c.label === Cluster.labels.verified ? 'v' : 'ci') + '">' + esc(c.label) + '</span>' +
-          '<span>' + c.size + ' ' + plural(c.size, 'address', 'addresses') + ' · ' + c.verified + ' verified · ' + c.heuristic + ' common-input</span>' +
+          '<div class="crh"><span class="badge ' + labelClass(c.label) + '">' + esc(c.label) + '</span>' +
+          '<span>' + c.size + ' ' + plural(c.size, 'address', 'addresses') + ' · ' + c.verified + ' verified' +
+            (attributed ? ' · ' + attributed + ' attributed' : '') + ' · ' + c.heuristic + ' common-input</span>' +
           '<span class="cb2">' + (sats(c.balance) === null ? 'balance not read' : fmtBtc(c.balance) + ' BTC over ' + c.balanceKnown) + '</span></div>' +
           rows + '</div>';
       });
@@ -832,11 +864,34 @@
       var sheet = $(SHEET);
       if (!sheet) return;
       setHTML('entChips', chipsHTML());
+      /* The watchlist field lives inside the sheet's markup, so a repaint that carries new
+         data replaces the element. When the reader is typing in it, the text, the caret and
+         the focus are put back on the new field: a balance arriving must not take the
+         address out of their hands. */
+      var typing = watchTyping();
       setHTML('entBody', bodyHTML());
+      if (typing) restoreWatchTyping(typing);
       txt('entKicker', ES.open ? 'ENTITY · ' + (byId(ES.open) ? byId(ES.open).category : '') : 'ENTITIES · WHALE WATCH');
       txt('entTitle', ES.open ? (byId(ES.open) ? byId(ES.open).name : 'Whale Watch') : 'Whale Watch');
       txt('entSub', list().length + ' entities · ' + addrCount() + ' public addresses · ' +
         esc(fmtBtc(trackedSats())) + ' BTC held (verified + est.) · ' + CAT_NOTE[ES.filter]);
+    }
+
+    function watchTyping() {
+      var el = $('entWatchInput');
+      if (!el || !el.value) return null;
+      var focused = false;
+      try { focused = typeof document !== 'undefined' && document.activeElement === el; } catch (e) { }
+      return { v: el.value, focused: focused, caret: num(el.selectionStart) ? el.selectionStart : null };
+    }
+    function restoreWatchTyping(t) {
+      var el = $('entWatchInput');
+      if (!el) return;
+      el.value = t.v;
+      try {
+        if (t.caret !== null && el.setSelectionRange) el.setSelectionRange(t.caret, t.caret);
+        if (t.focused && el.focus) el.focus();
+      } catch (e) { }
     }
 
     /* The progress line is repainted on every onProgress tick, so it is kept to one
@@ -918,33 +973,44 @@
     function analyze() {
       var e = byId(ES.open);
       if (!e) return Promise.resolve(null);
+      /* The table's own evidence decides the word on the addresses: only an official or
+         on-chain listing is Verified, an analytics attribution is Attributed, and the
+         engine keeps them apart from Common-Input (which it discovered, not the table). */
+      var verified = e.evidence !== 'attributed';
       var seeds = e.addresses.map(function (a) {
-        return { address: a.address, verified: true, label: a.label, source: a.source };
+        return { address: a.address, verified: verified, label: a.label, source: a.source };
       });
       var id = e.id;
-      ES.run = { id: id, state: 'running', phase: 'start', done: 0, total: seeds.length, calls: 0, cacheHits: 0, result: null, err: '' };
+      /* A run is identified by its own sequence, not by the entity: a second ANALYZE on the
+         same card must not let the first run's result land in the second run's state. */
+      var seq = ++ES.runSeq;
+      ES.run = { id: id, seq: seq, state: 'running', phase: 'start', done: 0, total: seeds.length, calls: 0, cacheHits: 0, result: null, err: '' };
       paintEntities();
       return Cluster.analyzeEntity(seeds, {
         maxTxsPerAddress: 20,
         maxApiCalls: 18,
         onProgress: function (p) {
-          if (!ES.run || ES.run.id !== id) return;
+          if (!ES.run || ES.run.seq !== seq) return;
           ES.run.phase = p.phase; ES.run.done = p.done; ES.run.total = p.total;
           ES.run.calls = p.calls; ES.run.cacheHits = p.cacheHits;
           paintRunLine();
         }
       }).then(function (res) {
-        if (!ES.run || ES.run.id !== id) return res;
+        if (!ES.run || ES.run.seq !== seq) return res;
         ES.run.state = res.aborted ? 'aborted' : (res.ok ? 'done' : 'error');
         ES.run.result = res;
         ES.run.err = res.error || '';
         /* The estimate this run read joins the entity's held total (and so the ranking and
-           the HUD), with the verified part printed beside it on every screen that shows it. */
-        if (res && res.ok) { ES.ests[id] = runEstimate(res); ES.ranked = null; }
+           the HUD), with the verified part printed beside it on every screen that shows it.
+           A run that could not read anything keeps the estimate it already had: an empty
+           answer is not a reason to forget what was read before. */
+        if (res && res.ok && (!res.api || res.api.source !== 'none')) {
+          ES.ests[id] = runEstimate(res); ES.ranked = null;
+        }
         flush();
         return res;
       }, function (err) {
-        if (ES.run && ES.run.id === id) {
+        if (ES.run && ES.run.seq === seq) {
           ES.run.state = 'error';
           ES.run.err = String((err && err.message) || err);
           flush();
@@ -1054,10 +1120,22 @@
 
     /* ------------------------------------------------------------------ boot */
     function init() {
-      var cached = recall(LS_REMOTE);
-      if (!(cached && adopt(cached, 'cache'))) {
-        adopt(typeof ENTITIES !== 'undefined' ? ENTITIES : null, 'seed');
+      /* A saved table is used only when it is at least as new as the table this build
+         carries — version first, then date, the same guard the L1 snapshot takes at boot.
+         An older cached copy (a v1 table from before the estimate, say) must not hide a
+         newer seed: it would show a figure the build already knows is out of date. */
+      var seed = typeof ENTITIES !== 'undefined' ? ENTITIES : null;
+      var seedV = seed && num(seed.v) && seed.v > 0 ? Math.floor(seed.v) : 0;
+      var seedAt = seed && typeof seed.at === 'string' ? Date.parse(seed.at) : 0;
+      if (isNaN(seedAt)) seedAt = 0;
+      var cached = recall(LS_REMOTE), used = false;
+      if (cached) {
+        var m = normPayload(cached);
+        var mAt = m && m.at ? Date.parse(m.at) : 0;
+        if (isNaN(mAt)) mAt = 0;
+        if (m && (m.v > seedV || (m.v === seedV && mAt >= seedAt))) used = adopt(cached, 'cache');
       }
+      if (!used) adopt(seed, 'seed');
       ES.watch = watchFrom(recall(LS_WATCH));
       bind();
       paintEntities();

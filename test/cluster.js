@@ -211,11 +211,15 @@ function apiRoutes(map) {
     r = C.analyzeTxs([{ address: S1 }], [{ address: S1, txs: [t7] }]);
     eq('a three-output transaction gives no estimate', r.change.length, 0);
 
-    /* an unverified seed makes a Common-Input cluster */
+    /* an unverified seed is an attribution the table makes, never something the heuristic
+       discovered: it is Attributed, and Common-Input is kept for the addresses it found */
     const U = addr('unver');
     r = C.analyzeTxs([{ address: U, verified: false }], [{ address: U, txs: [t1] }]);
     const uc = r.clusters.filter(c => c.addresses.some(a => a.address === U))[0];
-    eq('an unverified seed is Common-Input', uc && uc.label, 'Common-Input');
+    eq('an unverified seed is Attributed, not Common-Input', uc && uc.label, 'Attributed');
+    eq('the row carries the same word', r.addresses.filter(a => a.address === U)[0].label, 'Attributed');
+    eq('the cluster counts it apart from verified and common-input', uc && [uc.verified, uc.attributed, uc.heuristic], [0, 1, 0]);
+    eq('all four labels are exported', C.limits().labels.length, 4);
 
     /* ---- coinjoin exclusion ---- */
     const CJIN = [S1, addr('cj2'), addr('cj3'), addr('cj4'), addr('cj5')];

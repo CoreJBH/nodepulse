@@ -325,28 +325,31 @@ def main(argv):
         f.write(payload + '\n')
     print('wrote %s (%d bytes)' % (ENTITIES_JSON, len(payload.encode('utf-8'))))
 
-    # The Bitnodes snapshot in the shape the app refreshes it in: `ts` instead of
-    # capturedAt, and nothing the reader does not use. Publishing this file is what makes
-    # the L1 layer say DAILY SNAPSHOT instead of the build-time copy.
+    # The Bitnodes snapshot in the same shape the published file carries, field for field:
+    # tools/update_l1_snapshot.py (CoreJBH.github.io) rewrites nodepulse/l1-snapshot.json
+    # from the crawler every day, and a build that wrote a different shape (a `ts` instead
+    # of `capturedAt`, no `round`, no `sampleNodes`) made the two files disagree about what
+    # the same URL serves. `capturedAt` is unix seconds; the app reads either name.
     snap = json.loads(dataset_payload(raw['l1']) or '{}')
     out_snap = {
-        'v': 1,
-        'ts': snap.get('capturedAt'),
+        'capturedAt': snap.get('capturedAt'),
         'source': snap.get('source', ''),
         'totalNodes': snap.get('totalNodes'),
         'reachableNodes': snap.get('reachableNodes'),
         'height': snap.get('height'),
-        'coords': snap.get('coords', []),
-        'coordCount': snap.get('coordCount', len(snap.get('coords', []))),
-        'coordCountry': snap.get('coordCountry', {}),
+        'round': snap.get('round'),
         'countries': snap.get('countries', []),
         'countryNames': snap.get('countryNames', {}),
-        'platforms': snap.get('platforms'),
+        'coordCount': snap.get('coordCount', len(snap.get('coords', []))),
+        'coords': snap.get('coords', []),
+        'coordCountry': snap.get('coordCountry', {}),
+        'userAgents': snap.get('userAgents', []),
         'topAsns': snap.get('topAsns', []),
         'versions': snap.get('versions', []),
-        'userAgents': snap.get('userAgents', []),
+        'platforms': snap.get('platforms'),
+        'sampleNodes': snap.get('sampleNodes'),
     }
-    if not out_snap['ts'] or not out_snap['totalNodes'] or not out_snap['coords']:
+    if not out_snap['capturedAt'] or not out_snap['totalNodes'] or not out_snap['coords']:
         sys.exit('ERROR: src/data/l1-data.js has no capturedAt/totalNodes/coords to publish')
     with open(L1_SNAP_JSON, 'w', encoding='utf-8') as f:
         f.write(json.dumps(out_snap, separators=(',', ':')) + '\n')

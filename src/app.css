@@ -658,6 +658,7 @@ body.layer-ent{--ec:0,229,255;--ec2:59,130,246}
 .badge{font-family:var(--mono);font-size:7.5px;letter-spacing:.06em;padding:2px 5px;border-radius:4px;
   background:rgba(0,0,0,.28);border:1px solid rgba(var(--ec),.18);color:#9fd8e8;white-space:nowrap}
 .badge.v{color:#7ef0c8;border-color:rgba(126,240,200,.4)}
+.badge.at{color:#ffd98a;border-color:rgba(251,191,36,.38)}
 .badge.ci{color:#9fd8e8;border-color:rgba(var(--ec),.35)}
 .badge.ce{color:#ffd98a;border-color:rgba(251,191,36,.4)}
 .badge.live{color:#34d399;border-color:rgba(52,211,153,.45)}

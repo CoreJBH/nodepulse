@@ -9,7 +9,7 @@
    Shape:  { v, at, block, price, priceAt, tracked, list: [entity] }
            entity  = { id, name, category, icon, badge, evidence, live, description,
                        extra, est, addresses: [address], total }
-           address = { address, label, sats, source, note, live }
+           address = { address, label, sats, p2pkSats?, source, note, live }
 
    `category` is PERSON | CORP | GOV | OTHER (the five filter chips add ALL). `icon` picks
    the line icon (person, corp, gov, group, hacker), so a hacker card keeps its mask while
@@ -67,8 +67,9 @@ var ENTITIES = {
           "address": "12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX",
           "label": "Block 1 coinbase (first block mined after genesis)",
           "sats": 5135275617,
+          "p2pkSats": 5000000000,
           "source": "mempool.space /api/address",
-          "note": "The address API reports 1.35275617 BTC received later, but the 50 BTC P2PK coinbase output of tx 0e3e2357... is still unspent, so the tracked balance is adjusted to 51.35275617 BTC. This address is block 1, not block 9 (a common web error).",
+          "note": "The address API reports 1.35275617 BTC received later, but the 50 BTC P2PK coinbase output of tx 0e3e2357... is still unspent, so the tracked balance is adjusted to 51.35275617 BTC. p2pkSats carries the 50 BTC the API leaves out, and a live read adds it back. This address is block 1, not block 9 (a common web error).",
           "live": true
         },
         {

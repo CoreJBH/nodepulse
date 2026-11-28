@@ -27,14 +27,17 @@ into a single "confidence" number:
 
 | Label | Meaning | Where it comes from |
 | --- | --- | --- |
-| `Verified` | The entity table attests this address; no inference is involved. | `verified: true` on the seed the caller passed |
+| `Verified` | The entity table attests this address on a proof of ownership (a self-published list, a court record, the chain itself). | `verified: true` on the seed the caller passed |
+| `Attributed` | The entity table lists this address on an analytics attribution — a claim of ownership, not a proof. | `verified: false` on a seed the caller passed |
 | `Common-Input` | Spent as an input together with an address the entity owns. | Common-input-ownership heuristic |
 | `Change Est.` | An output read as the owner's change. Shown as an estimate, never as a balance fact. | Change heuristic (section 4) |
 
-`Cluster.labels` holds the three strings, so the UI never writes them by hand.
+`Cluster.labels` holds these strings, so the UI never writes them by hand.
 
-A cluster's own `label` is `Verified` when it holds at least one verified seed, otherwise
-`Common-Input`.
+A seed that is not `verified` is `Attributed`, never `Common-Input`: the heuristic discovered
+common-input addresses, and an address the table already listed was not discovered by it.
+A cluster's own `label` is `Verified` when it holds at least one verified seed, `Attributed`
+when its seeds are attributed, and otherwise `Common-Input`.
 
 ## 2. `Cluster.analyzeEntity(addresses, options) -> Promise<result>`
 
@@ -82,7 +85,8 @@ its own source attests.
   shared: [ … ],             // shared-input transactions the merges came from
   coinjoin: [ … ],           // excluded transactions, with the reason (up to 40)
   coinjoinExcluded: 3,       // how many were excluded in total
-  entity: { total, verified, balance, balanceKnown },
+  entity: { total, verified, balance, balanceKnown,
+            attributed, attributedBalance, attributedKnown },
   stats: { addresses, read, txs, scanned, newest, maxTxsPerAddress, maxApiCalls },
   api: { calls, cacheHits, failed, elapsedMs, source },   // source: live | cache | mixed | none
   at: Date.now()
@@ -120,8 +124,14 @@ read during this run), `cache` (all from the saved answers), `mixed`, or `none` 
 could be read — show the balances as unknown, not as zero).
 
 `entity.balance` is the **Verified** part only: the sum of the seeded addresses whose
-balance was read in this run. A card that shows a total adds the estimate the run read
+balance was read in this run, and the seeds the caller marked `verified`. A seed that was
+not verified is summed into `entity.attributedBalance` and counted in `entity.attributed`,
+so a card can print the word the table supports (`Verified` or `Attributed`) without ever
+calling an attribution a proof. A card that shows a total adds the estimate the run read
 (`change[]` plus the `Common-Input` balances) and prints the split (§8).
+
+`api.source` is honest about a run that read nothing: when every request failed, `calls` is
+above zero but `source` is `none`, not `live`.
 
 ### Failure modes
 
@@ -225,13 +235,17 @@ to keep spinning.
 
 ## 8. Display rules
 
-* Show `Verified`, `Common-Input` and `Change Est.` as separate badges, and print any total
-  that includes an estimate as the total **with its two parts beside it** — for example
-  `TOTAL 413,475.9984 BTC · Verified 413,475.9894 BTC · Est. 0.00900001 BTC`. The estimate
-  part is the balance of the `Common-Input` addresses the run actually read plus the change
-  outputs it read, each address counted once and never twice. The verified figure is never
-  overwritten by an estimate: the sum is what the ranking and the HUD use, and the split is
-  always printed on the same line or the line under it.
+* Show `Verified`, `Attributed`, `Common-Input` and `Change Est.` as separate badges, and
+  never print a seed the caller passed as `Verified` unless it was marked so.
+  Print any total that includes an estimate as the total **with its two parts beside it** —
+  for example `TOTAL 413,475.9984 BTC · Verified 413,475.9894 BTC · Est. 0.00900001 BTC`.
+  The estimate part is the balance of the `Common-Input` addresses the run actually read plus
+  the change outputs it read, each address counted once and never twice. The verified figure
+  is never overwritten by an estimate: the sum is what the ranking and the HUD use, and the
+  split is always printed on the same line or the line under it.
+* An entity whose table entry is an analytics attribution prints `Attributed` where a proven
+  entity prints `Verified` — on the run's total line, on the address badges, and in the
+  held-total breakdown. The word and the figure come from the same field.
 * The same rule covers an estimate the entity table publishes without a run — the Patoshi
   pattern (~1.1M BTC) on Satoshi's card. It is added to that entity's held total, the card
   reads `Verified 109.52 BTC + Patoshi Est. ~1.1M BTC` beside the sum, and the top

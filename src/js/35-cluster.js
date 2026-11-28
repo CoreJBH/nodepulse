@@ -58,8 +58,12 @@
     var CHANGE_FLOOR = 3;                // and must collect at least this many points
     var PART_MAX = 500;                  // inputs/outputs kept per transaction
 
-    /* Every address is one of these; the order is the order of certainty. */
+    /* Every address is one of these; the order is the order of certainty. `Attributed` is
+       a seed the entity table lists on an analytics attribution rather than on a proof of
+       ownership: it belongs to the entity as far as the table says, and the card must not
+       print it under the word `Verified`. */
     var LABEL_VERIFIED = 'Verified';
+    var LABEL_ATTRIBUTED = 'Attributed';
     var LABEL_COMMON = 'Common-Input';
     var LABEL_CHANGE = 'Change Est.';
 
@@ -417,15 +421,16 @@
           var vy = seedBy[y] && seedBy[y].verified ? 0 : 1;
           return vx - vy || (x < y ? -1 : x > y ? 1 : 0);
         });
-        var verified = 0;
+        var verified = 0, attributed = 0;
         var rows = list.map(function (address) {
           var seed = seedBy[address];
           var isV = !!(seed && seed.verified);
           if (isV) verified++;
+          else if (seed) attributed++;
           var row = {
             address: address,
             verified: isV,
-            label: isV ? LABEL_VERIFIED : LABEL_COMMON,
+            label: isV ? LABEL_VERIFIED : (seed ? LABEL_ATTRIBUTED : LABEL_COMMON),
             clusterId: id,
             balance: null, txCount: null, source: '', at: 0
           };
@@ -436,10 +441,11 @@
         });
         return {
           id: id,
-          label: verified ? LABEL_VERIFIED : LABEL_COMMON,
+          label: verified ? LABEL_VERIFIED : attributed ? LABEL_ATTRIBUTED : LABEL_COMMON,
           size: rows.length,
           verified: verified,
-          heuristic: rows.length - verified,
+          attributed: attributed,
+          heuristic: rows.length - verified - attributed,
           addresses: rows,
           balance: null,
           balanceKnown: 0
@@ -720,6 +726,7 @@
       }).then(function (d) {
         var s = summaryFrom(d, seed.address);
         if (s) {
+          run.reads++;
           cachePut(run.cache, seed.address, { s: s });
           run.dirty = true;
           run.summaries[seed.address] = s;
@@ -757,6 +764,7 @@
         return net('/api/address/' + encodeURIComponent(seed.address) + '/txs', run.signal);
       }).then(function (rows) {
         if (!isArr(rows)) { run.failed++; return null; }
+        run.reads++;
         var txs = [], valid = 0;
         for (var i = 0; i < rows.length; i++) {
           var t = compressTx(rows[i]);
@@ -834,7 +842,7 @@
         summaries: Object.create(null),
         dead: Object.create(null),
         lists: [],
-        calls: 0, cacheHits: 0, failed: 0, done: 0,
+        calls: 0, cacheHits: 0, reads: 0, failed: 0, done: 0,
         truncated: false, rateLimited: false, capped: false, dirty: false,
         onProgress: typeof opt.onProgress === 'function' ? opt.onProgress : null
       };
@@ -882,10 +890,15 @@
       var core = analyzeTxs(run.all, run.lists);
       var sums = run.summaries;
       var entityBalance = 0, entityKnown = 0, entityVerified = 0;
+      var attrBalance = 0, attrKnown = 0, entityAttributed = 0;
       run.all.forEach(function (s) {
-        if (!s.verified) return;
-        entityVerified++;
         var sum = sums[s.address];
+        if (!s.verified) {
+          entityAttributed++;
+          if (sum) { attrBalance += sum.balance; attrKnown++; }
+          return;
+        }
+        entityVerified++;
         if (sum) { entityBalance += sum.balance; entityKnown++; }
       });
       core.clusters.forEach(function (c) {
@@ -920,7 +933,12 @@
           total: run.all.length,
           verified: entityVerified,
           balance: entityKnown ? entityBalance : null,
-          balanceKnown: entityKnown
+          balanceKnown: entityKnown,
+          /* The seeds the table lists on an attribution only, kept apart from the verified
+             sum so the card can print "Attributed x BTC" instead of "Verified x BTC". */
+          attributed: entityAttributed,
+          attributedBalance: attrKnown ? attrBalance : null,
+          attributedKnown: attrKnown
         },
         stats: {
           addresses: run.all.length,
@@ -934,7 +952,10 @@
         api: {
           calls: run.calls, cacheHits: run.cacheHits, failed: run.failed,
           elapsedMs: Date.now() - run.t0,
-          source: run.calls && run.cacheHits ? 'mixed' : run.calls ? 'live' : run.cacheHits ? 'cache' : 'none'
+          /* `reads` counts the answers that actually arrived: a run whose every request
+             failed has calls > 0 but nothing read, and calling that "live" would tell the
+             card there is a live figure when there is none. */
+          source: run.reads && run.cacheHits ? 'mixed' : run.reads ? 'live' : run.cacheHits ? 'cache' : 'none'
         },
         at: Date.now()
       };
@@ -984,9 +1005,9 @@
         return {
           ttlMs: TTL_MS, maxTxsPerAddress: TXS_MAX, maxApiCalls: CALLS_MAX,
           maxAddresses: ADD_MAX, cacheAddresses: CACHE_MAX, runMs: RUN_MS,
-          labels: [LABEL_VERIFIED, LABEL_COMMON, LABEL_CHANGE]
+          labels: [LABEL_VERIFIED, LABEL_ATTRIBUTED, LABEL_COMMON, LABEL_CHANGE]
         };
       },
-      labels: { verified: LABEL_VERIFIED, common: LABEL_COMMON, change: LABEL_CHANGE }
+      labels: { verified: LABEL_VERIFIED, attributed: LABEL_ATTRIBUTED, common: LABEL_COMMON, change: LABEL_CHANGE }
     };
   })();
