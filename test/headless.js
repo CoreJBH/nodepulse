@@ -2697,18 +2697,19 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     E.close();
 
     /* ---- the published table: adopted when newer, ignored when missing ---- */
+    check('the seed carries the payload version that introduced est', pub.v === 2 && ES.v === 2, pub.v + ' / ' + ES.v);
     const newer = JSON.parse(JSON.stringify(pub));
-    newer.v = 2; newer.at = '2026-12-01T00:00:00Z';
+    newer.v = 3; newer.at = '2026-12-01T00:00:00Z';
     remotePayload = newer;
     const took = await E.remote();
     check('a newer published table replaces the seed',
-      took === true && ES.src === 'remote' && ES.v === 2 && ES.data.list.length === 20, ES.src + ' v' + ES.v);
+      took === true && ES.src === 'remote' && ES.v === 3 && ES.data.list.length === 20, ES.src + ' v' + ES.v);
     check('the adopted table is cached in localStorage',
-      JSON.parse(ls.get('nodepulse.entities.v1')).v === 2);
+      JSON.parse(ls.get('nodepulse.entities.v1')).v === 3);
     remoteMode = 'fail';
     const kept = await E.remote();
     check('a missing published table leaves the adopted one alone and stays quiet',
-      kept === false && ES.v === 2 && ES.data.list.length === 20);
+      kept === false && ES.v === 3 && ES.data.list.length === 20);
     remoteMode = 'ok'; remotePayload = null;
 
     /* ---- leaving the tab closes the sheet and restores the globe ---- */

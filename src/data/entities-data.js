@@ -28,9 +28,11 @@
    estimate.
 
    build.py inlines this file and also writes dist/entities.json, the same payload the app
-   tries to refresh from https://corejbh.github.io/nodepulse/entities.json. */
+   tries to refresh from https://corejbh.github.io/nodepulse/entities.json. `v` is the
+   payload version: v2 added `est`, and a table saved under v1 is replaced by it rather
+   than kept, so a page that adopted the older file picks up the estimate. */
 var ENTITIES = {
-  "v": 1,
+  "v": 2,
   "at": "2026-11-28T04:56:00Z",
   "block": 977898,
   "price": 59700,

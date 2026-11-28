@@ -9,7 +9,7 @@
      computes over the exact bytes it has written, so no 'unsafe-inline' is needed and an
      injected block would have to match a hash that is already in the file. Nothing else
      is allowed: no frames, no forms, no plugins, no workers, no extra hosts. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-MbI2Cdy5pqzedyHpsU/PSj+nIeilJEc/JrZUj9wLcaU=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-NZiJoIdNdPSzZXNKnR22+uA7zo0RbQ+0Yg8BE8rJasQ=' 'sha256-qcq68m9pq1/qv/3h6H2FBIQdHXSLpnbTaspB82Oa7Q0='; style-src 'sha256-57+HZPmO3wPR9El0yewSYwkgFCVC9+oyrsmFMRcbdwQ='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja https://corejbh.github.io wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-MbI2Cdy5pqzedyHpsU/PSj+nIeilJEc/JrZUj9wLcaU=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-OrQh5zW0hYm0Cifeei5lPnqE5A+oX55FCICDztswllM=' 'sha256-qcq68m9pq1/qv/3h6H2FBIQdHXSLpnbTaspB82Oa7Q0='; style-src 'sha256-57+HZPmO3wPR9El0yewSYwkgFCVC9+oyrsmFMRcbdwQ='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja https://corejbh.github.io wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
 <meta name="theme-color" content="#040914">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="NodePulse — live monitoring of the Bitcoin L1 mainnet. Shows the Bitnodes full-node distribution and mempool.space block, mempool and fee data, and only data an API actually reported.">
@@ -925,9 +925,11 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
    estimate.
 
    build.py inlines this file and also writes dist/entities.json, the same payload the app
-   tries to refresh from https://corejbh.github.io/nodepulse/entities.json. */
+   tries to refresh from https://corejbh.github.io/nodepulse/entities.json. `v` is the
+   payload version: v2 added `est`, and a table saved under v1 is replaced by it rather
+   than kept, so a page that adopted the older file picks up the estimate. */
 var ENTITIES = {
-  "v": 1,
+  "v": 2,
   "at": "2026-11-28T04:56:00Z",
   "block": 977898,
   "price": 59700,
