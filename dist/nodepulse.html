@@ -9,7 +9,7 @@
      computes over the exact bytes it has written, so no 'unsafe-inline' is needed and an
      injected block would have to match a hash that is already in the file. Nothing else
      is allowed: no frames, no forms, no plugins, no workers, no extra hosts. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-MbI2Cdy5pqzedyHpsU/PSj+nIeilJEc/JrZUj9wLcaU=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-DgV4kbAdw1QMSFYDXAI5MhvAFBmAWBhfRUCoZr+At+c=' 'sha256-2C7pDuajcP5X1ZKR05ytclCnI3ZOY/TfPFx0H2pzM14='; style-src 'sha256-TuFObFHuGk6qeDjCHp9OMQxhWlnTPemE0l6EomKuAfc='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja https://corejbh.github.io wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-MbI2Cdy5pqzedyHpsU/PSj+nIeilJEc/JrZUj9wLcaU=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-DgV4kbAdw1QMSFYDXAI5MhvAFBmAWBhfRUCoZr+At+c=' 'sha256-2C7pDuajcP5X1ZKR05ytclCnI3ZOY/TfPFx0H2pzM14='; style-src 'sha256-s7rQN4VDIDuGLH0If9/88fOonyw3VHpn0SCSCtk6eh8='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja https://corejbh.github.io wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
 <meta name="theme-color" content="#040914">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="NodePulse — live monitoring of the Bitcoin L1 mainnet. Shows the Bitnodes full-node distribution and mempool.space block, mempool and fee data, and only data an API actually reported.">
@@ -811,7 +811,7 @@ body.layer-ent .hint{display:none}
 .ent-dash .dcols{display:grid;grid-template-columns:1fr 1fr;margin-top:2px}
 .ent-dash .dcols > div{padding:11px 0 3px;min-width:0}
 .ent-dash .dcols > div + div{padding-left:11px;border-left:1px solid rgba(var(--ec),.14)}
-.ent-dash .dcols .dk{display:block;letter-spacing:.09em}
+.ent-dash .dcols .dk{display:block;font-size:10px;letter-spacing:.03em}
 .ent-dash .dcols b{display:block;margin-top:5px;font-size:13px;font-weight:500;color:#eaf8ff;
   letter-spacing:.01em;font-variant-numeric:tabular-nums;white-space:nowrap}
 .ent-dash .dcols .dsm{display:block;margin-top:5px;font-size:8.5px;color:#6f8ba4;letter-spacing:.02em}
@@ -874,12 +874,22 @@ body.layer-ent .hint{display:none}
 .ent-dash .w95{width:95%}
 .ent-dash .w100{width:100%}
 
+@media (max-width:389px){
+  /* the figure and its badge step down together, so the mined total never runs into the
+     subsidy badge on the phones between 341 and 389 px where 12 px no longer fits;
+     declared ahead of the two narrower blocks below, which keep the last word where they apply */
+  .ent-dash .drows .dv{font-size:10px}
+  .ent-dash .drows .dbd{font-size:8px;padding:3px 5px}
+}
 @media (max-width:340px){
   .ent-dash .drows{column-gap:6px}
   .ent-dash .dk{font-size:9px}
   .ent-dash .dk em{font-size:8px}
-  .ent-dash .dv{font-size:10px}
-  .ent-dash .dbd{font-size:8px;padding:3px 5px}
+  /* the two labels under the supply card sit in 1fr halves, so they take the small step
+     together with the figures they head: at 320px they are the width that has to fit */
+  .ent-dash .dcols .dk{font-size:9px}
+  .ent-dash .drows .dv{font-size:9px}
+  .ent-dash .drows .dbd{font-size:7.5px;padding:2px 4px}
   .ent-dash .dcols b{font-size:11px}
   .ent-dash .dmpct{font-size:18px}
 }

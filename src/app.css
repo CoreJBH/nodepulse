@@ -788,7 +788,7 @@ body.layer-ent .hint{display:none}
 .ent-dash .dcols{display:grid;grid-template-columns:1fr 1fr;margin-top:2px}
 .ent-dash .dcols > div{padding:11px 0 3px;min-width:0}
 .ent-dash .dcols > div + div{padding-left:11px;border-left:1px solid rgba(var(--ec),.14)}
-.ent-dash .dcols .dk{display:block;letter-spacing:.09em}
+.ent-dash .dcols .dk{display:block;font-size:10px;letter-spacing:.03em}
 .ent-dash .dcols b{display:block;margin-top:5px;font-size:13px;font-weight:500;color:#eaf8ff;
   letter-spacing:.01em;font-variant-numeric:tabular-nums;white-space:nowrap}
 .ent-dash .dcols .dsm{display:block;margin-top:5px;font-size:8.5px;color:#6f8ba4;letter-spacing:.02em}
@@ -851,12 +851,22 @@ body.layer-ent .hint{display:none}
 .ent-dash .w95{width:95%}
 .ent-dash .w100{width:100%}
 
+@media (max-width:389px){
+  /* the figure and its badge step down together, so the mined total never runs into the
+     subsidy badge on the phones between 341 and 389 px where 12 px no longer fits;
+     declared ahead of the two narrower blocks below, which keep the last word where they apply */
+  .ent-dash .drows .dv{font-size:10px}
+  .ent-dash .drows .dbd{font-size:8px;padding:3px 5px}
+}
 @media (max-width:340px){
   .ent-dash .drows{column-gap:6px}
   .ent-dash .dk{font-size:9px}
   .ent-dash .dk em{font-size:8px}
-  .ent-dash .dv{font-size:10px}
-  .ent-dash .dbd{font-size:8px;padding:3px 5px}
+  /* the two labels under the supply card sit in 1fr halves, so they take the small step
+     together with the figures they head: at 320px they are the width that has to fit */
+  .ent-dash .dcols .dk{font-size:9px}
+  .ent-dash .drows .dv{font-size:9px}
+  .ent-dash .drows .dbd{font-size:7.5px;padding:2px 4px}
   .ent-dash .dcols b{font-size:11px}
   .ent-dash .dmpct{font-size:18px}
 }
