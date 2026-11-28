@@ -9,7 +9,7 @@
      computes over the exact bytes it has written, so no 'unsafe-inline' is needed and an
      injected block would have to match a hash that is already in the file. Nothing else
      is allowed: no frames, no forms, no plugins, no workers, no extra hosts. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-MbI2Cdy5pqzedyHpsU/PSj+nIeilJEc/JrZUj9wLcaU=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-JlGKZAB6Wtxi+SpRL+/hnwqmq6540nCTuPEM/KRdriE=' 'sha256-9hQMfqmveW4u2Zqi+s2fVabDMU+7Xcjv2Cd6otU8Mds='; style-src 'sha256-aK+G3EnPpQVecjcTnB15ODxWsmwXy2DuCKzdocbnTNo='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja https://corejbh.github.io wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-MbI2Cdy5pqzedyHpsU/PSj+nIeilJEc/JrZUj9wLcaU=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-ubPbUww4Xq3NfVZZcaNkOq7LoI66oSzu3sVS3//3OiE=' 'sha256-9hQMfqmveW4u2Zqi+s2fVabDMU+7Xcjv2Cd6otU8Mds='; style-src 'sha256-aK+G3EnPpQVecjcTnB15ODxWsmwXy2DuCKzdocbnTNo='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja https://corejbh.github.io wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
 <meta name="theme-color" content="#040914">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="NodePulse — live monitoring of the Bitcoin L1 mainnet. Shows the Bitnodes full-node distribution and mempool.space block, mempool and fee data, and only data an API actually reported.">
@@ -991,7 +991,7 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
    exchange itself, a court record, the chain itself, or a named analytics attribution)
    and the mempool.space address API was read for its balance. Nothing is guessed; an
    address whose public listing could not be found is left out, and the entity's `extra`
-   field says so. Verification run 2026-11-28 08:54:43 UTC at block 977916.
+   field says so. Verification run 2026-11-28 09:06:46 UTC at block 977917.
 
    Shape:  { v, at, block, price, priceAt, tracked, list: [entity] }
            entity  = { id, name, category, icon, badge, evidence, live, description,
@@ -1027,11 +1027,11 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
    set below, so a table saved under an older version is replaced rather than kept. */
 var ENTITIES = {
   "v": 3,
-  "at": "2026-11-28T08:54:43Z",
-  "block": 977916,
-  "price": 59501,
-  "priceAt": "2026-11-28T08:54:43Z",
-  "tracked": 240476303703372,
+  "at": "2026-11-28T09:06:46Z",
+  "block": 977917,
+  "price": 59540,
+  "priceAt": "2026-11-28T09:06:46Z",
+  "tracked": 240507609323943,
   "list": [
     {
       "id": "binance",
@@ -8277,6 +8277,30 @@ var ENTITIES = {
         }
       ],
       "total": 31430194095
+    },
+    {
+      "id": "luna-foundation-guard",
+      "name": "Luna Foundation Guard (LFG)",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Audit 2022",
+      "evidence": "official",
+      "live": true,
+      "description": "Terra's reserve foundation, which published this address in its own audit as the treasury it held to defend the UST peg.",
+      "extra": "LFG named this address in its November 2022 audit. After the Terra collapse the reserve was largely spent; what is left is on chain here.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q9d4ywgfnd8h43da5tpcxcn6ajv590cg6d3tg6axemvljvt2k76zs50tv4q",
+          "label": "Public address",
+          "sats": 31305620571,
+          "source": "https://www.lfg.org/audit/LFG-Audit-2022-11-14.pdf",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 31305620571
     },
     {
       "id": "pool-foundry-usa",

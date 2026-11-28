@@ -4,7 +4,7 @@
    exchange itself, a court record, the chain itself, or a named analytics attribution)
    and the mempool.space address API was read for its balance. Nothing is guessed; an
    address whose public listing could not be found is left out, and the entity's `extra`
-   field says so. Verification run 2026-11-28 08:54:43 UTC at block 977916.
+   field says so. Verification run 2026-11-28 09:06:46 UTC at block 977917.
 
    Shape:  { v, at, block, price, priceAt, tracked, list: [entity] }
            entity  = { id, name, category, icon, badge, evidence, live, description,
@@ -40,11 +40,11 @@
    set below, so a table saved under an older version is replaced rather than kept. */
 var ENTITIES = {
   "v": 3,
-  "at": "2026-11-28T08:54:43Z",
-  "block": 977916,
-  "price": 59501,
-  "priceAt": "2026-11-28T08:54:43Z",
-  "tracked": 240476303703372,
+  "at": "2026-11-28T09:06:46Z",
+  "block": 977917,
+  "price": 59540,
+  "priceAt": "2026-11-28T09:06:46Z",
+  "tracked": 240507609323943,
   "list": [
     {
       "id": "binance",
@@ -7290,6 +7290,30 @@ var ENTITIES = {
         }
       ],
       "total": 31430194095
+    },
+    {
+      "id": "luna-foundation-guard",
+      "name": "Luna Foundation Guard (LFG)",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Audit 2022",
+      "evidence": "official",
+      "live": true,
+      "description": "Terra's reserve foundation, which published this address in its own audit as the treasury it held to defend the UST peg.",
+      "extra": "LFG named this address in its November 2022 audit. After the Terra collapse the reserve was largely spent; what is left is on chain here.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q9d4ywgfnd8h43da5tpcxcn6ajv590cg6d3tg6axemvljvt2k76zs50tv4q",
+          "label": "Public address",
+          "sats": 31305620571,
+          "source": "https://www.lfg.org/audit/LFG-Audit-2022-11-14.pdf",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 31305620571
     },
     {
       "id": "pool-foundry-usa",

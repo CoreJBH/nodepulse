@@ -2420,7 +2420,7 @@ check('inline script blocks', scripts.length === 7, scripts.length);
         'fidelity-fbtc', 'bitwise-bitb', 'ark-21shares', 'tether', 'mt-gox-trustee'].every(id => !!E.byId(id)),
       ['satoshi', 'us-government', 'binance', 'blackrock-ibit', 'upbit'].map(id => id + ':' + !!E.byId(id)).join(' '));
     check('the historic zero-balance entities are gone from the table',
-      !E.byId('germany') && !E.byId('luna-foundation-guard') && !E.byId('hal-finney'));
+      !E.byId('germany') && !E.byId('halfinney') && !E.byId('hal-finney'));
     check('no entity in the seed holds 0 BTC: the ranking never prints a zero holder',
       E.zeroCount() === 0,
       ES.data.list.filter(e => E.heldOf(e) <= 0).map(e => e.id).join(','));
