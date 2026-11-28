@@ -1969,11 +1969,14 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     const mode = fetchMode;
     fetchMode = 'fail';
     const bridges = bridgeCalls.length;
-    const fetches = fetchLog.length;
+    /* This page now also refreshes two tables in the background, and a stray GET from one
+       of those must not be read as a fourth mirror attempt: count the path under test. */
+    const tipGets = () => fetchLog.filter(u => u.indexOf('/api/blocks/tip/height') >= 0).length;
+    const fetches = tipGets();
     let r = 'pending';
     await NP.loadTip().then(() => { r = 'ok'; }, () => { r = 'err'; });
     fetchMode = mode;
-    check('all three mirrors are still tried', fetchLog.length - fetches === 3, (fetchLog.length - fetches) + ' fetches');
+    check('all three mirrors are still tried', tipGets() - fetches === 3, (tipGets() - fetches) + ' fetches');
     check('the bridge is asked once, not once per mirror', bridgeCalls.length - bridges === 1, (bridgeCalls.length - bridges) + ' bridge calls');
     check('a failed path is reported as failed', r === 'err', r);
     check('the whole walk is bounded far below the old 153 s cascade', NP.reqBudgetMs() < 153000, NP.reqBudgetMs() + ' ms');
