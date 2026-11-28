@@ -2421,6 +2421,16 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       ['satoshi', 'us-government', 'binance', 'blackrock-ibit', 'upbit'].map(id => id + ':' + !!E.byId(id)).join(' '));
     check('the historic zero-balance entities are gone from the table',
       !E.byId('germany') && !E.byId('halfinney') && !E.byId('hal-finney'));
+    check('the BitcoinTalk nickname holders are on the table, verified and above zero',
+      ['puddinpop', 'theymos', 'mralbi', 'tier-nolan', 'artforz', 'forrestv', 'jeff-garzik']
+        .every(id => !!E.byId(id) && E.byId(id).category === 'PERSON' && E.byId(id).total > 0),
+      ['puddinpop', 'theymos', 'artforz'].map(id => id + ':' + (E.byId(id) ? E.byId(id).total : 'missing')).join(' '));
+    check('a nickname card rests on the account\'s own signature address, not a guess',
+      ['puddinpop', 'theymos', 'artforz', 'forrestv'].every(id =>
+        E.byId(id).evidence === 'official' && /^https:\/\/chainquery\.com\/address\//.test(E.byId(id).addresses[0].source)),
+      ['puddinpop', 'theymos', 'artforz'].map(id => E.byId(id).evidence).join(' '));
+    check('puddinpop carries the 575.99 BTC the brief names',
+      E.byId('puddinpop').total === 57599111218, E.byId('puddinpop').total);
     check('no entity in the seed holds 0 BTC: the ranking never prints a zero holder',
       E.zeroCount() === 0,
       ES.data.list.filter(e => E.heldOf(e) <= 0).map(e => e.id).join(','));
@@ -2454,21 +2464,26 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       ES.data.list.every(e => e.addresses.length <= 250),
       Math.max.apply(null, ES.data.list.map(e => e.addresses.length)));
 
-    /* ---- ranking: holders only, 100 rows a tab, dense ranks ---- */
+    /* ---- ranking: holders only, the whole table, dense ranks ---- */
     const r = E.ranked();
     check('entities are ranked by the BTC they are held to have, verified plus estimate',
       r.every((x, i) => i === 0 || E.heldOf(r[i - 1].e) >= E.heldOf(x.e)) &&
-      r[0].e.id === 'satoshi' && r.length <= E.rankCap,
+      r[0].e.id === 'satoshi' && r.length === E.heldCount(),
       r.slice(0, 3).map(x => '#' + x.rank + ' ' + x.e.id + ' ' + E.heldOf(x.e)).join(' · '));
     check('the rank numbers are dense and start at #1', r.every((x, i) => x.rank === i + 1));
     check('no ranked entity holds 0 BTC', r.every(x => E.heldOf(x.e) > 0));
-    check('the cap is 100 rows a tab', E.rankCap === 100 && filtered_cap_ok());
-    function filtered_cap_ok() {
+    /* The table is small enough that a cap is not needed: every holder is listed in full.
+       The guard fails if a 100-row slice is ever put back (the table is past 200). */
+    check('every holder is listed: the ranking has no 100-row cap',
+      r.length === ES.data.list.length && r.length > 100, r.length + ' of ' + ES.data.list.length);
+    check('every tab lists its whole field, not a cut', filtered_full_ok());
+    function filtered_full_ok() {
       let ok = true;
       ['ALL', 'PERSON', 'CORP', 'GOV', 'OTHER'].forEach(c => {
         E.setFilter(c);
         const f = E.filtered();
-        if (f.length > 100 || (c !== 'ALL' && f.some(x => x.e.category !== c))) ok = false;
+        const want = ES.data.list.filter(e => E.heldOf(e) > 0 && (c === 'ALL' || e.category === c)).length;
+        if (f.length !== want || (c !== 'ALL' && f.some(x => x.e.category !== c))) ok = false;
       });
       E.setFilter('ALL');
       return ok;
@@ -2563,6 +2578,24 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       (els.entBody.innerHTML.match(/Verified [^<]*/) || [''])[0]);
     check('the held balance carries no tilde in front of the number',
       !/HELD BALANCE<\/span><b>~/.test(els.entBody.innerHTML));
+    E.close();
+
+    /* ---- a card does not list addresses that hold nothing ---- */
+    const govE = E.byId('us-government');
+    const govEmpty = govE.addresses.filter(a => a.sats === 0).length;
+    E.openEntity('us-government');
+    await sleep(60);
+    const card = els.entBody.innerHTML;
+    const rowsDrawn = (card.match(/class="arow"/g) || []).length;
+    check('a card lists only the addresses that hold BTC',
+      govEmpty > 0 && rowsDrawn === govE.addresses.length - govEmpty,
+      rowsDrawn + ' rows · ' + govEmpty + ' empty of ' + govE.addresses.length);
+    check('the card counts what it left out instead of printing zero rows',
+      new RegExp(govEmpty + ' empty addresses omitted').test(card) &&
+      new RegExp((govE.addresses.length - govEmpty) + ' of ' + govE.addresses.length).test(card),
+      (card.match(/\d+ of \d+ · [^<]*/) || [''])[0]);
+    check('no empty address row is drawn anywhere on the card',
+      !/data-id="3Pja5FPK1wFB9LkWWJai8XYL1qjbqqT9Ye"/.test(card));
     E.close();
 
     /* ---- the supply maths follows the block height ---- */
@@ -2719,7 +2752,9 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       /#1/.test(els.entBody.innerHTML) && /class="ic person"/.test(els.entBody.innerHTML) &&
       /Satoshi Nakamoto/.test(els.entBody.innerHTML) && /\$/.test(els.entBody.innerHTML));
     check('the list header names the tab and offers REFRESH',
-      /data-act="refresh"/.test(els.entBody.innerHTML) && /TOP 100/.test(els.entBody.innerHTML),
+      /data-act="refresh"/.test(els.entBody.innerHTML) &&
+      new RegExp('ALL · ' + E.ranked().length + ' ENTITIES').test(els.entBody.innerHTML) &&
+      !/TOP 100/.test(els.entBody.innerHTML),
       (els.entBody.innerHTML.match(/class="lhead"[\s\S]{0,180}/) || [''])[0]);
     if (process.env.DUMP) console.log('DUMP-LIST', els.entBody.innerHTML.slice(0, 2200));
 
@@ -2872,6 +2907,15 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       JSON.stringify(ES.tx[W].rows[0].peers));
     check('the transaction row draws the counterparty badge',
       /badge unto/.test(els.entBody.innerHTML) && /U\.S\. Government/.test(els.entBody.innerHTML));
+    /* the card's own empty-address rule has one exception: the reader's watchlist. */
+    addrBal.set('3Pja5FPK1wFB9LkWWJai8XYL1qjbqqT9Ye', 0);
+    check('an empty address can be watched', E.watchAdd('3Pja5FPK1wFB9LkWWJai8XYL1qjbqqT9Ye').ok);
+    E.openEntity('us-government');
+    await sleep(60);
+    check('a watched zero-BTC address keeps its row on the entity card',
+      /data-id="3Pja5FPK1wFB9LkWWJai8XYL1qjbqqT9Ye"/.test(els.entBody.innerHTML));
+    E.watchDel('3Pja5FPK1wFB9LkWWJai8XYL1qjbqqT9Ye');
+    E.close();
     E.watchDel('1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX');
 
     /* ---- the detail card and its cluster run ---- */

@@ -9,7 +9,7 @@
      computes over the exact bytes it has written, so no 'unsafe-inline' is needed and an
      injected block would have to match a hash that is already in the file. Nothing else
      is allowed: no frames, no forms, no plugins, no workers, no extra hosts. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-MbI2Cdy5pqzedyHpsU/PSj+nIeilJEc/JrZUj9wLcaU=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-EuR4/0vHFlll/e0ErazZ4kQhUjOJNoDGiWpVLyTgNIg=' 'sha256-Yi1a6Q3JvXm5jbQz5j0oQB7kbbndF2/OyXyXJZwc2oM='; style-src 'sha256-vbvuH30EhIIqjZO4fuXTWMs6qjX5STNLgAcfUbbW9aY='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja https://corejbh.github.io wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-MbI2Cdy5pqzedyHpsU/PSj+nIeilJEc/JrZUj9wLcaU=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-DgV4kbAdw1QMSFYDXAI5MhvAFBmAWBhfRUCoZr+At+c=' 'sha256-/h8rgDLcll/bIalNLfNjWMjkRwBzRIN9kkWVJSPM9qs='; style-src 'sha256-vbvuH30EhIIqjZO4fuXTWMs6qjX5STNLgAcfUbbW9aY='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja https://corejbh.github.io wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
 <meta name="theme-color" content="#040914">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="NodePulse — live monitoring of the Bitcoin L1 mainnet. Shows the Bitnodes full-node distribution and mempool.space block, mempool and fee data, and only data an API actually reported.">
@@ -996,7 +996,7 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
    exchange itself, a court record, the chain itself, or a named analytics attribution)
    and the mempool.space address API was read for its balance. Nothing is guessed; an
    address whose public listing could not be found is left out, and the entity's `extra`
-   field says so. Verification run 2026-11-28 10:34:39 UTC at block 977928.
+   field says so. Verification run 2026-11-28 11:02:46 UTC at block 977931.
 
    Shape:  { v, at, block, price, priceAt, tracked, list: [entity] }
            entity  = { id, name, category, icon, badge, evidence, live, description,
@@ -1032,11 +1032,11 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
    set below, so a table saved under an older version is replaced rather than kept. */
 var ENTITIES = {
   "v": 3,
-  "at": "2026-11-28T10:34:39Z",
-  "block": 977928,
-  "price": 59281,
-  "priceAt": "2026-11-28T10:34:39Z",
-  "tracked": 242535587638868,
+  "at": "2026-11-28T11:02:46Z",
+  "block": 977931,
+  "price": 59218,
+  "priceAt": "2026-11-28T11:02:46Z",
+  "tracked": 242593216831553,
   "list": [
     {
       "id": "binance",
@@ -9679,6 +9679,29 @@ var ENTITIES = {
       "total": 59755944965
     },
     {
+      "id": "puddinpop",
+      "name": "puddinpop",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=1168 · first AMD GPU miner",
+      "evidence": "official",
+      "live": true,
+      "description": "An early BitcoinTalk miner (u=1168) who released the first publicly available AMD GPU miner in September 2010. The address is the signature address of his forum account, and it is the largest unspent early-miner balance the chain still shows.",
+      "extra": "jgarzik paid 10,000 BTC in 2010 for the miner to be open-sourced (BitcoinTalk topic 133); most of what arrived then has not moved since. A 2022 forum post names a second \"puddinpop wallet\" holding 10,000 BTC, but the chain shows that address was first funded in October 2017, so it is not tracked here.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1HZNsUqQxKVLmfPfCAzLwrnVDzx8CxwxnM",
+          "label": "Self-disclosed signature address",
+          "sats": 57599111218,
+          "source": "https://chainquery.com/address/1HZNsUqQxKVLmfPfCAzLwrnVDzx8CxwxnM",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 57599111218
+    },
+    {
       "id": "gemini",
       "name": "Gemini",
       "category": "CORP",
@@ -12903,6 +12926,29 @@ var ENTITIES = {
       "total": 16554295
     },
     {
+      "id": "theymos",
+      "name": "theymos",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=35 · forum administrator",
+      "evidence": "official",
+      "live": true,
+      "description": "theymos (u=35) runs BitcoinTalk, the forum where Bitcoin's first years were argued out. He published this address in his profile signature as a donation address, making it one of the most public addresses on the forum.",
+      "extra": "BitcoinTalk opened in November 2009 under Satoshi and theymos has administered it since 2010. ChainQuery's label calls him the forum founder; the card keeps to what the forum record shows.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1NXYoJ5xU91Jp83XfVMHwwTUyZFK64BoAD",
+          "label": "Self-disclosed donation address",
+          "sats": 15962777,
+          "source": "https://chainquery.com/address/1NXYoJ5xU91Jp83XfVMHwwTUyZFK64BoAD",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 15962777
+    },
+    {
       "id": "ransom-noobcrypt",
       "name": "NoobCrypt",
       "category": "OTHER",
@@ -13021,6 +13067,69 @@ var ENTITIES = {
       "total": 11565258
     },
     {
+      "id": "mralbi",
+      "name": "mralbi",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=25588",
+      "evidence": "official",
+      "live": true,
+      "description": "A BitcoinTalk member (u=25588) who published this address in his forum signature, where he also linked a YouTube channel.",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1Q7axsh8VyYRuNjyeatBZ1UoK4GJG4g2Xk",
+          "label": "Self-disclosed signature address",
+          "sats": 10790600,
+          "source": "https://chainquery.com/address/1Q7axsh8VyYRuNjyeatBZ1UoK4GJG4g2Xk",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 10790600
+    },
+    {
+      "id": "laszlo-hanyecz",
+      "name": "Laszlo Hanyecz (Pizza Day)",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "Pizza Day 2010",
+      "evidence": "chain",
+      "live": true,
+      "description": "On 2010-05-22 Laszlo Hanyecz paid 10,000 BTC for two pizzas. Both sides of that transaction are listed.",
+      "extra": "The chain record is settled (tx a1075db5..., block 57,043). Ownership attribution rests on Hanyecz naming the address himself on the forum and on press coverage.",
+      "est": null,
+      "coverage": "full",
+      "addresses": [
+        {
+          "address": "1XPTgDRhN8RFnzniWCddobD9iKZatrvH4",
+          "label": "Public address",
+          "sats": 3234782,
+          "source": "https://mempool.space/tx/a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17SkEw2md5avVNyYgj6RiXuQKNwkXaxFyQ",
+          "label": "Public address",
+          "sats": 2473041,
+          "source": "https://mempool.space/tx/a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "157fRrqAKrDyGHr1Bx3yDxeMv8Rh45aUet",
+          "label": "Self-disclosed signature address",
+          "sats": 2111651,
+          "source": "https://chainquery.com/address/157fRrqAKrDyGHr1Bx3yDxeMv8Rh45aUet",
+          "note": "The address in his BitcoinTalk signature (u=143); not the address that received the 10,000 BTC pizza payment.",
+          "live": true
+        }
+      ],
+      "total": 7819474
+    },
+    {
       "id": "pool-bitfury",
       "name": "BitFury",
       "category": "OTHER",
@@ -13067,38 +13176,6 @@ var ENTITIES = {
         }
       ],
       "total": 5998355
-    },
-    {
-      "id": "laszlo-hanyecz",
-      "name": "Laszlo Hanyecz (Pizza Day)",
-      "category": "PERSON",
-      "icon": "person",
-      "badge": "Pizza Day 2010",
-      "evidence": "chain",
-      "live": true,
-      "description": "On 2010-05-22 Laszlo Hanyecz paid 10,000 BTC for two pizzas. Both sides of that transaction are listed.",
-      "extra": "The chain record is settled (tx a1075db5..., block 57,043). Ownership attribution rests on Hanyecz naming the address himself on the forum and on press coverage.",
-      "est": null,
-      "coverage": "full",
-      "addresses": [
-        {
-          "address": "1XPTgDRhN8RFnzniWCddobD9iKZatrvH4",
-          "label": "Public address",
-          "sats": 3234782,
-          "source": "https://mempool.space/tx/a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d",
-          "note": "",
-          "live": true
-        },
-        {
-          "address": "17SkEw2md5avVNyYgj6RiXuQKNwkXaxFyQ",
-          "label": "Public address",
-          "sats": 2473041,
-          "source": "https://mempool.space/tx/a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d",
-          "note": "",
-          "live": true
-        }
-      ],
-      "total": 5707823
     },
     {
       "id": "ransom-kelly",
@@ -14673,6 +14750,29 @@ var ENTITIES = {
       "total": 673176
     },
     {
+      "id": "mskwik",
+      "name": "mskwik",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=1459",
+      "evidence": "official",
+      "live": true,
+      "description": "A BitcoinTalk member (u=1459) who published this address in his forum signature.",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "16zoADRmmdripnGuXQ2meNv44ZJeTGv9uh",
+          "label": "Self-disclosed signature address",
+          "sats": 529740,
+          "source": "https://chainquery.com/address/16zoADRmmdripnGuXQ2meNv44ZJeTGv9uh",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 529740
+    },
+    {
       "id": "pool-58coin",
       "name": "58COIN",
       "category": "CORP",
@@ -14702,6 +14802,29 @@ var ENTITIES = {
         }
       ],
       "total": 522858
+    },
+    {
+      "id": "checker",
+      "name": "checker",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=677",
+      "evidence": "official",
+      "live": true,
+      "description": "A BitcoinTalk member (u=677) who published this address in his forum signature.",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1NXsbppu1B2exLUY8i5cYbQxbc2zWtiTAY",
+          "label": "Self-disclosed signature address",
+          "sats": 519405,
+          "source": "https://chainquery.com/address/1NXsbppu1B2exLUY8i5cYbQxbc2zWtiTAY",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 519405
     },
     {
       "id": "pool-wiz",
@@ -17110,6 +17233,29 @@ var ENTITIES = {
       "total": 70326
     },
     {
+      "id": "wobber",
+      "name": "wobber",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=251",
+      "evidence": "official",
+      "live": true,
+      "description": "A BitcoinTalk member (u=251) who published this address in his forum signature.",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "19wdQNKjnATkgXvpzmSrkSYhJtuJWb8mKs",
+          "label": "Self-disclosed signature address",
+          "sats": 60000,
+          "source": "https://chainquery.com/address/19wdQNKjnATkgXvpzmSrkSYhJtuJWb8mKs",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 60000
+    },
+    {
       "id": "ponzi-clearhash",
       "name": "ClearHash.net",
       "category": "OTHER",
@@ -17343,6 +17489,29 @@ var ENTITIES = {
       "total": 29518
     },
     {
+      "id": "shadow-of-harbringer",
+      "name": "ShadowOfHarbringer",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=1775",
+      "evidence": "official",
+      "live": true,
+      "description": "A BitcoinTalk member (u=1775) who published this address in his forum signature.",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1NLWBAD7ZD82fJDDawKfp5RAKSR8YWWYd3",
+          "label": "Self-disclosed signature address",
+          "sats": 29508,
+          "source": "https://chainquery.com/address/1NLWBAD7ZD82fJDDawKfp5RAKSR8YWWYd3",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 29508
+    },
+    {
       "id": "pool-bitalo",
       "name": "Bitalo",
       "category": "CORP",
@@ -17387,6 +17556,52 @@ var ENTITIES = {
         }
       ],
       "total": 20000
+    },
+    {
+      "id": "kwukduck",
+      "name": "kwukduck",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=654",
+      "evidence": "official",
+      "live": true,
+      "description": "A BitcoinTalk member (u=654) who published this address in his forum signature.",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "14b8PdeWLqK3yi3PrNHMmCvSmvDEKEBh3E",
+          "label": "Self-disclosed signature address",
+          "sats": 19687,
+          "source": "https://chainquery.com/address/14b8PdeWLqK3yi3PrNHMmCvSmvDEKEBh3E",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 19687
+    },
+    {
+      "id": "forrestv",
+      "name": "forrestv",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=6447 · p2pool",
+      "evidence": "official",
+      "live": true,
+      "description": "The creator of p2pool (u=6447), the first mining pool with no central operator, released in 2011. The address is his signature address.",
+      "extra": "p2pool shared the coinbase among miners through a share chain instead of a custodian, which is the design later pools copied in spirit.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1J1zegkNSbwX4smvTdoHSanUfwvXFeuV23",
+          "label": "Self-disclosed signature address",
+          "sats": 18278,
+          "source": "https://chainquery.com/address/1J1zegkNSbwX4smvTdoHSanUfwvXFeuV23",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 18278
     },
     {
       "id": "ofac-anton-nikolaeyvich-andreyev",
@@ -17450,6 +17665,29 @@ var ENTITIES = {
         }
       ],
       "total": 17293
+    },
+    {
+      "id": "tier-nolan",
+      "name": "TierNolan",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=28405 · atomic swaps",
+      "evidence": "official",
+      "live": true,
+      "description": "The BitcoinTalk member (u=28405) who, in a 2013 forum post, described the hash-locked contract that cross-chain atomic swaps still use. The address is his signature address.",
+      "extra": "His 2013 post laid out the swap without a trusted third party; the same contract shape is what Lightning and the atomic-swap desks build on.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1LxbG5cKXzTwZg9mjL3gaRE835uNQEteWF",
+          "label": "Self-disclosed signature address",
+          "sats": 16275,
+          "source": "https://chainquery.com/address/1LxbG5cKXzTwZg9mjL3gaRE835uNQEteWF",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 16275
     },
     {
       "id": "cryptconsole",
@@ -17616,6 +17854,29 @@ var ENTITIES = {
         }
       ],
       "total": 11337
+    },
+    {
+      "id": "artforz",
+      "name": "ArtForz",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=584 · early GPU miner",
+      "evidence": "official",
+      "live": true,
+      "description": "An early Bitcoin developer and miner (u=584), best known for \"ArtFarm\", a private GPU cluster that at one point ran a fifth to a third of the network's hash rate, and for writing his own OpenCL miners. The address is his signature address.",
+      "extra": "theymos put ArtForz at 20-30% of the network in October 2010. He never published proof of the private miners, and the person behind the handle is unknown.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1Fb77Xq5ePFER8GtKRn2KDbDTVpJKfKmpz",
+          "label": "Self-disclosed signature address",
+          "sats": 11000,
+          "source": "https://chainquery.com/address/1Fb77Xq5ePFER8GtKRn2KDbDTVpJKfKmpz",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 11000
     },
     {
       "id": "pool-eclipsemc",
@@ -18664,6 +18925,29 @@ var ENTITIES = {
       "total": 2000
     },
     {
+      "id": "inter-arma-enim-sil",
+      "name": "InterArmaEnimSil",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=375",
+      "evidence": "official",
+      "live": true,
+      "description": "A BitcoinTalk member (u=375) who published this address in his forum signature.",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "12aro27eH2SbM1N1XT4kgfsx89VkDf2rYK",
+          "label": "Self-disclosed signature address",
+          "sats": 2000,
+          "source": "https://chainquery.com/address/12aro27eH2SbM1N1XT4kgfsx89VkDf2rYK",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 2000
+    },
+    {
       "id": "ransom-aes-ni",
       "name": "AES-NI",
       "category": "OTHER",
@@ -19065,6 +19349,236 @@ var ENTITIES = {
       "total": 1000
     },
     {
+      "id": "bitcoin-fx",
+      "name": "BitcoinFX",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=30 · 2009 forum OG",
+      "evidence": "official",
+      "live": true,
+      "description": "One of the earliest BitcoinTalk accounts (u=30). He put this address in his signature and described himself there as a \"Bitcoin OG\".",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1JXFXUBGs2ZtEDAQMdZ3tkCKo38nT2XSEp",
+          "label": "Self-disclosed signature address",
+          "sats": 1000,
+          "source": "https://chainquery.com/address/1JXFXUBGs2ZtEDAQMdZ3tkCKo38nT2XSEp",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "brocktice",
+      "name": "brocktice",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=2016 · #bitcoin-otc",
+      "evidence": "official",
+      "live": true,
+      "description": "A BitcoinTalk member (u=2016) active in the early #bitcoin-otc trading community, where this tip address was published in his signature.",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "15Cgixqno9YzoKNEA2DRFyEAfMH5htssRg",
+          "label": "Self-disclosed tip address",
+          "sats": 1000,
+          "source": "https://chainquery.com/address/15Cgixqno9YzoKNEA2DRFyEAfMH5htssRg",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "kosovito",
+      "name": "kosovito",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=158",
+      "evidence": "official",
+      "live": true,
+      "description": "A BitcoinTalk member (u=158). His signature asked, \"Please sir, give me any coin.\" and carried this donation address.",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "135T7F27z7Mtvwffz359BE1zSfYgT1oJ8S",
+          "label": "Self-disclosed donation address",
+          "sats": 1000,
+          "source": "https://chainquery.com/address/135T7F27z7Mtvwffz359BE1zSfYgT1oJ8S",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "dude65535",
+      "name": "Dude65535",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=4405",
+      "evidence": "official",
+      "live": true,
+      "description": "A BitcoinTalk member (u=4405) who published this address in his forum signature.",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1DCj8ZwGZXQqQhgv6eUEnWgsxo8BTMj3mT",
+          "label": "Self-disclosed signature address",
+          "sats": 1000,
+          "source": "https://chainquery.com/address/1DCj8ZwGZXQqQhgv6eUEnWgsxo8BTMj3mT",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "boumer",
+      "name": "Boumer",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=23363",
+      "evidence": "official",
+      "live": true,
+      "description": "A BitcoinTalk member (u=23363) whose signature read \"Delicious Donations.\" above this address.",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "19yiZrUECBsQLWe88P48HtBxWJvTmDn5cf",
+          "label": "Self-disclosed donation address",
+          "sats": 1000,
+          "source": "https://chainquery.com/address/19yiZrUECBsQLWe88P48HtBxWJvTmDn5cf",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "btc-leger",
+      "name": "btcLeger",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=16940",
+      "evidence": "official",
+      "live": true,
+      "description": "A BitcoinTalk member (u=16940) who published this donation address in his signature, which also referenced TradeHill, an early Bitcoin exchange.",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "12BdMNcn7VQitFGMhtRojvwXbrX3Jcs9U6",
+          "label": "Self-disclosed donation address",
+          "sats": 1000,
+          "source": "https://chainquery.com/address/12BdMNcn7VQitFGMhtRojvwXbrX3Jcs9U6",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "vasili-sviridov",
+      "name": "Vasili Sviridov",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=446",
+      "evidence": "official",
+      "live": true,
+      "description": "A BitcoinTalk member (u=446) who posted this address in his forum signature.",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1JHYtsmsGq2McwGHmWayVjVtHds8rp1R5",
+          "label": "Self-disclosed signature address",
+          "sats": 1000,
+          "source": "https://chainquery.com/address/1JHYtsmsGq2McwGHmWayVjVtHds8rp1R5",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "redajx",
+      "name": "Redajx",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=512",
+      "evidence": "official",
+      "live": true,
+      "description": "A BitcoinTalk member (u=512) who published this address in his forum signature.",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1NVctpkwn9FL9J6FxSJ4RFJUVGaujL6b9b",
+          "label": "Self-disclosed signature address",
+          "sats": 1000,
+          "source": "https://chainquery.com/address/1NVctpkwn9FL9J6FxSJ4RFJUVGaujL6b9b",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "mr-bison",
+      "name": "MrBison",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=1209",
+      "evidence": "official",
+      "live": true,
+      "description": "A BitcoinTalk member (u=1209) who published this address in his forum signature.",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "142VYfhaYBJXsmfMf1LnBiNxb6KYwdj4PM",
+          "label": "Self-disclosed signature address",
+          "sats": 1000,
+          "source": "https://chainquery.com/address/142VYfhaYBJXsmfMf1LnBiNxb6KYwdj4PM",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "di-thi",
+      "name": "DiThi",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "BitcoinTalk u=44573 · vanity address",
+      "evidence": "official",
+      "live": true,
+      "description": "A BitcoinTalk member (u=44573) whose vanity address begins with his handle; he published it in his signature.",
+      "extra": "The address is self-disclosed in the BitcoinTalk profile signature of this account, so ownership rests on the account's own claim; the person behind the handle is not publicly identified.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1DiThiTXZpNmmoGF2dTfSku3EWGsWHCjwt",
+          "label": "Self-disclosed signature address",
+          "sats": 1000,
+          "source": "https://chainquery.com/address/1DiThiTXZpNmmoGF2dTfSku3EWGsWHCjwt",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
       "id": "babylon",
       "name": "Babylon",
       "category": "CORP",
@@ -19302,6 +19816,29 @@ var ENTITIES = {
           "label": "Public address",
           "sats": 546,
           "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 546
+    },
+    {
+      "id": "jeff-garzik",
+      "name": "Jeff Garzik",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "jgarzik · BitcoinTalk u=541",
+      "evidence": "official",
+      "live": true,
+      "description": "One of Bitcoin Core's earliest contributors and a long-time Linux kernel hacker, on BitcoinTalk as jgarzik (u=541). The address is the donation address he published in his signature.",
+      "extra": "jgarzik was among Bitcoin Core's first maintainers and later co-founded Bloq. He is the one who paid 10,000 BTC for puddinpop's miner to be open-sourced.",
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1BrufViLKnSWtuWGkryPsKsxonV2NQ7Tcj",
+          "label": "Self-disclosed donation address",
+          "sats": 546,
+          "source": "https://chainquery.com/address/1BrufViLKnSWtuWGkryPsKsxonV2NQ7Tcj",
           "note": "",
           "live": true
         }
@@ -21372,7 +21909,6 @@ var ENTITIES = {
     var PRICE_TTL = 5 * 60 * 1000;
     var LIVE_TTL = 7 * 60 * 1000;      // the clustering engine's own cache window
     var WATCH_MAX = 20;
-    var RANK_CAP = 100;                // each tab shows at most this many ranked entities
     var SWEEP_TOP = 30;                // background balance refresh covers the top N entities
     var ADDR_CAP = 250;                // addresses one entity may carry
     var MAX_SUPPLY = 2099999997690000; // 20,999,999.9769 BTC: the halving subsidy summed to its last satoshi
@@ -21884,14 +22420,13 @@ var ENTITIES = {
        printed beside them — highest first, and only the entities that hold something: an
        entity whose tracked total is 0 sats (all of its coins were sold, or the seizure was
        liquidated) has no place in a ranking of holders, so it is left out rather than shown
-       at #87 with a zero. Each tab ranks its own field, and no tab lists more than RANK_CAP
-       rows, so #1..#100 is the whole of a tab even when the table behind it is larger. */
+       at #87 with a zero. Each tab ranks its own field in full: every entity that holds
+       something is listed, so the list carries the whole table rather than a cut of it. */
     function rankList(cat) {
       var l = list().filter(function (e) {
         return heldOf(e) > 0 && (cat === 'ALL' || e.category === cat);
       });
       l.sort(function (a, b) { return heldOf(b) - heldOf(a) || (a.name < b.name ? -1 : 1); });
-      if (l.length > RANK_CAP) l = l.slice(0, RANK_CAP);
       return l.map(function (e, i) { return { e: e, rank: i + 1 }; });
     }
     function ranked() { return rankList('ALL'); }
@@ -22093,7 +22628,7 @@ var ENTITIES = {
     function addrRowHTML(a) {
       var st = ES.live[ES.open], row = st && st.addrs[a.address];
       var limit = st && st.rate && !row ? 'rate limited' : '';
-      var bal = row && sats(row.sats) !== null ? row.sats : a.sats;
+      var bal = addrBal(a);
       var src = row ? (row.src === 'live' ? 'live' : 'cached') : (limit || (a.live ? 'verified ' + shortDate(ES.at) : 'static'));
       var cls = row ? (row.src === 'live' ? 'live' : 'cache') : (a.live ? 'seed' : 'static');
       return '<div class="arow">' +
@@ -22107,6 +22642,26 @@ var ENTITIES = {
         (a.note ? '<div class="anote">' + esc(a.note) + '</div>' : '') +
         (ES.txOpen === a.address ? '<div class="wtx">' + txHTML(a.address) + '</div>' : '') +
       '</div>';
+    }
+    /* The balance a card prints for one address: the live read if the card has one, or the
+       verified seed figure. An address that holds nothing is left off the card's list — a
+       zero row is noise, and dozens of entities carry one (Bitfinex alone lists 119 spent
+       addresses) — unless the reader put that address on the watchlist, which keeps it. */
+    function addrBal(a) {
+      var st = ES.live[ES.open], row = st && st.addrs[a.address];
+      return (row && sats(row.sats) !== null) ? row.sats : a.sats;
+    }
+    function isWatched(addr) {
+      for (var i = 0; i < ES.watch.length; i++) if (ES.watch[i].address === addr) return true;
+      return false;
+    }
+    function shownAddrs(e) {
+      var out = [], empty = 0;
+      for (var i = 0; i < e.addresses.length; i++) {
+        var a = e.addresses[i];
+        if (addrBal(a) > 0 || isWatched(a.address)) out.push(a); else empty++;
+      }
+      return { list: out, empty: empty };
     }
     function sourceHost(u) {
       var m = String(u || '').match(/^https?:\/\/([^\/]+)/i);
@@ -22213,7 +22768,8 @@ var ENTITIES = {
     function detailHTML(e) {
       var b = balanceOf(e), st = ES.live[e.id], o = estOf(e);
       var held = b.sats + o.sats;
-      var addrs = e.addresses.map(addrRowHTML).join('');
+      var shown = shownAddrs(e);
+      var addrs = shown.list.map(addrRowHTML).join('');
       var rank = rankOf(e.id);
       var scope = e.category === 'ALL' ? '' : ' · ' + esc(CAT_LABEL[e.category] || e.category);
       return '<div class="det">' +
@@ -22240,8 +22796,15 @@ var ENTITIES = {
         '<div class="dnote">' + esc(priceNote()) + ' · the held figure is the sum of the addresses listed below plus the estimates named beside it, not the entity\'s whole holding.</div>' +
         (e.extra ? '<div class="dextra"><b>Note</b> ' + esc(e.extra) + '</div>' : '') +
         (e.est && e.est.note ? '<div class="dextra"><b>' + esc(e.est.label) + '</b> ' + esc(e.est.note) + '</div>' : '') +
-        '<div class="dsec"><span>PUBLIC ADDRESSES</span><span>' + e.addresses.length + ' · ' + esc(EVIDENCE[e.evidence]) + '</span></div>' +
+        (st && st.rate
+          ? '<div class="anote">rate limited · the mirror refused the reads; every figure below is the verified seed as of ' + esc(shortDate(ES.at)) + '</div>'
+          : '') +
+        '<div class="dsec"><span>PUBLIC ADDRESSES</span><span>' + shown.list.length + ' of ' + e.addresses.length + ' · ' + esc(EVIDENCE[e.evidence]) + '</span></div>' +
         addrs +
+        (shown.empty
+          ? '<div class="anote">' + fmtInt(shown.empty) + ' empty ' + plural(shown.empty, 'address', 'addresses') +
+            ' omitted · read balance 0 BTC</div>'
+          : '') +
         '<div class="dsec"><span>CLUSTERING</span><span>on demand · docs/cluster-api.md</span></div>' +
         clusterHTML() +
         '<div class="dsec"><span>SOURCE</span><span>' + esc(e.id) + '</span></div>' +
@@ -22354,7 +22917,7 @@ var ENTITIES = {
 
     /* The dashboard that fills the globe's place on this tab while the sheet is closed:
        supply, what the table can see of it, and the four categories. No ranking here — the
-       full Top 100 is one press of the + button away. */
+       full ranking is one press of the + button away. */
     function dashHTML() {
       var s = supplyNow(), t = trackedSats(), cat = catTotals();
       /* The hero figure is what the tab ranks on, so it carries the Patoshi estimate the
@@ -22415,7 +22978,8 @@ var ENTITIES = {
       }
       var list0 = filtered();
       var rows = list0.map(rowHTML).join('');
-      var head = '<div class="lhead"><span>' + esc(CAT_LABEL[ES.filter] || ES.filter) + ' · TOP ' + Math.min(RANK_CAP, list0.length) +
+      var head = '<div class="lhead"><span>' + esc(String(CAT_LABEL[ES.filter] || ES.filter).toUpperCase()) + ' · ' +
+        fmtInt(list0.length) + ' ' + plural(list0.length, 'ENTITY', 'ENTITIES') +
         '</span><span>' + (zeroCount() ? zeroCount() + ' at 0 BTC not ranked · ' : '') +
         (sweepTopState.state === 'loading' ? 'reading ' + sweepTopState.done + ' / ' + sweepTopState.total
           : sweepTopState.rate ? 'rate limited' : 'seeded · ' + shortDate(ES.at)) + '</span>' +
@@ -22744,7 +23308,7 @@ var ENTITIES = {
       heldOf: heldOf, estOf: estOf, runEstimate: runEstimate, heldBreakdown: heldBreakdown,
       addrCount: addrCount, entityOfAddress: entityOfAddress,
       rankOf: rankOf, zeroCount: zeroCount, heldCount: heldCount, fmtEnt: fmtEnt, minedSats: minedSats,
-      supplyNow: supplyNow, dashHTML: dashHTML, rankCap: RANK_CAP, sweepTopState: function () { return sweepTopState; },
+      supplyNow: supplyNow, dashHTML: dashHTML, sweepTopState: function () { return sweepTopState; },
       state: ES, cats: CATS, remoteUrl: REMOTE_URL
     };
   })();

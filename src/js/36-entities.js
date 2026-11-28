@@ -42,7 +42,6 @@
     var PRICE_TTL = 5 * 60 * 1000;
     var LIVE_TTL = 7 * 60 * 1000;      // the clustering engine's own cache window
     var WATCH_MAX = 20;
-    var RANK_CAP = 100;                // each tab shows at most this many ranked entities
     var SWEEP_TOP = 30;                // background balance refresh covers the top N entities
     var ADDR_CAP = 250;                // addresses one entity may carry
     var MAX_SUPPLY = 2099999997690000; // 20,999,999.9769 BTC: the halving subsidy summed to its last satoshi
@@ -554,14 +553,13 @@
        printed beside them — highest first, and only the entities that hold something: an
        entity whose tracked total is 0 sats (all of its coins were sold, or the seizure was
        liquidated) has no place in a ranking of holders, so it is left out rather than shown
-       at #87 with a zero. Each tab ranks its own field, and no tab lists more than RANK_CAP
-       rows, so #1..#100 is the whole of a tab even when the table behind it is larger. */
+       at #87 with a zero. Each tab ranks its own field in full: every entity that holds
+       something is listed, so the list carries the whole table rather than a cut of it. */
     function rankList(cat) {
       var l = list().filter(function (e) {
         return heldOf(e) > 0 && (cat === 'ALL' || e.category === cat);
       });
       l.sort(function (a, b) { return heldOf(b) - heldOf(a) || (a.name < b.name ? -1 : 1); });
-      if (l.length > RANK_CAP) l = l.slice(0, RANK_CAP);
       return l.map(function (e, i) { return { e: e, rank: i + 1 }; });
     }
     function ranked() { return rankList('ALL'); }
@@ -763,7 +761,7 @@
     function addrRowHTML(a) {
       var st = ES.live[ES.open], row = st && st.addrs[a.address];
       var limit = st && st.rate && !row ? 'rate limited' : '';
-      var bal = row && sats(row.sats) !== null ? row.sats : a.sats;
+      var bal = addrBal(a);
       var src = row ? (row.src === 'live' ? 'live' : 'cached') : (limit || (a.live ? 'verified ' + shortDate(ES.at) : 'static'));
       var cls = row ? (row.src === 'live' ? 'live' : 'cache') : (a.live ? 'seed' : 'static');
       return '<div class="arow">' +
@@ -777,6 +775,26 @@
         (a.note ? '<div class="anote">' + esc(a.note) + '</div>' : '') +
         (ES.txOpen === a.address ? '<div class="wtx">' + txHTML(a.address) + '</div>' : '') +
       '</div>';
+    }
+    /* The balance a card prints for one address: the live read if the card has one, or the
+       verified seed figure. An address that holds nothing is left off the card's list — a
+       zero row is noise, and dozens of entities carry one (Bitfinex alone lists 119 spent
+       addresses) — unless the reader put that address on the watchlist, which keeps it. */
+    function addrBal(a) {
+      var st = ES.live[ES.open], row = st && st.addrs[a.address];
+      return (row && sats(row.sats) !== null) ? row.sats : a.sats;
+    }
+    function isWatched(addr) {
+      for (var i = 0; i < ES.watch.length; i++) if (ES.watch[i].address === addr) return true;
+      return false;
+    }
+    function shownAddrs(e) {
+      var out = [], empty = 0;
+      for (var i = 0; i < e.addresses.length; i++) {
+        var a = e.addresses[i];
+        if (addrBal(a) > 0 || isWatched(a.address)) out.push(a); else empty++;
+      }
+      return { list: out, empty: empty };
     }
     function sourceHost(u) {
       var m = String(u || '').match(/^https?:\/\/([^\/]+)/i);
@@ -883,7 +901,8 @@
     function detailHTML(e) {
       var b = balanceOf(e), st = ES.live[e.id], o = estOf(e);
       var held = b.sats + o.sats;
-      var addrs = e.addresses.map(addrRowHTML).join('');
+      var shown = shownAddrs(e);
+      var addrs = shown.list.map(addrRowHTML).join('');
       var rank = rankOf(e.id);
       var scope = e.category === 'ALL' ? '' : ' · ' + esc(CAT_LABEL[e.category] || e.category);
       return '<div class="det">' +
@@ -910,8 +929,15 @@
         '<div class="dnote">' + esc(priceNote()) + ' · the held figure is the sum of the addresses listed below plus the estimates named beside it, not the entity\'s whole holding.</div>' +
         (e.extra ? '<div class="dextra"><b>Note</b> ' + esc(e.extra) + '</div>' : '') +
         (e.est && e.est.note ? '<div class="dextra"><b>' + esc(e.est.label) + '</b> ' + esc(e.est.note) + '</div>' : '') +
-        '<div class="dsec"><span>PUBLIC ADDRESSES</span><span>' + e.addresses.length + ' · ' + esc(EVIDENCE[e.evidence]) + '</span></div>' +
+        (st && st.rate
+          ? '<div class="anote">rate limited · the mirror refused the reads; every figure below is the verified seed as of ' + esc(shortDate(ES.at)) + '</div>'
+          : '') +
+        '<div class="dsec"><span>PUBLIC ADDRESSES</span><span>' + shown.list.length + ' of ' + e.addresses.length + ' · ' + esc(EVIDENCE[e.evidence]) + '</span></div>' +
         addrs +
+        (shown.empty
+          ? '<div class="anote">' + fmtInt(shown.empty) + ' empty ' + plural(shown.empty, 'address', 'addresses') +
+            ' omitted · read balance 0 BTC</div>'
+          : '') +
         '<div class="dsec"><span>CLUSTERING</span><span>on demand · docs/cluster-api.md</span></div>' +
         clusterHTML() +
         '<div class="dsec"><span>SOURCE</span><span>' + esc(e.id) + '</span></div>' +
@@ -1024,7 +1050,7 @@
 
     /* The dashboard that fills the globe's place on this tab while the sheet is closed:
        supply, what the table can see of it, and the four categories. No ranking here — the
-       full Top 100 is one press of the + button away. */
+       full ranking is one press of the + button away. */
     function dashHTML() {
       var s = supplyNow(), t = trackedSats(), cat = catTotals();
       /* The hero figure is what the tab ranks on, so it carries the Patoshi estimate the
@@ -1085,7 +1111,8 @@
       }
       var list0 = filtered();
       var rows = list0.map(rowHTML).join('');
-      var head = '<div class="lhead"><span>' + esc(CAT_LABEL[ES.filter] || ES.filter) + ' · TOP ' + Math.min(RANK_CAP, list0.length) +
+      var head = '<div class="lhead"><span>' + esc(String(CAT_LABEL[ES.filter] || ES.filter).toUpperCase()) + ' · ' +
+        fmtInt(list0.length) + ' ' + plural(list0.length, 'ENTITY', 'ENTITIES') +
         '</span><span>' + (zeroCount() ? zeroCount() + ' at 0 BTC not ranked · ' : '') +
         (sweepTopState.state === 'loading' ? 'reading ' + sweepTopState.done + ' / ' + sweepTopState.total
           : sweepTopState.rate ? 'rate limited' : 'seeded · ' + shortDate(ES.at)) + '</span>' +
@@ -1414,7 +1441,7 @@
       heldOf: heldOf, estOf: estOf, runEstimate: runEstimate, heldBreakdown: heldBreakdown,
       addrCount: addrCount, entityOfAddress: entityOfAddress,
       rankOf: rankOf, zeroCount: zeroCount, heldCount: heldCount, fmtEnt: fmtEnt, minedSats: minedSats,
-      supplyNow: supplyNow, dashHTML: dashHTML, rankCap: RANK_CAP, sweepTopState: function () { return sweepTopState; },
+      supplyNow: supplyNow, dashHTML: dashHTML, sweepTopState: function () { return sweepTopState; },
       state: ES, cats: CATS, remoteUrl: REMOTE_URL
     };
   })();
