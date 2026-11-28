@@ -504,6 +504,9 @@ body.ln .toast{background:rgba(18,14,44,.94)}
    --ac, so switching to ENTITIES changes the panel, not the whole app. */
 body.ent{--ec:0,229,255;--ec2:59,130,246}
 .metrics #vEBtc,.metrics #vECount,.metrics #vEAddr{color:#a8f4ff;text-shadow:0 0 16px rgba(0,229,255,.42),0 0 34px rgba(59,130,246,.30)}
+/* the tracked total is up to eleven characters wide; a step down keeps it inside its
+   third of the HUD on a 360 px screen instead of running into the neighbour */
+#vEBtc{font-size:clamp(15px,4.2vw,24px)}
 
 .ent{
   position:fixed;inset:0;z-index:28;display:none;place-items:center;padding:14px;

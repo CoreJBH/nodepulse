@@ -9,7 +9,7 @@
      computes over the exact bytes it has written, so no 'unsafe-inline' is needed and an
      injected block would have to match a hash that is already in the file. Nothing else
      is allowed: no frames, no forms, no plugins, no workers, no extra hosts. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-MbI2Cdy5pqzedyHpsU/PSj+nIeilJEc/JrZUj9wLcaU=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-oDeYngmr5sy9cT5pwb0prfBn023aYGpnWxIyhnOODs0=' 'sha256-50GNvJrivMhg82YlhUPyzroZ/b3qR83A4wU9ibjFCdA='; style-src 'sha256-JfKowv29NysJEL9RBF+DfIh0plXyI7wKZID5dPjRtuw='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja https://corejbh.github.io wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-MbI2Cdy5pqzedyHpsU/PSj+nIeilJEc/JrZUj9wLcaU=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-oDeYngmr5sy9cT5pwb0prfBn023aYGpnWxIyhnOODs0=' 'sha256-50GNvJrivMhg82YlhUPyzroZ/b3qR83A4wU9ibjFCdA='; style-src 'sha256-sw8oTpnI7GBvehFaur//RI6BrZ9ru0SCwSdWHAtvCqs='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja https://corejbh.github.io wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
 <meta name="theme-color" content="#040914">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="NodePulse — live monitoring of the Bitcoin L1 mainnet. Shows the Bitnodes full-node distribution and mempool.space block, mempool and fee data, and only data an API actually reported.">
@@ -527,6 +527,9 @@ body.ln .toast{background:rgba(18,14,44,.94)}
    --ac, so switching to ENTITIES changes the panel, not the whole app. */
 body.ent{--ec:0,229,255;--ec2:59,130,246}
 .metrics #vEBtc,.metrics #vECount,.metrics #vEAddr{color:#a8f4ff;text-shadow:0 0 16px rgba(0,229,255,.42),0 0 34px rgba(59,130,246,.30)}
+/* the tracked total is up to eleven characters wide; a step down keeps it inside its
+   third of the HUD on a 360 px screen instead of running into the neighbour */
+#vEBtc{font-size:clamp(15px,4.2vw,24px)}
 
 .ent{
   position:fixed;inset:0;z-index:28;display:none;place-items:center;padding:14px;
