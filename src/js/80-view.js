@@ -196,10 +196,12 @@
     noteDirty = true;
     storePref();
     schedulePaint();
-    /* Switching to ENTITIES opens the sheet with the table; leaving closes it, so the
-       globe is not left behind an overlay the tab no longer owns. */
+    /* Entering ENTITIES lands on the dashboard, not on the sheet: the tab's own screen is
+       the supply split and the category cards, and the ranking opens from the + button or
+       from a category card. Leaving the tab closes the sheet, so the globe is not left
+       behind an overlay the tab no longer owns. */
     if (typeof Ent !== 'undefined' && Ent) {
-      if (layer === 'entities') Ent.open(); else Ent.close();
+      if (layer === 'entities') Ent.showDash(); else Ent.close();
     }
   }
 

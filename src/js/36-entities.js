@@ -603,6 +603,9 @@
         d = '<path d="M3.4 20.2V9.4h8.2v10.8M11.6 20.2V4.6h9V20.2"></path><path d="M6 12.2h2.2M6 15.4h2.2M14.4 8h3M14.4 11.4h3M14.4 14.8h3"></path>';
       } else if (kind === 'gov') {
         d = '<path d="M3 20.4h18M4.6 20.4V10M19.4 20.4V10M12 3.4 3 9.6h18L12 3.4Z"></path><path d="M8.4 20.4v-7M12 20.4v-7M15.6 20.4v-7"></path>';
+      } else if (kind === 'dots') {
+        d = '<circle cx="12" cy="12" r="8.6"></circle><circle cx="8.5" cy="12" r=".85"></circle>' +
+            '<circle cx="12" cy="12" r=".85"></circle><circle cx="15.5" cy="12" r=".85"></circle>';
       } else if (kind === 'hacker') {
         d = '<path d="M12 3.2c-4.9 0-8.2 3.5-8.2 8.1 0 3.4 1.4 5.4 2.6 6.5l.5 2.9h10.2l.5-2.9c1.2-1.1 2.6-3.1 2.6-6.5 0-4.6-3.3-8.1-8.2-8.1Z"></path>' +
             '<path d="M7.6 11.6h3.2M13.2 11.6h3.2"></path><path d="M9.4 16.4c1.6.9 3.6.9 5.2 0"></path>';
@@ -1022,17 +1025,6 @@
       return p >= 10 ? p.toFixed(1) : p >= 1 ? p.toFixed(2) : p.toFixed(3);
     }
 
-    /* A bar's width is a class, not a style attribute: the page's CSP allows no inline
-       style, and build.py refuses a block that carries one. Five-percent steps.
-       `min` keeps a non-zero share visible as at least one step. */
-    function barWidth(share, min) {
-      var p = num(share) ? share : 0;
-      var step = Math.round(p / 5) * 5;
-      if (step < 5 && p > 0 && min) step = 5;
-      step = Math.max(0, Math.min(100, step));
-      return 'w' + step;
-    }
-
     function catTotals() {
       var out = {};
       CATS.forEach(function (c) { if (c !== 'ALL') out[c] = { sats: 0, n: 0, ranked: 0 }; });
@@ -1048,59 +1040,176 @@
       return out;
     }
 
-    /* The dashboard that fills the globe's place on this tab while the sheet is closed:
-       supply, what the table can see of it, and the four categories. No ranking here — the
-       full ranking is one press of the + button away. */
-    function dashHTML() {
-      var s = supplyNow(), t = trackedSats(), cat = catTotals();
-      /* The hero figure is what the tab ranks on, so it carries the Patoshi estimate the
-         same way the cards and the sheet subline do. When an estimate is inside it, the
-         label says so and a line splits the two halves, so the number is never read as
-         chain-verified on its own. */
-      var est = 0, l = list();
-      for (var i = 0; i < l.length; i++) est += estOf(l[i]).sats;
-      var bars = CATS.filter(function (c) { return c !== 'ALL'; }).map(function (c) {
-        var x = cat[c], share = t > 0 ? x.sats / t * 100 : 0;
-        return '<div class="drow"><span class="dn">' + esc(CAT_LABEL[c]) + '</span>' +
-          '<span class="dbar"><i class="' + c.toLowerCase() + ' ' + barWidth(share) + '"></i></span>' +
-          '<span class="dv">' + esc(fmtEnt(x.sats)) + ' BTC · ' + esc(pct(x.sats, t)) + '%</span>' +
-          '<span class="dc">' + x.ranked + ' / ' + x.n + ' ranked</span></div>';
-      }).join('');
-      var mined = s.mined, priv = s.private;
-      var stack = mined === null ? '<div class="dsub2">waiting for the first block</div>' :
-        '<div class="dstack">' +
-          '<i class="tk ' + barWidth(s.tracked / s.max * 100, 1) + '"></i>' +
-          '<i class="pv ' + barWidth(priv / s.max * 100, 1) + '"></i>' +
-          '<i class="un ' + barWidth(s.unmined / s.max * 100, 1) + '"></i>' +
-        '</div>';
-      return '<div class="dhead2"><span>ENTITY SUMMARY</span><span>' + (s.height ? 'BLOCK #' + fmtInt(s.height) : '—') + '</span></div>' +
-        '<div class="dhero">' +
-          '<div class="dl">TRACKED ENTITIES' + (est > 0 ? ' + EST.' : '') + '</div>' +
-          '<div class="dbig">' + esc(fmtEnt(t)) + '<span>BTC</span></div>' +
-          '<div class="dsub2">' + esc(fmtUsd(usd(t))) + ' · ' + esc(pct(t, s.max)) + '% of the 20,999,999.977 BTC cap</div>' +
-          (est > 0 ? '<div class="dsub2">' + esc('Est. ' + fmtBtcShort(est) + ' BTC + verified ' + fmtEnt(t - est) + ' BTC') + '</div>' : '') +
-        '</div>' +
-        '<div class="dsupply">' +
-          '<div class="drow"><span class="dn">Mined supply</span><span class="dv">' + (mined === null ? '—' : esc(fmtEnt(mined)) + ' BTC') + '</span><span class="dc">' + (mined === null ? '' : esc(pct(mined, s.max)) + '% of 21M') + '</span></div>' +
-          '<div class="drow"><span class="dn">Unmined</span><span class="dv">' + (s.unmined === null ? '—' : esc(fmtEnt(s.unmined)) + ' BTC') + '</span><span class="dc">~2140 complete · cap ' + esc(fmtEnt(s.max)) + '</span></div>' +
-          '<div class="drow"><span class="dn">Tracked entities</span><span class="dv">' + esc(fmtEnt(t)) + ' BTC</span><span class="dc">' + esc(pct(t, mined)) + '% of mined</span></div>' +
-          '<div class="drow"><span class="dn">Private / untracked</span><span class="dv">' + (priv === null ? '—' : esc(fmtEnt(priv)) + ' BTC') + '</span><span class="dc">' + (priv === null ? '' : esc(pct(priv, mined)) + '% of mined') + '</span></div>' +
-          stack + '</div>' +
-        '<div class="dhead2"><span>BY CATEGORY</span><span>' + heldCount() + ' holders · ' + zeroCount() + ' at 0 BTC</span></div>' +
-        bars +
-        '<div class="dfoot2">Every figure is an address read from mempool.space at the time on the card; the supply line follows the live block height.</div>';
+    /* ------------------------------------------------------------ dashboard */
+    /* The ENTITIES layer draws no point on the globe, so the tab lands on the supply split
+       and the four category cards, and the ranking sheet is behind the + button. The panel
+       is drawn as soon as the layer is active — under the sheet, not after it — because a
+       dashboard that starts drawing when the sheet closes is a stutter the eye reads as
+       lag, while one that is already there is simply revealed.
+
+       Every figure below comes from the same functions the cards and the HUD use: the cap
+       from the protocol's own subsidy maths, the split from S.tip, the entities from the
+       table. Nothing here is a constant except the year the last subsidy stops (2140) and
+       the colours of the design. */
+    /* The category cards carry the icon that reads the category at a glance: a person, a
+       building, a state house, and three dots for everything else (the mask an entity's
+       own row keeps is a different thing and is not reused here). */
+    var CAT_ICON = { PERSON: 'person', CORP: 'corp', GOV: 'gov', OTHER: 'dots' };
+
+    /* The block subsidy in force at a height: 50 BTC halved once per 210,000 blocks, in
+       whole satoshis like the protocol counts it. The card's `[ +3.125 / BLK ]` badge is
+       this number, so it moves by itself at a halving instead of being written in. */
+    function subsidySats(height) {
+      if (!num(height) || height < 0) return null;
+      var epoch = Math.floor(height / SUBSIDY_EPOCH);
+      if (epoch > 33) return 0;
+      return Math.floor(5000000000 / Math.pow(2, epoch));
     }
 
+    /* A stacked bar's segments as 5 % width classes (the CSP allows no inline style).
+       Rounding each share on its own can leave the row at 95 % or push it past 100 %, which
+       shows as a gap at the end or as segments the flex row quietly shrinks; the largest
+       segment carries the difference so the bar always spans exactly its track. */
+    function stackSteps(shares) {
+      var steps = [], sum = 0, i;
+      for (i = 0; i < shares.length; i++) {
+        var p = num(shares[i]) ? shares[i] : 0;
+        var st = Math.round(p / 5) * 5;
+        if (st < 5 && p > 0) st = 5;
+        st = Math.max(0, Math.min(100, st));
+        steps.push(st); sum += st;
+      }
+      if (!sum) return steps;
+      if (sum !== 100) {
+        var at = 0;
+        for (i = 1; i < steps.length; i++) if (steps[i] > steps[at]) at = i;
+        steps[at] = Math.max(0, Math.min(100, steps[at] + (100 - sum)));
+      }
+      return steps;
+    }
+
+    /* The dashboard prints every BTC figure to exactly three decimals, the way the design
+       writes them ("20,118,543.750 BTC"): fmtEnt drops a trailing zero because a row in a
+       ranking has no column to align to, while these figures sit under each other and are
+       read as one table. The sats are whole, so the third decimal is exact. */
+    function fmtDash(v) {
+      if (!num(v)) return '—';
+      var b = v / 1e8;
+      var s = Math.abs(b).toFixed(3);
+      var parts = s.split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return (b < 0 ? '−' : '') + parts.join('.');
+    }
+
+    function supplyCardHTML(s, t, est) {
+      var mined = s.mined, priv = s.private, unmined = s.unmined;
+      var steps = stackSteps([
+        s.max ? s.tracked / s.max * 100 : 0,
+        s.max && num(priv) ? priv / s.max * 100 : 0,
+        s.max && num(unmined) ? unmined / s.max * 100 : 0
+      ]);
+      var sub = subsidySats(s.height);
+      var usdT = usd(t);
+      var stack = '<div class="dstack3">' +
+        '<i class="tk w' + steps[0] + '"></i>' +
+        '<i class="pv w' + steps[1] + '"></i>' +
+        '<i class="un w' + steps[2] + '"></i>' +
+      '</div>';
+      return '<div class="dcard supply">' +
+        '<div class="dtitle">' + esc(fmtDash(s.max)) + ' BTC SUPPLY</div>' +
+        stack +
+        '<div class="dlegend">' +
+          '<span><i class="sw tk"></i>Tracked Entities</span>' +
+          '<span><i class="sw pv"></i>Private/Untracked</span>' +
+          '<span><i class="sw un"></i>Unmined</span>' +
+        '</div>' +
+        '<div class="drows">' +
+          '<span class="dk">MINED<em>' + (num(s.height) ? ' (BLK ' + fmtInt(s.height) + ')' : '') + '</em></span>' +
+          '<span class="dv">' + (mined === null ? '—' : esc(fmtDash(mined)) + ' BTC') + '</span>' +
+          '<span class="dt"><b class="dbd">' + (sub === null ? '—' : '+' + esc(fmtEnt(sub)) + ' / BLK') + '</b></span>' +
+          '<span class="dk">UNMINED<em> (2140)</em></span>' +
+          '<span class="dv">' + (unmined === null ? '—' : esc(fmtDash(unmined)) + ' BTC') + '</span>' +
+          '<span class="dt pc">' + (unmined === null || mined === null ? '—' : esc(pct(unmined, mined)) + '%') +
+            '<i>of mined</i></span>' +
+        '</div>' +
+        '<div class="dcols">' +
+          '<div><span class="dk">TRACKED ENTITIES' + (est > 0 ? ' (+ EST.)' : '') + '</span>' +
+            '<b>' + esc(fmtDash(t)) + ' BTC</b>' +
+            '<span class="dsm">' + (mined === null ? '—' : esc(pct(t, mined)) + '% of mined') +
+              (usdT === null ? '' : ' · ' + esc(fmtUsd(usdT))) + '</span></div>' +
+          '<div><span class="dk">PRIVATE / UNTRACKED</span>' +
+            '<b>' + (priv === null ? '—' : esc(fmtDash(priv)) + ' BTC') + '</b>' +
+            '<span class="dsm">' + (priv === null || mined === null ? '—' : esc(pct(priv, mined)) + '% of mined') + '</span></div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    function categoryCardHTML(t, cat) {
+      var cats = ['PERSON', 'CORP', 'GOV', 'OTHER'];
+      var shares = cats.map(function (c) { return t > 0 ? cat[c].sats / t * 100 : 0; });
+      var steps = stackSteps(shares);
+      var stack = '<div class="dstack4">' + cats.map(function (c, i) {
+        return '<i class="' + c.toLowerCase() + ' w' + steps[i] + '"></i>';
+      }).join('') + '</div>';
+      var cards = cats.map(function (c) {
+        var x = cat[c];
+        return '<div class="dmini ' + c.toLowerCase() + '" data-act="catopen" data-id="' + c + '" role="button" tabindex="0" ' +
+            'aria-label="Open the ' + esc(CAT_LABEL[c]) + ' ranking">' +
+          '<span class="dmico">' + icon(CAT_ICON[c]) + '</span>' +
+          '<span class="dmbody">' +
+            '<span class="dmname">' + esc(c) + '</span>' +
+            '<span class="dmpct">' + (t > 0 ? esc(pct(x.sats, t)) + '%' : '—') + '</span>' +
+            '<span class="dmbtc">' + esc(fmtDash(x.sats)) + ' BTC</span>' +
+            '<span class="dmcnt">' + fmtInt(x.n) + ' ' + plural(x.n, 'entity', 'entities') + '</span>' +
+          '</span>' +
+        '</div>';
+      }).join('');
+      return '<div class="dcard cats">' +
+        '<div class="dtitle">SHARE BY CATEGORY</div>' +
+        stack +
+        '<div class="dgrid">' + cards + '</div>' +
+      '</div>';
+    }
+
+    function dashHTML() {
+      var s = supplyNow(), t = trackedSats(), cat = catTotals();
+      var est = 0, l = list();
+      for (var i = 0; i < l.length; i++) est += estOf(l[i]).sats;
+      return supplyCardHTML(s, t, est) + categoryCardHTML(t, cat);
+    }
+
+    /* The panel is on screen for the whole time the tab is active — the sheet is drawn over
+       it, not instead of it — so closing the sheet reveals a figure that is already
+       rendered and never a panel that starts drawing at that moment. */
     function paintDash() {
       var el = $('entDash');
       if (!el) return;
-      var show = (typeof S !== 'undefined' && S && S.layer === 'entities') && !isOpen() && !ES.open;
-      var html = show ? dashHTML() : '';
+      var show = !!(typeof S !== 'undefined' && S && S.layer === 'entities');
       if (el.getAttribute('data-h') !== String(show)) {
         el.setAttribute('data-h', String(show));
         el.style.display = show ? 'block' : 'none';
       }
-      if (show) setHTML('entDash', html);
+      if (!show) return;
+      /* A balance arriving rebuilds the panel, which replaces the node a keyboard or a
+         screen reader was standing on. Whatever had focus inside the panel is put back on
+         the card that carries the same act, so a sweep in the background does not pull the
+         focus out of the reader's hands. */
+      var keep = focusedAct(el);
+      setHTML('entDash', dashHTML());
+      restoreAct(el, keep);
+    }
+    function focusedAct(root) {
+      var a = null;
+      try { a = typeof document !== 'undefined' ? document.activeElement : null; } catch (e) { }
+      if (!a || !a.getAttribute || !root.contains || !root.contains(a)) return null;
+      if (!a.getAttribute('data-act')) return null;
+      return { act: a.getAttribute('data-act'), id: a.getAttribute('data-id') || '' };
+    }
+    function restoreAct(root, k) {
+      if (!k || !root.querySelector) return;
+      var q = null;
+      try { q = root.querySelector('[data-act="' + k.act + '"][data-id="' + k.id + '"]'); } catch (e) { }
+      if (q && q.focus) { try { q.focus(); } catch (e) { } }
     }
 
     function bodyHTML() {
@@ -1204,6 +1313,32 @@
       el.classList.remove('on');
       ES.open = ''; ES.txOpen = '';
       Globe.hold(false);
+      syncBack();
+      /* The dashboard is already painted underneath, so nothing has to be drawn here: the
+         panel is on screen the same frame the sheet leaves it. */
+      paintDash();
+      return true;
+    }
+    /* The tab's landing screen: the dashboard, with the sheet closed. Tab switching calls
+       this rather than open(), because a sheet that opens itself on every tab press hides
+       the one screen the tab is for. */
+    function showDash() {
+      var el = $('ent');
+      if (el && el.classList.contains('on')) close();
+      ES.open = ''; ES.txOpen = '';
+      paintQueued = false;
+      entPaintNow(true);
+      syncBack();
+      return true;
+    }
+    /* A category card opens the ranking already narrowed to that category. Only a press
+       does this; entering the tab never does. */
+    function openCategory(c) {
+      if (!isCat(c)) return null;
+      ES.filter = c; ES.open = ''; ES.txOpen = '';
+      var el = $('ent');
+      if (el && !el.classList.contains('on')) open();
+      flush();
       syncBack();
       return true;
     }
@@ -1349,6 +1484,7 @@
       if (!a) return;
       if (a.act === 'filter') return setFilter(a.id);
       if (a.act === 'open') return openEntity(a.id);
+      if (a.act === 'catopen') return openCategory(a.id);
       if (a.act === 'refresh') return sweepTop(true);
       if (a.act === 'back') return back();
       if (a.act === 'close') return close();
@@ -1367,22 +1503,29 @@
       return null;
     }
 
+    /* The sheet and the dashboard are two elements that carry acts, so both get the one
+       delegated listener. The cards on the dashboard are `div role="button"` (a real
+       button would bring its own font and padding in every engine), so Enter and Space
+       open them the way a button would. */
+    function bindActs(el) {
+      if (!el || el._entBound) return;
+      el._entBound = true;
+      el.addEventListener('click', function (e) {
+        var a = actOf(e.target, el);
+        if (!a) return;
+        if (e.preventDefault) e.preventDefault();
+        onAct(a);
+      });
+      el.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        var a = actOf(e.target, el);
+        if (a && (a.act === 'open' || a.act === 'filter' || a.act === 'catopen')) { if (e.preventDefault) e.preventDefault(); onAct(a); }
+      });
+    }
+
     function bind() {
-      var sheet = $('ent');
-      if (sheet && !sheet._entBound) {
-        sheet._entBound = true;
-        sheet.addEventListener('click', function (e) {
-          var a = actOf(e.target, sheet);
-          if (!a) return;
-          if (e.preventDefault) e.preventDefault();
-          onAct(a);
-        });
-        sheet.addEventListener('keydown', function (e) {
-          if (e.key !== 'Enter' && e.key !== ' ') return;
-          var a = actOf(e.target, sheet);
-          if (a && (a.act === 'open' || a.act === 'filter')) { if (e.preventDefault) e.preventDefault(); onAct(a); }
-        });
-      }
+      bindActs($('ent'));
+      bindActs($('entDash'));
     }
 
     /* ------------------------------------------------------------------ boot */
@@ -1434,14 +1577,16 @@
     return {
       init: init, paint: paintEntities, open: open, close: close, back: back, depth: depth,
       isOpen: isOpen, setFilter: setFilter, openEntity: openEntity, analyze: analyze, cancel: cancel,
+      showDash: showDash, openCategory: openCategory,
       sweep: sweep, sweepTop: sweepTop, readTxs: readTxs, loadPrice: loadPrice, remote: remote,
       watchAdd: watchAdd, watchDel: watchDel, toggleTx: toggleTx, act: onAct,
       usd: usd, fmtUsd: fmtUsd, ranked: ranked, filtered: filtered, byId: byId,
       balanceOf: balanceOf, liveState: liveState, trackedSats: trackedSats,
       heldOf: heldOf, estOf: estOf, runEstimate: runEstimate, heldBreakdown: heldBreakdown,
       addrCount: addrCount, entityOfAddress: entityOfAddress,
-      rankOf: rankOf, zeroCount: zeroCount, heldCount: heldCount, fmtEnt: fmtEnt, minedSats: minedSats,
-      supplyNow: supplyNow, dashHTML: dashHTML, sweepTopState: function () { return sweepTopState; },
+      rankOf: rankOf, zeroCount: zeroCount, heldCount: heldCount, fmtEnt: fmtEnt, fmtDash: fmtDash, minedSats: minedSats,
+      supplyNow: supplyNow, dashHTML: dashHTML, catTotals: catTotals, subsidySats: subsidySats,
+      stackSteps: stackSteps, sweepTopState: function () { return sweepTopState; },
       state: ES, cats: CATS, remoteUrl: REMOTE_URL
     };
   })();

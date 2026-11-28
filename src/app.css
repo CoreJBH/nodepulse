@@ -715,46 +715,120 @@ body.layer-ent{--ec:0,229,255;--ec2:59,130,246}
   .dbal > div:last-child{grid-column:1 / -1}
 }
 
-/* ---------------- entity dashboard (sheet closed) ----------------
-   The ENTITIES layer draws no point on the globe, so a closed sheet left the middle of the
-   screen empty. This panel fills that space with the one thing the table is for: how much
-   of the 21M cap the tracked entities hold, how the supply splits around it, and what each
-   category contributes. */
+/* ---------------- entity dashboard (the ENTITIES tab's own screen) ----------------
+   The ENTITIES layer draws no point on the globe, so the tab opens on this panel: the
+   supply split, and what each category holds. The ranking is behind the + button (or a
+   category card), and this panel stays drawn under the sheet the whole time the tab is
+   active, so closing the sheet reveals a figure that is already there instead of a panel
+   that begins to draw at that moment.
+
+   Colours: the three segments of the supply bar (bright cyan / deep blue / slate), the
+   four of the category bar (cyan / blue / violet / teal), and the tint of each category
+   card's border. The globe's meridians stay faintly visible behind the panel's scrim,
+   which is the depth the design asks for, so the scrim is translucent on purpose. */
 .ent-dash{
   position:fixed;z-index:9;left:0;right:0;display:none;
-  top:calc(env(safe-area-inset-top,0px) + 116px);
-  bottom:calc(env(safe-area-inset-bottom,0px) + 150px);
-  overflow-y:auto;overscroll-behavior:contain;padding:6px var(--pad) 4px;
+  top:var(--dash-top,124px);
+  bottom:var(--dash-bottom,150px);
+  overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
+  padding:0 10px 2px;
   font-family:var(--mono);color:#bff3ff;
-  /* The globe's meridians run behind this panel, and its grey secondary labels
-     (--dim, --dim2) were reading over the brightest lines. A dark scrim keeps the
-     panel's own contrast independent of what the globe draws underneath it. */
-  background:rgba(6,13,24,.82);
-  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+  background:rgba(5,11,22,.80);
+  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
+  /* Nothing here fades in: the panel is either the tab's screen or it is not. */
+  transition:none;
 }
 body:not(.layer-ent) .ent-dash{display:none !important}
+/* There is nothing on this layer to drag, scroll or pinch: the tab's screen is the panel. */
+body.layer-ent .hint{display:none}
 .ent-dash::-webkit-scrollbar{width:3px}
 .ent-dash::-webkit-scrollbar-thumb{background:rgba(var(--ec),.28);border-radius:3px}
-.ent-dash .dhead2{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
-  font-size:8px;letter-spacing:.18em;color:rgb(var(--ec));margin:4px 0 8px}
-.ent-dash .dhead2 span:last-child{color:var(--dim2);letter-spacing:.06em}
-.ent-dash .dhero{padding:12px 13px;border-radius:14px;border:1px solid rgba(var(--ec),.22);
-  background:linear-gradient(180deg, rgba(var(--ec),.10), rgba(2,10,22,.55));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 0 30px rgba(var(--ec),.10)}
-.ent-dash .dl{font-size:7.5px;letter-spacing:.16em;color:var(--dim)}
-.ent-dash .dbig{font-size:clamp(22px,7.2vw,34px);line-height:1.1;margin-top:5px;color:#a8f4ff;
-  letter-spacing:-.01em;text-shadow:0 0 20px rgba(0,229,255,.35);font-variant-numeric:tabular-nums;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ent-dash .dbig span{font-size:11px;letter-spacing:.12em;color:var(--dim);margin-left:6px}
-.ent-dash .dsub2{font-size:8.5px;color:var(--dim);letter-spacing:.06em;margin-top:5px}
-.ent-dash .dsupply{margin-top:11px;padding:10px 12px;border-radius:12px;
-  border:1px solid rgba(var(--ec),.14);background:rgba(2,10,22,.42)}
-.ent-dash .drow{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:9px;flex-wrap:wrap}
-.ent-dash .dn{color:#cdeefc;min-width:112px;flex:0 0 auto;font-size:9px;letter-spacing:.04em}
-.ent-dash .dv{color:#eafaff;font-variant-numeric:tabular-nums}
-.ent-dash .dc{margin-left:auto;color:var(--dim2);font-size:8px;letter-spacing:.04em}
-.ent-dash .dbar{flex:1 1 auto;min-width:60px;height:5px;border-radius:99px;background:rgba(var(--ec),.10);overflow:hidden}
-.ent-dash .dbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#00e5ff,#3b82f6)}
+
+.ent-dash .dcard{
+  border:1px solid rgba(var(--ec),.26);border-radius:12px;
+  background:linear-gradient(180deg, rgba(9,24,44,.74), rgba(4,12,26,.86));
+  box-shadow:0 0 26px rgba(var(--ec),.07), inset 0 1px 0 rgba(255,255,255,.035);
+  padding:12px 12px 13px;
+}
+.ent-dash .dcard + .dcard{margin-top:10px}
+.ent-dash .dtitle{font-size:13px;letter-spacing:.13em;color:#dceffb;margin:1px 0 11px;white-space:nowrap}
+
+/* the supply split: tracked / private / unmined across the cap */
+.ent-dash .dstack3{display:flex;gap:3px;height:21px}
+.ent-dash .dstack3 i{display:block;height:100%;border-radius:2px;flex:0 0 auto}
+.ent-dash .dstack3 .tk{background:linear-gradient(180deg,#3cd9f8,#1ea6d7);box-shadow:0 0 14px rgba(0,229,255,.30)}
+.ent-dash .dstack3 .pv{background:linear-gradient(180deg,#32548f,#253f6d)}
+.ent-dash .dstack3 .un{background:#3c444e;border:1px solid #5b6672}
+.ent-dash .dlegend{display:flex;gap:13px;flex-wrap:wrap;margin-top:9px;font-size:9px;letter-spacing:.02em;color:#b3cbdd}
+.ent-dash .dlegend span{display:inline-flex;align-items:center;gap:5px}
+.ent-dash .dlegend .sw{width:9px;height:9px;border-radius:2px;display:block;flex:0 0 auto}
+.ent-dash .dlegend .sw.tk{background:#35cdf2}
+.ent-dash .dlegend .sw.pv{background:#2c4c86}
+.ent-dash .dlegend .sw.un{background:#454e59;border:1px solid #6a7481}
+
+/* the figures: one grid, so the value column lines up under itself on both rows */
+.ent-dash .drows{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;
+  column-gap:9px;margin-top:10px;border-top:1px solid rgba(var(--ec),.14);
+}
+.ent-dash .drows > *{padding:10px 0;border-bottom:1px solid rgba(var(--ec),.12)}
+.ent-dash .dk{font-size:11px;letter-spacing:.06em;color:#38b8e8;white-space:nowrap}
+.ent-dash .dk em{font-style:normal;color:#4f8ab2;font-size:9px;letter-spacing:0}
+.ent-dash .dv{font-size:12px;color:#eaf8ff;letter-spacing:.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ent-dash .dt{text-align:right;white-space:nowrap}
+.ent-dash .dbd{
+  display:inline-block;font-size:9px;font-weight:500;letter-spacing:.03em;color:#7fdcff;
+  border:1px solid rgba(var(--ec),.45);border-radius:6px;padding:4px 7px;
+  background:rgba(var(--ec),.07);box-shadow:0 0 12px rgba(var(--ec),.12);
+}
+.ent-dash .dt.pc{font-size:11px;color:#7f9db4;font-variant-numeric:tabular-nums}
+.ent-dash .dt.pc i{display:block;font-style:normal;font-size:7px;letter-spacing:.08em;color:#41658a;margin-top:2px}
+
+/* tracked and private side by side, split by a rule */
+.ent-dash .dcols{display:grid;grid-template-columns:1fr 1fr;margin-top:2px}
+.ent-dash .dcols > div{padding:11px 0 3px;min-width:0}
+.ent-dash .dcols > div + div{padding-left:11px;border-left:1px solid rgba(var(--ec),.14)}
+.ent-dash .dcols .dk{display:block;letter-spacing:.09em}
+.ent-dash .dcols b{display:block;margin-top:5px;font-size:13px;font-weight:500;color:#eaf8ff;
+  letter-spacing:.01em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ent-dash .dcols .dsm{display:block;margin-top:5px;font-size:8.5px;color:#6f8ba4;letter-spacing:.02em}
+
+/* share by category: one bar over four cards */
+.ent-dash .dstack4{display:flex;gap:3px;height:11px}
+.ent-dash .dstack4 i{display:block;height:100%;border-radius:2px;flex:0 0 auto}
+.ent-dash .dstack4 .person{background:linear-gradient(180deg,#3cd9f8,#1aa4d6)}
+.ent-dash .dstack4 .corp{background:linear-gradient(180deg,#3a6ab6,#274e8c)}
+.ent-dash .dstack4 .gov{background:linear-gradient(180deg,#7b54e2,#5836b6)}
+.ent-dash .dstack4 .other{background:linear-gradient(180deg,#2f8a82,#1f5c58)}
+.ent-dash .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:11px}
+.ent-dash .dmini{
+  display:flex;align-items:flex-start;gap:8px;cursor:pointer;text-align:center;
+  border:1px solid rgba(var(--ec),.24);border-radius:9px;padding:11px 8px 10px;
+  background:linear-gradient(180deg, rgba(var(--ec),.05), rgba(255,255,255,0));
+}
+.ent-dash .dmini:active{background:rgba(var(--ec),.12)}
+.ent-dash .dmini.person{border-color:rgba(0,229,255,.32)}
+.ent-dash .dmini.corp{border-color:rgba(59,130,246,.36)}
+.ent-dash .dmini.gov{border-color:rgba(130,90,240,.38)}
+.ent-dash .dmini.other{border-color:rgba(45,170,158,.36)}
+.ent-dash .dmico{flex:0 0 auto;width:27px;height:27px;margin-top:3px}
+.ent-dash .dmico svg{width:100%;height:100%;display:block}
+.ent-dash .dmini.person .dmico{color:#35cdf2}
+.ent-dash .dmini.corp .dmico{color:#4d86ea}
+.ent-dash .dmini.gov .dmico{color:#8a63f0}
+.ent-dash .dmini.other .dmico{color:#2fc6bd}
+.ent-dash .dmbody{flex:1 1 auto;min-width:0;display:block}
+.ent-dash .dmname{display:block;font-size:9px;letter-spacing:.14em;color:#cfe6f4}
+.ent-dash .dmpct{display:block;font-size:22px;line-height:1.2;margin-top:2px;color:#3ad1f6;
+  letter-spacing:-.01em;font-variant-numeric:tabular-nums;text-shadow:0 0 16px rgba(0,229,255,.30)}
+.ent-dash .dmini.corp .dmpct{color:#5b8ff0;text-shadow:0 0 16px rgba(59,130,246,.30)}
+.ent-dash .dmini.gov .dmpct{color:#9a78f5;text-shadow:0 0 16px rgba(130,90,240,.30)}
+.ent-dash .dmini.other .dmpct{color:#34cfc6;text-shadow:0 0 16px rgba(45,200,190,.28)}
+.ent-dash .dmbtc{display:block;font-size:9.5px;color:#dceffc;margin-top:5px;white-space:nowrap}
+.ent-dash .dmcnt{display:block;font-size:9px;color:#7d9ab3;margin-top:4px}
+
+/* the bar widths, as classes: the CSP allows no inline style, so a segment carries a
+   width step from this 5 % grid (see stackSteps() in 36-entities.js). */
 .ent-dash .w0{width:0%}
 .ent-dash .w5{width:5%}
 .ent-dash .w10{width:10%}
@@ -776,15 +850,30 @@ body:not(.layer-ent) .ent-dash{display:none !important}
 .ent-dash .w90{width:90%}
 .ent-dash .w95{width:95%}
 .ent-dash .w100{width:100%}
-.ent-dash .dbar i.person{background:linear-gradient(90deg,#34d399,#00e5ff)}
-.ent-dash .dbar i.gov{background:linear-gradient(90deg,#fbbf24,#f97316)}
-.ent-dash .dbar i.other{background:linear-gradient(90deg,#a78bfa,#3b82f6)}
-.ent-dash .dstack{display:flex;height:7px;border-radius:99px;overflow:hidden;margin-top:9px;background:rgba(2,8,18,.8);border:1px solid rgba(var(--ec),.12)}
-.ent-dash .dstack i{display:block;height:100%}
-.ent-dash .dstack .tk{background:linear-gradient(90deg,#00e5ff,#3b82f6)}
-.ent-dash .dstack .pv{background:rgba(var(--ec),.26)}
-.ent-dash .dstack .un{background:rgba(120,140,170,.20)}
-.ent-dash .dfoot2{font-size:7.5px;line-height:1.7;color:var(--dim2);letter-spacing:.04em;margin-top:10px}
+
+@media (max-width:340px){
+  .ent-dash .drows{column-gap:6px}
+  .ent-dash .dk{font-size:9px}
+  .ent-dash .dk em{font-size:8px}
+  .ent-dash .dv{font-size:10px}
+  .ent-dash .dbd{font-size:8px;padding:3px 5px}
+  .ent-dash .dcols b{font-size:11px}
+  .ent-dash .dmpct{font-size:18px}
+}
+@media (max-width:369px){
+  .ent-dash{padding:0 8px 2px}
+  .ent-dash .dcard{padding:10px 9px 11px}
+  .ent-dash .dtitle{font-size:11.5px;letter-spacing:.1em}
+  .ent-dash .dstack3{height:19px}
+  .ent-dash .dk{font-size:10px}
+  .ent-dash .dk em{font-size:8.5px}
+  .ent-dash .dv{font-size:11px}
+  .ent-dash .dbd{font-size:8.5px;padding:3px 6px}
+  .ent-dash .dcols b{font-size:12px}
+  .ent-dash .dmpct{font-size:20px}
+  .ent-dash .dmbtc{font-size:8.5px}
+  .ent-dash .dmico{width:24px;height:24px}
+}
 /* the list header above the ranking: what the tab shows and when it was read */
 .lhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--mono);
   font-size:8px;letter-spacing:.12em;color:var(--dim);margin:2px 0 2px}
@@ -795,8 +884,6 @@ body:not(.layer-ent) .ent-dash{display:none !important}
   color:#cdeefc;border:1px dashed rgba(251,191,36,.35);background:rgba(251,191,36,.06)}
 .dcov b{color:#ffd98a;letter-spacing:.12em;margin-right:5px;font-weight:500}
 @media (max-width:430px){
-  .ent-dash{top:calc(env(safe-area-inset-top,0px) + 106px);bottom:calc(env(safe-area-inset-bottom,0px) + 132px);padding:2px var(--pad)}
-  .ent-dash .dn{min-width:96px}
   .erow .val{font-size:11px}
   .dbal b{font-size:12.5px;word-break:break-all}
 }

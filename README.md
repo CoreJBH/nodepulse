@@ -34,7 +34,7 @@ that draws every frame with the Canvas 2D API.
 | --- | --- | --- |
 | **Bitcoin L1** (default) | every unique coordinate the Bitnodes crawler geolocated, one dot per 3° cell | `bitnodes.io/api/v1/snapshots/latest/?field=coordinates` |
 | **Lightning** | up to 22 nodes sampled from the real channel graph, one arc per open channel between drawn dots | `mempool.space/api/v1/lightning/channels-geo` |
-| **Entities** | nothing on the globe: an address has no location, so none is invented. The panel is the layer | the verified entity table, read live per address from `mempool.space/api/address/{address}` |
+| **Entities** | nothing on the globe: an address has no location, so none is invented. The tab opens on its own screen — how the 20,999,999.977 BTC supply splits between tracked entities, private holders and the unmined remainder, and what the four categories hold — with each category card a way into its ranking; the full table opens from **+** | the verified entity table, read live per address from `mempool.space/api/address/{address}` |
 
 The switcher sits under the title (`BITCOIN L1 | LIGHTNING | ENTITIES`), and the chosen layer
 is remembered. Switching tabs never moves the globe: the HUD height is measured once per

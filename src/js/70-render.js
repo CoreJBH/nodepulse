@@ -160,6 +160,17 @@
       if (h > w * 1.6) G.cy = topH + box * 0.52;
       setVar('--toast-bottom', hudH + TOAST_GAP);
       setVar('--hint-bottom', hudH + HINT_GAP);
+      /* The entity dashboard fills the room the globe would have: from under the bar to
+         the top of the HUD. Both ends are measured, because the bar grows with the safe
+         area and the HUD with the font a device uses — the old fixed offsets put the
+         panel under the bar on one phone and left a gap on another. The bar's collapsed
+         height is the sum of its rows, so an open panel does not move the dashboard down
+         while the sheet is on top of it. */
+      var bar = document.querySelector('.topbar');
+      var barTop = (bar && typeof bar.getBoundingClientRect === 'function') ? bar.getBoundingClientRect().top : 0;
+      var barH = (head ? head.offsetHeight : 0) + (layers ? layers.offsetHeight : 0) + (sub ? sub.offsetHeight : 0) + 2;
+      setVar('--dash-top', barTop + barH + 8);
+      setVar('--dash-bottom', hudH + 8);
     }
 
     function buildBackground() {

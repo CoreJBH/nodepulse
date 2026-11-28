@@ -2618,30 +2618,110 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       sup.tracked === E.trackedSats(),
       sup.mined + ' = ' + sup.tracked + ' + ' + sup.private + ' · unmined ' + sup.unmined);
 
-    /* ---- the dashboard fills the globe's place while the sheet is closed ---- */
+    /* ---- the dashboard is the tab's landing screen ---- */
     check('the page carries the dashboard element', /id="entDash"/.test(html));
     E.close();
     await sleep(60);
     E.paint();
     await sleep(50);
     const dash = els.entDash.innerHTML;
-    check('the closed sheet shows the entity summary, not an empty globe',
-      /ENTITY SUMMARY/.test(dash) && /TRACKED ENTITIES/.test(dash) && /Mined supply/.test(dash) &&
-      /Unmined/.test(dash) && /Private \/ untracked/.test(dash) && /~2140 complete/.test(dash),
-      dash.slice(0, 80));
-    check('the dashboard prints the four categories with their share and their cards',
-      ['Person', 'Corp', 'Gov', 'Other'].every(c => new RegExp('class="dn">' + c + '<').test(dash)) &&
-      /class="dbar"/.test(dash) && /ranked/.test(dash));
-    check('the dashboard prints the tracked total and the share of the 21M cap',
-      new RegExp('class="dbig">' + E.fmtEnt(E.trackedSats()) + '<').test(dash) && /% of the 20,999,999.977 BTC cap/.test(dash),
-      (dash.match(/class="dbig">[^<]*/) || [''])[0]);
-    E.open();
-    E.paint();
+    const CAP = 2099999997690000;
+    const fmtIntT = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const share = (part, whole) => {
+      const p = part / whole * 100;
+      return p >= 10 ? p.toFixed(1) : p >= 1 ? p.toFixed(2) : p.toFixed(3);
+    };
+    const catT = E.catTotals();
+    check('the dashboard opens with the cap as its title, not a detached summary row',
+      new RegExp('class="dtitle">' + E.fmtDash(CAP) + ' BTC SUPPLY<').test(dash) &&
+      !/ENTITY SUMMARY/.test(dash) && !/BLOCK #/.test(dash),
+      (dash.match(/class="dtitle">[^<]*/) || [''])[0]);
+    {
+      const steps = [...dash.matchAll(/class="(tk|pv|un) w(\d+)"/g)].slice(0, 3);
+      check('the supply bar stacks tracked, private and unmined, and spans exactly 100 %',
+        steps.length === 3 && steps[0][1] === 'tk' && steps[1][1] === 'pv' && steps[2][1] === 'un' &&
+        steps.reduce((a, m) => a + parseInt(m[2], 10), 0) === 100,
+        steps.map(m => m[1] + m[2]).join(' '));
+    }
+    check('the legend names all three shares under the bar',
+      /class="sw tk"><\/i>Tracked Entities<\/span>/.test(dash) &&
+      /class="sw pv"><\/i>Private\/Untracked<\/span>/.test(dash) &&
+      /class="sw un"><\/i>Unmined<\/span>/.test(dash));
+    check('the mined row carries the block height and the live subsidy badge',
+      new RegExp('MINED<em> \\(BLK ' + fmtIntT(S.tip) + '\\)<\/em>').test(dash) &&
+      new RegExp('class="dbd">\\+' + E.fmtEnt(E.subsidySats(S.tip)) + ' / BLK<').test(dash),
+      (dash.match(/class="dbd">[^<]*/) || [''])[0]);
+    check('the unmined row prints the terminal year and never a tilde',
+      /UNMINED<em> \(2140\)<\/em>/.test(dash) && dash.indexOf('~') === -1 &&
+      !/2140 complete/.test(dash) &&
+      new RegExp(E.fmtDash(CAP - E.supplyNow().mined) + ' BTC').test(dash),
+      (dash.match(/UNMINED<em>[\s\S]{0,120}/) || [''])[0]);
+    check('the unmined share is named against the mined supply it is a share of',
+      new RegExp('class="dt pc">' + share(CAP - E.supplyNow().mined, E.supplyNow().mined) + '%<i>of mined<\/i>').test(dash),
+      (dash.match(/class="dt pc">[\s\S]{0,40}/) || [''])[0]);
+    {
+      const col = dash.match(/class="dcols">([\s\S]*?)<\/div><\/div><\/div>/) || ['', ''];
+      const vals = [...col[1].matchAll(/<b>([\d,\.]+) BTC<\/b><span class="dsm">([\d\.]+)% of mined/g)];
+      const toB = v => Math.round(parseFloat(v.replace(/,/g, '')) * 1e8);
+      check('the two-column split prints what the table sees and what is private, of mined',
+        vals.length === 2 && vals[0][1] === E.fmtDash(toB(vals[0][1])) &&
+        vals[0][2] === share(toB(vals[0][1]), E.supplyNow().mined) &&
+        vals[1][2] === share(toB(vals[1][1]), E.supplyNow().mined) &&
+        Math.abs((toB(vals[0][1]) + toB(vals[1][1])) - E.supplyNow().mined) < 2e8 &&
+        /TRACKED ENTITIES[\s\S]{0,120}<b>[\d,\.]+ BTC/.test(col[1]) &&
+        /PRIVATE \/ UNTRACKED[\s\S]{0,120}<b>[\d,\.]+ BTC/.test(col[1]) &&
+        /· \$\d/.test(col[1]),
+        vals.map(v => v[1] + ' / ' + v[2] + '%').join(' · '));
+    }
+    {
+      const steps = [...dash.matchAll(/class="(person|corp|gov|other) w(\d+)"/g)];
+      check('the category bar carries the four categories, stacking to 100 %',
+        steps.length === 4 && steps.map(m => m[1]).join(',') === 'person,corp,gov,other' &&
+        steps.reduce((a, m) => a + parseInt(m[2], 10), 0) === 100,
+        steps.map(m => m[1] + m[2]).join(' '));
+    }
+    check('the dashboard draws four category cards, each one a button into its ranking',
+      ['PERSON', 'CORP', 'GOV', 'OTHER'].every(c =>
+        new RegExp('class="dmini ' + c.toLowerCase() + '" data-act="catopen" data-id="' + c + '"').test(dash)) &&
+      (dash.match(/data-act="catopen"/g) || []).length === 4,
+      (dash.match(/data-act="catopen"/g) || []).length + ' cards');
+    check('each category card prints its share, its three-decimal BTC and its entity count',
+      ['PERSON', 'CORP', 'GOV', 'OTHER'].every(c => {
+        const x = catT[c], p = share(x.sats, E.trackedSats());
+        return new RegExp('class="dmpct">' + p + '%<').test(dash) &&
+          dash.indexOf(E.fmtDash(x.sats) + ' BTC') >= 0 &&
+          dash.indexOf(fmtIntT(x.n) + ' ' + (x.n === 1 ? 'entity' : 'entities')) >= 0;
+      }),
+      E.fmtDash(catT.PERSON.sats) + ' · ' + catT.PERSON.n);
+    check('the dashboard carries no inline style and no self-closed svg',
+      !/style="/.test(dash) && !/<(path|circle|line|polyline|polygon|rect|ellipse)\b[^>]*\/>/.test(dash),
+      'inline style or self-closed svg');
+    check('the dashboard has no fade or delay of its own',
+      /\.ent-dash\{[^}]*transition:none/.test(blockBodies[0] || ''), 'no transition rule');
+    /* a category card opens the ranking on that category — and only a press does. The
+       press is delivered to the dashboard element itself, because the panel is not inside
+       the sheet and the sheet's own listener never sees it. */
+    {
+      const card = {
+        nodeType: 1,
+        _a: { 'data-act': 'catopen', 'data-id': 'GOV' },
+        getAttribute(n) { return this._a[n] || null; },
+        parentNode: els.entDash
+      };
+      els.entDash.dispatch('click', { target: card, preventDefault() { } });
+    }
     await sleep(60);
-    check('the summary is hidden while the sheet is open', els.entDash.style.display === 'none', els.entDash.style.display);
+    check('a press on a category card opens the sheet already narrowed to that category',
+      E.isOpen() && E.state.filter === 'GOV' && /class="chip on"[^>]*data-id="GOV"/.test(els.entChips.innerHTML) &&
+      /U\.S\. Government/.test(els.entBody.innerHTML), E.state.filter);
+    check('the dashboard stays painted underneath while the sheet is open',
+      els.entDash.style.display === 'block' && /BTC SUPPLY/.test(els.entDash.innerHTML) &&
+      /SHARE BY CATEGORY/.test(els.entDash.innerHTML), els.entDash.style.display);
     E.close();
-    E.paint();
+    E.setFilter('ALL');
     await sleep(60);
+    check('closing the sheet leaves the dashboard painted, with no repaint to wait for',
+      !E.isOpen() && els.entDash.style.display === 'block' && /BTC SUPPLY/.test(els.entDash.innerHTML));
     IIF: {
       /* a block arriving moves the mined figure by one subsidy */
       const before = E.supplyNow().mined;
@@ -2729,9 +2809,25 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       doc.documentElement.style.getPropertyValue('--toast-bottom') === toastL1, toastL1);
     check('the entities globe places no dot: an address has no location',
       G.clusters.length === 0 && G.links.length === 0 && G.arcs.length === 0);
+    check('the ENTITIES tab lands on the dashboard with the ranking sheet closed',
+      !E.isOpen() && els.entDash.style.display === 'block' && !els.ent.classList.contains('on') &&
+      /BTC SUPPLY/.test(els.entDash.innerHTML) && /SHARE BY CATEGORY/.test(els.entDash.innerHTML),
+      els.entDash.style.display + ' · sheet ' + (els.ent.classList.contains('on') ? 'open' : 'closed'));
+    check('the dashboard is painted before any sheet is opened, not after it closes',
+      els.entDash._htmlSig !== undefined && els.entDash._htmlSig === els.entDash.innerHTML.replace(/^$/, ''),
+      'dash painted at layer entry');
+    NP.panel(true);
+    await sleep(60);
+    check('the + button is what opens the ranking sheet on this tab', E.isOpen(), 'sheet ' + (E.isOpen() ? 'open' : 'closed'));
+    E.close();
+    await sleep(40);
+    check('closing the sheet goes back to the dashboard, with the sheet class gone and the panel still painted',
+      !E.isOpen() && els.entDash.style.display === 'block' && /BTC SUPPLY/.test(els.entDash.innerHTML) &&
+      !els.entDash.classList.contains('on'));
     check('the subrow names the entity table', /ENTITY ADDRESSES/.test(els.subrow.textContent), els.subrow.textContent);
-    check('the legend says the globe draws no address location',
-      /PUBLIC ENTITY ADDRESS/.test(els.legend.innerHTML) && /no location/.test(els.legend.innerHTML), els.legend.innerHTML);
+    check('the legend points at the button that opens the ranking, not at a dot the tab never draws',
+      /PUBLIC ENTITY ADDRESS/.test(els.legend.innerHTML) && /tap \+ for full ranking/.test(els.legend.innerHTML) &&
+      !/no location/.test(els.legend.innerHTML), els.legend.innerHTML);
     check('the entity HUD shows the held total, the ranked entities and the addresses',
       els.vEBtc.textContent === E.fmtEnt(E.trackedSats(), true) &&
       els.vECount.textContent === String(E.heldCount()) &&

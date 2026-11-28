@@ -97,7 +97,7 @@
       legL1dot: 'L1 FULL NODE LOCATION (Bitnodes)', legL1note: 'Tor/I2P nodes have no coordinates', legLNdot: 'LIGHTNING NODE',
       legLNline: 'LIGHTNING CHANNEL (measured)',
       subEN: 'ENTITY ADDRESSES · WHALE WATCH · MEMPOOL.SPACE',
-      legENdot: 'PUBLIC ENTITY ADDRESS', legENnote: 'an address has no location · the globe draws none',
+      legENdot: 'PUBLIC ENTITY ADDRESS', legENnote: 'tap + for full ranking',
       ariaEN: 'Entities and whale watch globe',
       hint: 'DRAG TO ROTATE · SCROLL / PINCH TO ZOOM',
       pOpen: 'Open the network panel', pClose: 'Close the network panel',
