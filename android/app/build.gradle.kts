@@ -57,8 +57,8 @@ android {
         applicationId = "com.corejbh.nodepulse"
         minSdk = 24
         targetSdk = 34
-        versionCode = 15
-        versionName = "1.1.13"
+        versionCode = 16
+        versionName = "1.2.0"
         resourceConfigurations += listOf("en")
     }
 
