@@ -9,7 +9,7 @@
      computes over the exact bytes it has written, so no 'unsafe-inline' is needed and an
      injected block would have to match a hash that is already in the file. Nothing else
      is allowed: no frames, no forms, no plugins, no workers, no extra hosts. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-MbI2Cdy5pqzedyHpsU/PSj+nIeilJEc/JrZUj9wLcaU=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-ubPbUww4Xq3NfVZZcaNkOq7LoI66oSzu3sVS3//3OiE=' 'sha256-9hQMfqmveW4u2Zqi+s2fVabDMU+7Xcjv2Cd6otU8Mds='; style-src 'sha256-aK+G3EnPpQVecjcTnB15ODxWsmwXy2DuCKzdocbnTNo='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja https://corejbh.github.io wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Qoz9Qb8lblDd/GUrCWitYDEhKn3Lq+US6Wj1Ilq2AhY=' 'sha256-MbI2Cdy5pqzedyHpsU/PSj+nIeilJEc/JrZUj9wLcaU=' 'sha256-wvy7v5C7T+bgl6qkw/QUobtnUHpT3/5vS61o3nZeFVI=' 'sha256-xC4xStJEBIbAQj59AwGW+hDgKriR/x+G6cnnl56DnA8=' 'sha256-Bfms6BDf459WipQdyD6API6ryIth5wM3gTwt+GQLUd4=' 'sha256-1yYfrb4FXnaNuk9OV4qnJamolxoLypZiOoZtc90aSvo=' 'sha256-Yi1a6Q3JvXm5jbQz5j0oQB7kbbndF2/OyXyXJZwc2oM='; style-src 'sha256-vbvuH30EhIIqjZO4fuXTWMs6qjX5STNLgAcfUbbW9aY='; img-src data:; connect-src https://bitnodes.io https://mempool.space https://mempool.emzy.de https://mempool.ninja https://corejbh.github.io wss://mempool.space wss://mempool.emzy.de wss://mempool.ninja; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'">
 <meta name="theme-color" content="#040914">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="NodePulse — live monitoring of the Bitcoin L1 mainnet. Shows the Bitnodes full-node distribution and mempool.space block, mempool and fee data, and only data an API actually reported.">
@@ -749,6 +749,11 @@ body.layer-ent{--ec:0,229,255;--ec2:59,130,246}
   bottom:calc(env(safe-area-inset-bottom,0px) + 150px);
   overflow-y:auto;overscroll-behavior:contain;padding:6px var(--pad) 4px;
   font-family:var(--mono);color:#bff3ff;
+  /* The globe's meridians run behind this panel, and its grey secondary labels
+     (--dim, --dim2) were reading over the brightest lines. A dark scrim keeps the
+     panel's own contrast independent of what the globe draws underneath it. */
+  background:rgba(6,13,24,.82);
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
 }
 body:not(.layer-ent) .ent-dash{display:none !important}
 .ent-dash::-webkit-scrollbar{width:3px}
@@ -991,7 +996,7 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
    exchange itself, a court record, the chain itself, or a named analytics attribution)
    and the mempool.space address API was read for its balance. Nothing is guessed; an
    address whose public listing could not be found is left out, and the entity's `extra`
-   field says so. Verification run 2026-11-28 09:06:46 UTC at block 977917.
+   field says so. Verification run 2026-11-28 10:26:08 UTC at block 977928.
 
    Shape:  { v, at, block, price, priceAt, tracked, list: [entity] }
            entity  = { id, name, category, icon, badge, evidence, live, description,
@@ -1027,11 +1032,11 @@ var L1_SNAPSHOT = {"capturedAt":1795267457,"source":"https://bitnodes.io/api/v1/
    set below, so a table saved under an older version is replaced rather than kept. */
 var ENTITIES = {
   "v": 3,
-  "at": "2026-11-28T09:06:46Z",
-  "block": 977917,
-  "price": 59540,
-  "priceAt": "2026-11-28T09:06:46Z",
-  "tracked": 240507609323943,
+  "at": "2026-11-28T10:26:08Z",
+  "block": 977928,
+  "price": 59304,
+  "priceAt": "2026-11-28T10:26:08Z",
+  "tracked": 242535587638868,
   "list": [
     {
       "id": "binance",
@@ -6723,6 +6728,30 @@ var ENTITIES = {
       "total": 1047352994175
     },
     {
+      "id": "james-howells",
+      "name": "James Howells",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "Lost hard drive",
+      "evidence": "official",
+      "live": true,
+      "description": "The Welsh IT engineer who mined 8,000 BTC in 2009 and lost the hard drive holding the keys when his partner cleared out a drawer in 2013. The drive is buried at the Docksway landfill in Newport; the coins have never moved.",
+      "extra": "Howells names this address himself and the balance is verifiable by anyone: 8,000 BTC from 2009 coinbases, untouched. The High Court and the Court of Appeal refused his bid to excavate the site in 2025.",
+      "est": null,
+      "coverage": "full",
+      "addresses": [
+        {
+          "address": "198aMn6ZYAczwrE5NvNTUMyJ5qkfy4g3Hi",
+          "label": "Public address",
+          "sats": 800000938691,
+          "source": "https://www.forbes.com.au/covers/investing/buried-bitcoin-inside-james-howells-1-4-billion-landfill-disaster/",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 800000938691
+    },
+    {
       "id": "ledn",
       "name": "Ledn",
       "category": "CORP",
@@ -7569,6 +7598,102 @@ var ENTITIES = {
       "total": 746620852151
     },
     {
+      "id": "ofac-zhi-chen",
+      "name": "Zhi CHEN",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Chen Zhi, the chairman of Cambodia's Prince Group, designated in October 2025 as the head of a transnational criminal organisation that ran scam compounds and laundered the proceeds through bitcoin. The U.S. seized 127,271 BTC from the LuBian mining pools tied to him the same month.",
+      "extra": "SDN list entry 55505 (cyber-enabled fraud and money laundering), bitcoin addresses 10; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qeth6n6ryxexvkx34wnx3nuynun4474h3j0gkhw",
+          "label": "Public address",
+          "sats": 1093,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q2we5eqjj8je6lz9xwjattpc3pn4jejc5h0s70f",
+          "label": "Public address",
+          "sats": 1093,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qnujzvts45qka3cr2eqqw8ur3q6g6s0ze2wlk5m",
+          "label": "Public address",
+          "sats": 547,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qw4fxztd5u3sl7vrcqwk2a8v5zh5dllvckx3tlt",
+          "label": "Public address",
+          "sats": 2077,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q66y45cq78ke25kz7rpe94l84avt7zetglzeeqg",
+          "label": "Public address",
+          "sats": 162999831229,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qw75cxmxz4e2v265mue9wmqgq2m0qdyr25l2ufl",
+          "label": "Public address",
+          "sats": 99897170,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q7des766x6c0zkycz6dz6rfv066n3fcg4kggtrt",
+          "label": "Public address",
+          "sats": 99897028,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qlwtksgusw8pp3k3a39mkmwvswujhhgn0ulp3uj",
+          "label": "Public address",
+          "sats": 99897028,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qea942uw640l7nvtf3vplv6jd6wvuy06c58cd4k",
+          "label": "Public address",
+          "sats": 499999899502,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qcx8vxxrld2s7qvz64qp75s3508rkzaxj65l60q",
+          "label": "Public address",
+          "sats": 60009999440,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 723309426207
+    },
+    {
       "id": "revolut",
       "name": "Revolut",
       "category": "CORP",
@@ -7751,6 +7876,206 @@ var ENTITIES = {
       "total": 250901212415
     },
     {
+      "id": "ofac-yunhe-wang",
+      "name": "Yunhe WANG",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "A Chinese national designated for running a bitcoin-laundering network for North Korean IT workers and for the Lazarus Group's proceeds.",
+      "extra": "SDN list entry 43421 (cyber-enabled activity and money laundering for the DPRK), bitcoin addresses 23; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q4namcagg5wljs0u20z6h2sqgsq4q5lts8rt2rr",
+          "label": "Public address",
+          "sats": 19600,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qw8evftpgc8wsmkemd8yl5fg2husza5z802xaym",
+          "label": "Public address",
+          "sats": 9999998030,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qv4krhj2qmpd9qz9xj9nhvj99fq8s9xsw05d485",
+          "label": "Public address",
+          "sats": 2222198039,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qu5vngdtcx8nc9d68pq8nv7pzcjrswsy87s66gk",
+          "label": "Public address",
+          "sats": 9999998030,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qtsl3ufenrv3zgrgm9z8xarcx22x8mfztuartyn",
+          "label": "Public address",
+          "sats": 9999998030,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qtrrfhr0f3ufsrjxfv8a7p3yuqj0spe4cm6vaws",
+          "label": "Public address",
+          "sats": 10000000330,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qnykkrlk67f9kdqvzyw2ndu3xmef5z2e52886yl",
+          "label": "Public address",
+          "sats": 9999998030,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qllmlvy5u038yvwywu803p53g8udcm8w7k4qxu9",
+          "label": "Public address",
+          "sats": 9999998030,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qlfpg2xn39u580cmwq6rymt8jdhcmj8520jhgh0",
+          "label": "Public address",
+          "sats": 9999998030,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1ql7rnd70aejdxt3f9fzdlfazjlc9hvdmut8ad8s",
+          "label": "Public address",
+          "sats": 10000000330,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1ql526s72gycmvq7hek6j3tuwwmcpv4rgs0auxu7",
+          "label": "Public address",
+          "sats": 10000000330,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qh3lw22uqwrywr8lpun20q2ma528a4yqmgf3uqp",
+          "label": "Public address",
+          "sats": 9999998030,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qgffxa65gr579tsz55n87pal2a777ygzg69d2yz",
+          "label": "Public address",
+          "sats": 9999998030,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qakycg2zp8hydg95lc9cheumpa9yfpdeyrqqh5f",
+          "label": "Public address",
+          "sats": 9999998030,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q9ua9ypl4dhj0zut5kzasj5c2kxclhh8v2k9djd",
+          "label": "Public address",
+          "sats": 10000000330,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q8pw85s83mdx2f3rfu64mmfd9wexqu2y856arwp",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q7xfqqw9htr88t7vafg80p4qrlpjfyaps452x5g",
+          "label": "Public address",
+          "sats": 9999998030,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q7hhdygx05kyfyzjku2u7lywvx5pgyng6a0nefp",
+          "label": "Public address",
+          "sats": 10000000330,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q6w463k7mhsgguwgqtcratm4vm42rncwhvvkeck",
+          "label": "Public address",
+          "sats": 10000000330,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q49ax787wv0mnn8wjgp3sx772qz7eun822rkv5k",
+          "label": "Public address",
+          "sats": 10000000330,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q3ael5my37nklgnqcrkwmnndfx9qdnp67j0739c",
+          "label": "Public address",
+          "sats": 10000000330,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q362njxy39gnwrvj7zytn84ax39fwnhvk7n2999",
+          "label": "Public address",
+          "sats": 10000000330,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1q05aktddf9ce4p7hh3stgsf253m4vweu7nkhtmw",
+          "label": "Public address",
+          "sats": 10000000330,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 202222202239
+    },
+    {
       "id": "wisdomtree",
       "name": "WisdomTree Bitcoin Fund (BTCW)",
       "category": "CORP",
@@ -7902,6 +8227,494 @@ var ENTITIES = {
       "total": 146457383748
     },
     {
+      "id": "pool-btcc-coinbase",
+      "name": "BTCC Pool",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "BTCC Pool payout addresses from the GraphSense miners tag pack, which extracts them from the pool's own coinbase outputs. A pool address holds only what the pool has not swept yet, so the figure moves with its payout cycle.",
+      "extra": "BTCC (BTCChina) ran one of the largest pools of 2014-2016 before the exchange closed. Balances were read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "16AoTTrCXWpUFmjUGPG5qqyrtVsLkvXFPv",
+          "label": "Pool payout address",
+          "sats": 5071529472,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16azJiPky2CPtJhXEd5DkvL6SdL5zQLA4C",
+          "label": "Pool payout address",
+          "sats": 2590205777,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16FEh6kbWHDusAS5vPY3W1gD2RhzwWgn7N",
+          "label": "Pool payout address",
+          "sats": 2585485639,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16BwoxkDDGSp6pbQTD2P2BUH6HoTbuKNWQ",
+          "label": "Pool payout address",
+          "sats": 2579518552,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16EY4eV6Hxw8RV9VUoUSZCzJvtbFaxkkpn",
+          "label": "Pool payout address",
+          "sats": 2578918663,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16D7T7cbtuGKVxpKN4LznXJEMVfCuCDbB2",
+          "label": "Pool payout address",
+          "sats": 2573273128,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16FC9gyEGE8JaUqESQBkTDFHS1G9SC7ja8",
+          "label": "Pool payout address",
+          "sats": 2568563396,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16GCLVHnUroygGaWAueM1RxXoujeXUouiQ",
+          "label": "Pool payout address",
+          "sats": 2555926622,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16Aj5hamykJ97jBAMrZDH6KjgF1SGvTqnW",
+          "label": "Pool payout address",
+          "sats": 2553612800,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16AWJ52vtzupYw9foVs2hornQxgedUbutu",
+          "label": "Pool payout address",
+          "sats": 2543358925,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16f5hsqPivi4uNtjau8g9eV2wZxfzYsGpy",
+          "label": "Pool payout address",
+          "sats": 2540059732,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16aWxmFAxfDMH4upL451szqwdv7EsKNdAC",
+          "label": "Pool payout address",
+          "sats": 2535962643,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16D8KfDD3WAQffziypWPqTpWesbqHdBdhi",
+          "label": "Pool payout address",
+          "sats": 2535602350,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15eE433vJyk57yXcc7RUm8dT18Vz1q4DfJ",
+          "label": "Pool payout address",
+          "sats": 2534248991,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15Kb3bkDw6iB7SDfCPhaKpcouuTbi67Ko3",
+          "label": "Pool payout address",
+          "sats": 2531441072,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15K7bZuthFxpdpbfs5xBP7mGbdi6gkMkTV",
+          "label": "Pool payout address",
+          "sats": 2529402990,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15boyUMZ5MY7dEWMMqx1eZad4q51eq3bJt",
+          "label": "Pool payout address",
+          "sats": 2529125401,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15EKWDdDb58zdTCg9NjwDH3zVGUkUeVqiZ",
+          "label": "Pool payout address",
+          "sats": 2528717478,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15FsDpmzE5ftc6ep1kzThbHkMkhZWGZDUp",
+          "label": "Pool payout address",
+          "sats": 2526010143,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16aDTzizdZLJYgXNTQLweALhpuG95ggvV5",
+          "label": "Pool payout address",
+          "sats": 2524341595,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16c9Qc4xGEDujy4p2eenpugW4pCXFnA1hj",
+          "label": "Pool payout address",
+          "sats": 2523914440,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16GDhz9EchU55VaefJR6AbAN5CXFbCkubr",
+          "label": "Pool payout address",
+          "sats": 2523563347,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16gbGvNHcuSyAc86XedmbnU3YtnYQvsoFh",
+          "label": "Pool payout address",
+          "sats": 2523520872,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16Ga5xMyo4NDw7nQDiSfkLViTksDfivuuR",
+          "label": "Pool payout address",
+          "sats": 2523320499,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16FBGZSU93upsknGdqQAn1AwAdd3k6Wcxz",
+          "label": "Pool payout address",
+          "sats": 2521067298,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16EKaxZwu7jZmuS7BvwvqZvEELa5VhejmX",
+          "label": "Pool payout address",
+          "sats": 2520930585,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15dDrgJ14X19brMtHXQSkW2aq6jbmU2Hgr",
+          "label": "Pool payout address",
+          "sats": 2519015215,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15iqLL72wU6wV6HZrJFtVvb9R8AqonoDH5",
+          "label": "Pool payout address",
+          "sats": 2514136826,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16ESTHyQXEFX6ECmXckwiByQdsy49qmnxr",
+          "label": "Pool payout address",
+          "sats": 2513370000,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15GZr7uxNDX32hMu89TeMThRNRpuzKkkY4",
+          "label": "Pool payout address",
+          "sats": 2511701627,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16buJ1sKPGonYbLLsYLSvxZnUN9ddyWgDM",
+          "label": "Pool payout address",
+          "sats": 2509851900,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15jMaU4qBhN1V96zKv4SEeWr4fep2J6hTo",
+          "label": "Pool payout address",
+          "sats": 2506939506,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16BkNxpJ1TQvD6cp1fPf6XDfmTCQCiomzX",
+          "label": "Pool payout address",
+          "sats": 2503396155,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16bhvcJmHnqAipy4cPEAho3m7Es9STz93Z",
+          "label": "Pool payout address",
+          "sats": 2502755821,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16EDSapoWMZpDdh1eo2nfNktNuwrTX7m8g",
+          "label": "Pool payout address",
+          "sats": 2502378030,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15CCE9b12cyjr9Pj8gFy8dNK9VJEmvLNFq",
+          "label": "Pool payout address",
+          "sats": 2500001641,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16iLs4gUoW5nZnUoeqrJviidGcm7bwtxx7",
+          "label": "Pool payout address",
+          "sats": 1360450353,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16HXThttwu7X6sd2qGfRG6ERvgzRzjhVQS",
+          "label": "Pool payout address",
+          "sats": 1346034812,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16hoESEXJx9ncjgpHL8GaEChB82gKywmCh",
+          "label": "Pool payout address",
+          "sats": 1313192821,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16h7eaP7wYdBpGe7kdKFfyhRa9ghiKLQSs",
+          "label": "Pool payout address",
+          "sats": 1312540524,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16jryvnKowtaJ6Ga4ELS7hACMvXyR3E4RY",
+          "label": "Pool payout address",
+          "sats": 1307468474,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16hBMMC9K4abjKJBrPBpms5itTHiVEygFz",
+          "label": "Pool payout address",
+          "sats": 1297375197,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16HaXDr9yE5aCoBYNBcCtQN7sg1bbx5z2x",
+          "label": "Pool payout address",
+          "sats": 1284558870,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16hxibNerUKrQATUEged7kKnYSKrhHmQVZ",
+          "label": "Pool payout address",
+          "sats": 1282501389,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16gw6k7vHaGUzM6ambYknY5UQTX9T2J5ra",
+          "label": "Pool payout address",
+          "sats": 1279629600,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16hE4sj97p4BJJqA3PhtFPawiVG41DMQV3",
+          "label": "Pool payout address",
+          "sats": 1278239104,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16jqYQfEyjYqhJD8vjTnscDreg8kXASt5t",
+          "label": "Pool payout address",
+          "sats": 1270207352,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16HAxHixKvARyqtzztRmBm38xdZS3cQeDi",
+          "label": "Pool payout address",
+          "sats": 1267244402,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16gZ1D3yMq5vJHE1Qigg29bZJAFyuNGPgL",
+          "label": "Pool payout address",
+          "sats": 1266347601,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16j4eh2ntbqPYhrPBGzDHXd8k9fZxQhHJT",
+          "label": "Pool payout address",
+          "sats": 1255051237,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16graHKv9fJ22m5jrXub2jhPY4m4SYsS3T",
+          "label": "Pool payout address",
+          "sats": 1251263172,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13TEThZNnKPk34HYAuo1QqYMwDdjF3qeHx",
+          "label": "Pool payout address",
+          "sats": 107000,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16jiaqA8MeqZVEV8evrUzn5bE6xLdgWqWD",
+          "label": "Pool payout address",
+          "sats": 78573,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16hmxWf8hreTeMsSYmNj6MyKa98uWm7qCx",
+          "label": "Pool payout address",
+          "sats": 10566,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16BDCp3vzevepd2KG6LFB1LrhD9GrBav2D",
+          "label": "Pool payout address",
+          "sats": 2188,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16b3j3AtJsXM7YeVUp3HCwjqCkSxSzJzeT",
+          "label": "Pool payout address",
+          "sats": 1641,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16GiDLGMhWmN7EY3bBWr9PEApGrdu3isLC",
+          "label": "Pool payout address",
+          "sats": 1641,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16b51UF4itKAdg7SABcNeqX1YEG63RVDcw",
+          "label": "Pool payout address",
+          "sats": 1094,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16DmtGsoda8Don9uqnWTubAnyi5DPyBPub",
+          "label": "Pool payout address",
+          "sats": 547,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 113107477289
+    },
+    {
       "id": "two-prime",
       "name": "Two Prime",
       "category": "CORP",
@@ -7923,6 +8736,822 @@ var ENTITIES = {
         }
       ],
       "total": 86999231189
+    },
+    {
+      "id": "burn-addresses",
+      "name": "Provable burn addresses",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Burned",
+      "evidence": "chain",
+      "live": true,
+      "description": "Addresses that no key can ever spend: the all-zero hash, and the vanity strings built on it. Coins sent here are gone from the supply for good, and the chain shows how much sits in them.",
+      "extra": "The tag pack lists 100 burn addresses; the ones holding a balance are listed here, largest first. The 1111111111111111111114oLvT2 address alone holds what senders have burned over the years.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1111111111111111111114oLvT2",
+          "label": "Public address",
+          "sats": 80983943485,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111111111111112xT3273",
+          "label": "Public address",
+          "sats": 5945,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111111111141MmnWZ",
+          "label": "Public address",
+          "sats": 5968,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111111111111114ysyUW1",
+          "label": "Public address",
+          "sats": 5340,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111111111BZbvjr",
+          "label": "Public address",
+          "sats": 1035064,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111111111CJawggc",
+          "label": "Public address",
+          "sats": 1548,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111111111g4hiWR",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111111111HeBAGj",
+          "label": "Public address",
+          "sats": 8348,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111111111jGyPM8",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111111111o9FmEC",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111111111QekFQw",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111111111ufYVpS",
+          "label": "Public address",
+          "sats": 2032,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111111111UpYBrS",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111111111111121xzjPWX1",
+          "label": "Public address",
+          "sats": 6028,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111111112GvNtZ1K",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111111116B8w87yU",
+          "label": "Public address",
+          "sats": 11000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111111119fEivzRC",
+          "label": "Public address",
+          "sats": 12000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111111111kznksqu6",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111111111rzei1aas",
+          "label": "Public address",
+          "sats": 12960,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111111111zxnxU6BF",
+          "label": "Public address",
+          "sats": 10980,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111111114hC5DWZkt9",
+          "label": "Public address",
+          "sats": 10000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111111114MBnNyJtjS",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111111114ofaDASE33",
+          "label": "Public address",
+          "sats": 10980,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111111116dB1DRktM",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111111111111AMXmxkqDAw",
+          "label": "Public address",
+          "sats": 11000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111111111112jpPiEMiNBx",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111111111113uj6otJ75q9",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111111d8gW5esGd38",
+          "label": "Public address",
+          "sats": 550,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111111HnyFPJ5qPuB",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111111Lok2dGhWpaF",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111111Rpek7BkdRK",
+          "label": "Public address",
+          "sats": 6480,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111112H7uGVFu48jHs",
+          "label": "Public address",
+          "sats": 13000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111112tZKb7nLCWNe",
+          "label": "Public address",
+          "sats": 5480,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111112Uw1np8d342YV",
+          "label": "Public address",
+          "sats": 11000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111111111149EM9zxGWLCvL",
+          "label": "Public address",
+          "sats": 11000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111111DqZY8mA89eZz",
+          "label": "Public address",
+          "sats": 6048,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111111n11111U4Rs6D",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111111r1111VRWJZs",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111115xtagWowUVaapf",
+          "label": "Public address",
+          "sats": 12056,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111116e9ThMiVeQfumS",
+          "label": "Public address",
+          "sats": 6480,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111116UYmRBuMPBX82M",
+          "label": "Public address",
+          "sats": 10000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111117NfxiuJZGr5XXB",
+          "label": "Public address",
+          "sats": 10000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111117NjepKDWv4w27o",
+          "label": "Public address",
+          "sats": 10000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111111111as5NCrJeHqBHE",
+          "label": "Public address",
+          "sats": 6500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111111111zXXXXXXVSn6d5",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111124D8UkwSfiDR2auz",
+          "label": "Public address",
+          "sats": 6500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111111115K6DZL3VEQXkTc2",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111doM8vPnmycQC8q",
+          "label": "Public address",
+          "sats": 12000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111HEBa2WBzfnZMqvN",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111RtxLq8S95JYmTkn",
+          "label": "Public address",
+          "sats": 5480,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111Vs5QfW5Cq1qRN7N",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111111WN4aPbrABRazPFi",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111111126ysEwRGHieuvbKA",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111112fhY5eX3SQ11dYWzA",
+          "label": "Public address",
+          "sats": 12960,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111112ttKGXRoxdi7KDGt2",
+          "label": "Public address",
+          "sats": 6048,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111113EbxnNkoyWxKa6eFC",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111h111111111WdQPXP",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111L2r2Rh3yc9TMv9xK",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111n2iL75V4qrhYXd7z",
+          "label": "Public address",
+          "sats": 5480,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111o111111111cLV3wA",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111111qNe3ekmPY8YXkoND",
+          "label": "Public address",
+          "sats": 10000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111112NBzrcNMJZmZQmqkvm",
+          "label": "Public address",
+          "sats": 5480,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111112rfUaG6qgmcVwNRg5o",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111114h7k7xoMHCXeCfHEJ8",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111151ii1XDev6MhjfUYQ5",
+          "label": "Public address",
+          "sats": 10000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111115qCXKwbZ8jX2NPQb3",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111115sPzkX8R46KvtdeCL",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111197nBJTtD1KhHRGpHTq",
+          "label": "Public address",
+          "sats": 10000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1111111111119N1VdXJWGZ2HYk92vf",
+          "label": "Public address",
+          "sats": 12000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111111AhJdRjUku8DPcM6Mx7",
+          "label": "Public address",
+          "sats": 6500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111111As3KDH2NLTD5z5R8TT",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111111e1111111111W7v25m",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111111MZT5sH8fKRHd9ShFAg",
+          "label": "Public address",
+          "sats": 6048,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111111s1111111111VUeyXS",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111112Dk8JJnSyoANH4Ayc8ht",
+          "label": "Public address",
+          "sats": 550,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111112ZkE8UvCp8JCNRhfuBoo",
+          "label": "Public address",
+          "sats": 5480,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111114pbDY6GG5BV71AQSjhK",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111117nR5uRZb7UcTr5oWcGU",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111119CCphoemtXugYN3zrXr",
+          "label": "Public address",
+          "sats": 6480,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111dujBNCkGBeLfftyPVqF",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111iiRF4oaSmoch71adc1r",
+          "label": "Public address",
+          "sats": 10000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111iiRUDpPQCW5NDPFnYjr",
+          "label": "Public address",
+          "sats": 10000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111jReUwMAxevLMq3CFYLU",
+          "label": "Public address",
+          "sats": 10000,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111kXsDPBj3ArgLyh9wcGN",
+          "label": "Public address",
+          "sats": 6480,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111m7jVWXwkoh45cuHjhJ7",
+          "label": "Public address",
+          "sats": 5480,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111NVTa6z1KSCfm2KwS53",
+          "label": "Public address",
+          "sats": 5500,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111t11111111111Vq1Wm3",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111wZGRsZzwa6ajjAVLkT",
+          "label": "Public address",
+          "sats": 6048,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111111y11111111111Y1hDo5",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111a11111111111b11dC8yHQ",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111c1111111111111dWctEU9",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111v11111111111111XoV17A",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111111x11111111111111XvZPGp",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111k111111111111111XV7PT9D",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111p11111111111111qW1RK1A",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111u111111111111111bVpCYE",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111111w1111111111111111YyEFv6",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "111111f1111111111111111g11WfG2p8",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111i111111111111j1111111bL5SyF",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "11111Test111112222222222222LiApa",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/burns-v2",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 80985484311
     },
     {
       "id": "lmax",
@@ -8185,6 +9814,430 @@ var ENTITIES = {
       "total": 53895115189
     },
     {
+      "id": "pool-slush",
+      "name": "Slush Pool (Braiins)",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Slush Pool (Braiins) payout addresses from the GraphSense miners tag pack, which extracts them from the pool's own coinbase outputs. A pool address holds only what the pool has not swept yet, so the figure moves with its payout cycle.",
+      "extra": "The first mining pool, opened in 2010 and run by Braiins since 2016. The tag pack carries its coinbase addresses across both eras. Balances were read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "18ocRrc8hwsAXmJXNfe4EMPhXDcgMfngEA",
+          "label": "Pool payout address",
+          "sats": 1361975385,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NfcYGHYVmw2KAxrZqbvdZDXMdyy7qT5sg",
+          "label": "Pool payout address",
+          "sats": 1344607396,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1EvsY2mFDUzzNFZkUskitAReZy18ehKPJy",
+          "label": "Pool payout address",
+          "sats": 1342035982,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1M1Vpp4qhwjSHJiv8zGxMZsfRkSY4DEde2",
+          "label": "Pool payout address",
+          "sats": 1337271910,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1LuxYTiu3Ec9dHz7HwSEE1YoLES4RXBr98",
+          "label": "Pool payout address",
+          "sats": 1331357389,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16WesRHYdDqWx5KriCuwMgXEJK3hdmJRh7",
+          "label": "Pool payout address",
+          "sats": 1327368663,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13UC9gr8D6W7wxXHYkRa4reoWN97Nkmxp8",
+          "label": "Pool payout address",
+          "sats": 1315603024,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17ax6QjeDJZETL5CaEdvoN5YcXrvmsCsqU",
+          "label": "Pool payout address",
+          "sats": 1312827700,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CnDM5D42AuJLQmhoWa3L8icV5xR2RY5WP",
+          "label": "Pool payout address",
+          "sats": 1308973641,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19twRwhPuPsuuGfuuGz5k3rzpAfMUmpws4",
+          "label": "Pool payout address",
+          "sats": 1308297490,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FPyFKdBwMZ1m2CHDQQdaiLWi9Rrs7gQUH",
+          "label": "Pool payout address",
+          "sats": 1303003936,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MVbckZyShbGNXQ3oGeLeRcUfjuQGbQYzb",
+          "label": "Pool payout address",
+          "sats": 1299158130,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17WvVVcS8V5YEiReecBar3LRiuPq9fQWqo",
+          "label": "Pool payout address",
+          "sats": 1298548356,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "165XpQ3avWawwxK17XcVN8a8YPJz1eAr3Y",
+          "label": "Pool payout address",
+          "sats": 1296414925,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HSjfNsV2sGciikGHvLt4uMuJPu9cGKRZw",
+          "label": "Pool payout address",
+          "sats": 1293301495,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Q4tkJRCQ9ujPXSRyNhrXjJLVKKWHsT8i7",
+          "label": "Pool payout address",
+          "sats": 1289436061,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13MpranFPJDR5uuGuKEnaZuvFU8yUTPo7Z",
+          "label": "Pool payout address",
+          "sats": 1288493800,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CSKW1LdotA6dE9wxi6dejmVYNGtvZeBdb",
+          "label": "Pool payout address",
+          "sats": 1287700745,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HjcmGfsSeiLrLWVtWTNqQXzBi8iMyfMfN",
+          "label": "Pool payout address",
+          "sats": 1273553428,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NuzvQupeBAE4iVESNMD6hqY38ew1P6Cxi",
+          "label": "Pool payout address",
+          "sats": 1273317622,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "193vcbMZ8DXt8D4AnDDKxBUHmGftstFXHL",
+          "label": "Pool payout address",
+          "sats": 1270495693,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JMjdAtjC2Ms89yec6EngyuxYrw5SQwcRd",
+          "label": "Pool payout address",
+          "sats": 1268226839,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1B1ZSGbUXiu4GtgC6jQBzrTakhU2LDLqt3",
+          "label": "Pool payout address",
+          "sats": 1265183399,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GfX5sX8GoczaNstVkmM54i3N3XtAHmiJZ",
+          "label": "Pool payout address",
+          "sats": 1261820542,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14vc13rmtYhVpsbUvRQ6rm4cWTcfinQNzX",
+          "label": "Pool payout address",
+          "sats": 1261532418,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NsQ9zhEVpS5Nj7xUbJmW4eFRRrXm8o8M7",
+          "label": "Pool payout address",
+          "sats": 1255076892,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NDru6PPfPqJ9JfyT3HXTxRxfKB7WzbhoW",
+          "label": "Pool payout address",
+          "sats": 738899886,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MKG3h5gUA6MSwqZfDz5ySYjDYmm2Huprr",
+          "label": "Pool payout address",
+          "sats": 736849597,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HfTeCkQQkh1JpNyTHkKebt4rYXJfApVY6",
+          "label": "Pool payout address",
+          "sats": 733103609,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1CCyA71pYy5sVPxLwi7zJ7hLjvBYRyptFu",
+          "label": "Pool payout address",
+          "sats": 727949255,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JRKRiwQKmG8FaHbjRcCGBU9L55RFeDDa5",
+          "label": "Pool payout address",
+          "sats": 721370127,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15fjahYsbVidUop7Jyh1vK91AFM8wuLP4j",
+          "label": "Pool payout address",
+          "sats": 708771719,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1BCGvs9KETfKCByEHYCk1ANnxrNuaP8Uv7",
+          "label": "Pool payout address",
+          "sats": 706329575,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15HQnWm2hhT8KqUF989z8v5h9v2igD9UV1",
+          "label": "Pool payout address",
+          "sats": 695494774,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17evVhpVz6BzZqYqzV4uyYH3dq1zKfq3sm",
+          "label": "Pool payout address",
+          "sats": 694835458,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HBcSUdSB5efBMAvmdyLQGZZ447HQbyt8c",
+          "label": "Pool payout address",
+          "sats": 690650038,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1QB8FEq5omHEdTw5esfUUMbwd9QbdoGuf3",
+          "label": "Pool payout address",
+          "sats": 688616729,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JbeHLVkjfK83oPAyhpnuWmZi6rsvk7P5J",
+          "label": "Pool payout address",
+          "sats": 682131176,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1EmEGrqjdyQC1cxkzDyt2UGdzzHaPhnif2",
+          "label": "Pool payout address",
+          "sats": 679689119,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FXctoV1UmAYQNvtZBhHUgEWYttFUJGN4y",
+          "label": "Pool payout address",
+          "sats": 674757628,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Jq42HRrjGD7TTjTW3YJJihcYXWvnvPaQY",
+          "label": "Pool payout address",
+          "sats": 672858218,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DV2PbpMcpjyEpn7RYJsREUAD3aUcfHZHh",
+          "label": "Pool payout address",
+          "sats": 664242911,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13qkxk1FySwBTCxhiPzsRNSLMpiUgdenWJ",
+          "label": "Pool payout address",
+          "sats": 655084164,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DgpKinBsDvSa3mwGj4xP4tzyLmGw8NKLE",
+          "label": "Pool payout address",
+          "sats": 655040340,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13dPnk7MVZqg9Te6BTcrLWayy9yc3nFToS",
+          "label": "Pool payout address",
+          "sats": 654623912,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1D8KCPBJH7mgGFDEYFXGw84PGozMmsYXjd",
+          "label": "Pool payout address",
+          "sats": 651533464,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16JJKpnMcRDMaGR2DXKmQxLfHP5MZG2Da6",
+          "label": "Pool payout address",
+          "sats": 641654149,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "12GwiCFs15RztdZUeh14ynLHbdhUBYjtzq",
+          "label": "Pool payout address",
+          "sats": 634779915,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "186guPGqtLgrBtcYN9Y4kZf1vxQ8QST7vw",
+          "label": "Pool payout address",
+          "sats": 631707899,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1MejoVXRvsmwyDpTpkw3VJ82NsjjT8SyEw",
+          "label": "Pool payout address",
+          "sats": 23345302,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1NKXRtMPVZxj3kuafarTVSBVEPRC9Hoyd1",
+          "label": "Pool payout address",
+          "sats": 548972,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 49540450797
+    },
+    {
       "id": "fidelity-fbtc",
       "name": "Fidelity Wise Origin Bitcoin Fund (FBTC)",
       "category": "CORP",
@@ -8356,6 +10409,92 @@ var ENTITIES = {
         }
       ],
       "total": 30254594620
+    },
+    {
+      "id": "pool-deepbit",
+      "name": "Deepbit",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Deepbit payout addresses from the GraphSense miners tag pack, which extracts them from the pool's own coinbase outputs. A pool address holds only what the pool has not swept yet, so the figure moves with its payout cycle.",
+      "extra": "The largest pool of 2011 and the first to pass 50% of the network; it closed in 2013 and its old coinbase outputs still sit here. Balances were read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1GdHGfqMPY66orNJ3pCsxRc8LsDQ4y3a6n",
+          "label": "Pool payout address",
+          "sats": 5028002735,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "The pool's coinbase output is pay-to-public-key, which the address API leaves out; p2pkSats carries the part it does not count.",
+          "live": true,
+          "p2pkSats": 5028000000
+        },
+        {
+          "address": "17H9XKtG37oefT3ufujv8pbkZgYxBHCBYk",
+          "label": "Pool payout address",
+          "sats": 5021002735,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "The pool's coinbase output is pay-to-public-key, which the address API leaves out; p2pkSats carries the part it does not count.",
+          "live": true,
+          "p2pkSats": 5021000000
+        },
+        {
+          "address": "1Hj5B4QVAH39veMSHPsSk4FmeFt2xyexAV",
+          "label": "Pool payout address",
+          "sats": 5004001094,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "The pool's coinbase output is pay-to-public-key, which the address API leaves out; p2pkSats carries the part it does not count.",
+          "live": true,
+          "p2pkSats": 5004000000
+        },
+        {
+          "address": "17gjEbZVcLFL5BcmJ6jMRTBEiVq2bx2ro8",
+          "label": "Pool payout address",
+          "sats": 5004001094,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "The pool's coinbase output is pay-to-public-key, which the address API leaves out; p2pkSats carries the part it does not count.",
+          "live": true,
+          "p2pkSats": 5004000000
+        },
+        {
+          "address": "1FBJUqhvjpyrwNeQRnHDcNGCGvV6usHsuq",
+          "label": "Pool payout address",
+          "sats": 5003001094,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "The pool's coinbase output is pay-to-public-key, which the address API leaves out; p2pkSats carries the part it does not count.",
+          "live": true,
+          "p2pkSats": 5003000000
+        },
+        {
+          "address": "1Ds7CADmceLATGPHcnjRAXb8wELQQbTy2G",
+          "label": "Pool payout address",
+          "sats": 5003001094,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "The pool's coinbase output is pay-to-public-key, which the address API leaves out; p2pkSats carries the part it does not count.",
+          "live": true,
+          "p2pkSats": 5003000000
+        },
+        {
+          "address": "1LL7Gh8SZAVNadiycRxC3b4pahYPUsoyvs",
+          "label": "Pool payout address",
+          "sats": 588,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JwnX3UqpGFADQXfKMg3V6Cnzv4ahniaXz",
+          "label": "Pool payout address",
+          "sats": 10,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 30063010444
     },
     {
       "id": "kucoin",
@@ -8559,6 +10698,62 @@ var ENTITIES = {
       "total": 10271669247
     },
     {
+      "id": "pool-p2pool-org",
+      "name": "P2Pool.org",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "P2Pool.org payout addresses from the GraphSense miners tag pack, which extracts them from the pool's own coinbase outputs. A pool address holds only what the pool has not swept yet, so the figure moves with its payout cycle.",
+      "extra": "A public P2Pool node whose coinbase outputs the tag pack extracted. Balances were read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "15rLkQjruGDKnQpm8Y6RdvRJJ9BNKzbvEw",
+          "label": "Pool payout address",
+          "sats": 9507651487,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 9507651487
+    },
+    {
+      "id": "pool-asicminer",
+      "name": "ASICMiner",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "ASICMiner payout addresses from the GraphSense miners tag pack, which extracts them from the pool's own coinbase outputs. A pool address holds only what the pool has not swept yet, so the figure moves with its payout cycle.",
+      "extra": "The ASIC maker and pool run by Friedcat that dominated 2013 hardware mining. Balances were read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1HtUGfbDcMzTeHWx2Dbgnhc6kYnj1Hp24i",
+          "label": "Pool payout address",
+          "sats": 5716832599,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PcYJ8zoFbTikkEUDQ2ipTwVk7ALCHYbRe",
+          "label": "Pool payout address",
+          "sats": 2510606642,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 8227439241
+    },
+    {
       "id": "pool-bixin",
       "name": "Bixin",
       "category": "CORP",
@@ -8590,6 +10785,70 @@ var ENTITIES = {
       "total": 6923009399
     },
     {
+      "id": "ofac-xiaobing-yan",
+      "name": "Xiaobing YAN",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by OFAC in 2023 as part of the fentanyl-trafficking network that used bitcoin to launder proceeds.",
+      "extra": "SDN list entry 25308 (narcotics trafficking), bitcoin addresses 6; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "12QtD5BFwRsdNsAZY76UVE1xyCGNTojH9h",
+          "label": "Public address",
+          "sats": 644745981,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Kuf2Rd8mDyAViwBozGTNYnvWL8uYFrkVo",
+          "label": "Public address",
+          "sats": 1260646241,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13f59kUM5FU8MfTG7DCEugYarDhSD7XCoC",
+          "label": "Public address",
+          "sats": 929451669,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1P3ZfGFLezzYGg9k5SVzQmnjyh7nrUmF2y",
+          "label": "Public address",
+          "sats": 11883,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1EpMiZkQVekM5ij12nMiEwttFPcDK9XhX6",
+          "label": "Public address",
+          "sats": 2051965590,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1JREJdZupiFhE7ZzQPtASuMCvvpXC7wRsC",
+          "label": "Public address",
+          "sats": 11883,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 4886833247
+    },
+    {
       "id": "yala",
       "name": "Yala Finance",
       "category": "CORP",
@@ -8611,6 +10870,38 @@ var ENTITIES = {
         }
       ],
       "total": 2873078404
+    },
+    {
+      "id": "pool-bitcoin-affiliate-network",
+      "name": "Bitcoin Affiliate Network",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Bitcoin Affiliate Network payout addresses from the GraphSense miners tag pack, which extracts them from the pool's own coinbase outputs. A pool address holds only what the pool has not swept yet, so the figure moves with its payout cycle.",
+      "extra": "A 2013-era affiliate pool whose coinbase addresses carry no operator name in the pack.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3PFojMWppy99VoCJE3w8Vjr1BwxATf6apm",
+          "label": "Pool payout address",
+          "sats": 2506138680,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3GRW8NTrkiZGQxFezTeUfcj7b5hDg4PfBK",
+          "label": "Pool payout address",
+          "sats": 10000,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 2506148680
     },
     {
       "id": "pool-carbon-negative",
@@ -8873,6 +11164,30 @@ var ENTITIES = {
         }
       ],
       "total": 1541149250
+    },
+    {
+      "id": "pool-viabtc",
+      "name": "ViaBTC",
+      "category": "CORP",
+      "icon": "corp",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "ViaBTC payout addresses from the GraphSense miners tag pack, which extracts them from the pool's own coinbase outputs. A pool address holds only what the pool has not swept yet, so the figure moves with its payout cycle.",
+      "extra": "A Chinese pool founded in 2016 that also runs ViaBTC exchange. Balances were read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "15yrnonRCitfjsVxw3g6j95qRE4q6Mcyro",
+          "label": "Pool payout address",
+          "sats": 1374884393,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1374884393
     },
     {
       "id": "netwalker",
@@ -9256,6 +11571,69 @@ var ENTITIES = {
       "total": 1082420393
     },
     {
+      "id": "qubes-os",
+      "name": "Qubes OS",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Non-profit",
+      "evidence": "official",
+      "live": true,
+      "description": "The security-focused desktop that runs every program in its own virtual machine. The project publishes this address on its donation page and lets donors verify it against a signed statement.",
+      "est": null,
+      "coverage": "full",
+      "addresses": [
+        {
+          "address": "3GakuQQDUGyyUnV1p5Jc3zd6CpQDkDwmDq",
+          "label": "Public address",
+          "sats": 586725311,
+          "source": "https://www.qubes-os.org/donate/",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 586725311
+    },
+    {
+      "id": "wikileaks",
+      "name": "WikiLeaks",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Donation address",
+      "evidence": "official",
+      "live": true,
+      "description": "WikiLeaks has taken bitcoin donations since June 2011, after Visa, Mastercard, PayPal and the banks cut it off. The three addresses below are its published donation addresses, old and current.",
+      "extra": "The 2011 address 1HB5XML... was announced on WikiLeaks' own Twitter and support page. The current page asks donors to use 36EEHh9... and the SegWit address bc1qcme5... instead.",
+      "est": null,
+      "coverage": "full",
+      "addresses": [
+        {
+          "address": "1HB5XMLmzFVj8ALj6mfBsbifRoD4miY36v",
+          "label": "Public address",
+          "sats": 20148071,
+          "source": "https://shop.wikileaks.org/donate/",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "36EEHh9ME3kU7AZ3rUxBCyKR5FhR3RbqVo",
+          "label": "Public address",
+          "sats": 407382911,
+          "source": "https://shop.wikileaks.org/donate/",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qcme5u6v8a4ss855jsvgae59z20f05sky494qpa",
+          "label": "Public address",
+          "sats": 5302502,
+          "source": "https://shop.wikileaks.org/donate/",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 432833484
+    },
+    {
       "id": "tesla",
       "name": "Tesla",
       "category": "CORP",
@@ -9278,6 +11656,221 @@ var ENTITIES = {
         }
       ],
       "total": 395351411
+    },
+    {
+      "id": "p2pool-miners",
+      "name": "P2Pool miners",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Solo miners",
+      "evidence": "chain",
+      "live": true,
+      "description": "Coinbase outputs the tag pack extracted from P2Pool, the share-chain pool that lets solo miners keep their own coinbase. No operator is named behind these addresses; they are grouped only by how the coins were mined.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "12ryV2i7bHFkRSCe6vP2WEqUhUqmGAd5xm",
+          "label": "Public address",
+          "sats": 642303,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18GSJejZ7fqpBys1YJF9owqYnqacXBK4wi",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13ZfNtc58X5P5fiajeNYcryuh8YcQTT4vY",
+          "label": "Public address",
+          "sats": 27735187,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14yENx9L2KaM3vYfbuzpHKMU8nmWc38Au1",
+          "label": "Public address",
+          "sats": 200,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13m4zDRnzmanyVVCWUw7aEsZdVbxqxw7Fw",
+          "label": "Public address",
+          "sats": 256158233,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15CRtRwmFtz1K1L2DkHmaSqmr9RSdb5iC9",
+          "label": "Public address",
+          "sats": 286938,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17gcbXdhctUydGTKMpJpn3Vg7QAJeq7Bds",
+          "label": "Public address",
+          "sats": 11259619,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1ENkSat1KB7qrVmEGxZPXru9AhHyCoW2nR",
+          "label": "Public address",
+          "sats": 137896,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PUSLtmTygPSoQFJQZFUuGa3vEkjvWVdaZ",
+          "label": "Public address",
+          "sats": 2093830,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18D4PvgzrTqDSeThZ9dLWkqeEQCizFYVqm",
+          "label": "Public address",
+          "sats": 9130,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "13BjeByMn1tQAPGaYPUZCkViwxrkjbDscP",
+          "label": "Public address",
+          "sats": 9715258,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "134CAUgRa1h5Syf96nQt2nfEApZSdWGPUe",
+          "label": "Public address",
+          "sats": 2939855,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "15dJipRhmepaJkEbBarw9NpPSCqMAybcP8",
+          "label": "Public address",
+          "sats": 35994273,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "19XXMD3CjCNY4X7DUoHdftFzWmqETCChGm",
+          "label": "Public address",
+          "sats": 10000,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18Gz2DpWeEJRGsqbGJHLRcYdzb59d9kiGR",
+          "label": "Public address",
+          "sats": 3373894,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Fd8n26auEzWQSqmf4HU1xyiEpPoJmhXuS",
+          "label": "Public address",
+          "sats": 8744547,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DzAXrTjPeGcUdUjM2kuGPPHRcfMgLqdtT",
+          "label": "Public address",
+          "sats": 16411,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "18HgfNiB353DnhVKo8BHAvrZejjuapvbFp",
+          "label": "Public address",
+          "sats": 7126080,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Cdhrd3tUNjW6xCB2jgzndDcU3454WzTG5",
+          "label": "Public address",
+          "sats": 2693859,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16X46DueZGQ2vju5nxuAURcxfaWCKXkqCK",
+          "label": "Public address",
+          "sats": 43180,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14QSzo8JwdLvWNq7etnHnRrpYuQaJZJCy4",
+          "label": "Public address",
+          "sats": 8257,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "16mgPFNATie9HqVrhb9QiWj4WbGmDQkxmf",
+          "label": "Public address",
+          "sats": 239000,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1FertFYFq4fnYHNgVJ8wCS4cBdoqYCouer",
+          "label": "Public address",
+          "sats": 97090,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1AFKQZdEF2j6jSmdS3Tt3sDGvF4RWj25SS",
+          "label": "Public address",
+          "sats": 4591379,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1GedT8Z1qoScs8AhFyPCEWB2mQQLuX2VLw",
+          "label": "Public address",
+          "sats": 879030,
+          "source": "https://chainquery.com/sources/p2pool-miners",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 374795450
     },
     {
       "id": "pool-secpool",
@@ -9340,6 +11933,77 @@ var ENTITIES = {
         }
       ],
       "total": 271888016
+    },
+    {
+      "id": "pool-nmcbit",
+      "name": "NMCbit",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "NMCbit payout addresses from the GraphSense miners tag pack, which extracts them from the pool's own coinbase outputs. A pool address holds only what the pool has not swept yet, so the figure moves with its payout cycle.",
+      "extra": "An early merged-mining pool that paid out in namecoin alongside bitcoin.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1Me8rVWwHH8eFWCPqwM43N1MkPtR6Lar7d",
+          "label": "Pool payout address",
+          "sats": 255000000,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 255000000
+    },
+    {
+      "id": "ponzi-bestdoubler",
+      "name": "BestDoubler.eu",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Ponzi scheme",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A doubling scheme that promised 120% returns and collected its deposits at this address. The wallet attribution is the GraphSense ponzi tag pack's.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "13NZxtAnKk5mbCUHpxHqKwWTDJzFHMGHLh",
+          "label": "Public address",
+          "sats": 222007555,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 222007555
+    },
+    {
+      "id": "pool-gbminers",
+      "name": "GBMiners",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "GBMiners payout addresses from the GraphSense miners tag pack, which extracts them from the pool's own coinbase outputs. A pool address holds only what the pool has not swept yet, so the figure moves with its payout cycle.",
+      "extra": "A 2016-2017 pool that briefly held a large share of the network.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1KuWLoZuoJgz3N6sLoAwGth9XGm8YuFTGt",
+          "label": "Pool payout address",
+          "sats": 178936696,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 178936696
     },
     {
       "id": "wintermute",
@@ -9545,6 +12209,29 @@ var ENTITIES = {
         }
       ],
       "total": 100052700
+    },
+    {
+      "id": "grapheneos",
+      "name": "GrapheneOS Foundation",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Non-profit",
+      "evidence": "official",
+      "live": true,
+      "description": "The non-profit behind the hardened Android distribution. This SegWit address is the one its donation page gives, next to a BIP47 payment code.",
+      "est": null,
+      "coverage": "full",
+      "addresses": [
+        {
+          "address": "bc1q9qw3g8tdxf3dugkv2z8cahd3axehph0mhsqk96",
+          "label": "Public address",
+          "sats": 70185637,
+          "source": "https://grapheneos.org/donate",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 70185637
     },
     {
       "id": "pool-ghash-io",
@@ -10014,6 +12701,52 @@ var ENTITIES = {
       "total": 27356642
     },
     {
+      "id": "ransom-notpetya",
+      "name": "NotPetya",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The 2017 wiper that demanded a ransom; the address is the one its operators published. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1Mz7153HMuxXTuR2R1t78mGSdzaAtNbBWX",
+          "label": "Public address",
+          "sats": 27116797,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 27116797
+    },
+    {
+      "id": "internet-archive",
+      "name": "Internet Archive",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Non-profit",
+      "evidence": "official",
+      "live": true,
+      "description": "The library that keeps the web: the Wayback Machine, the software archive and the books. This vanity address is printed on its cryptocurrency donation page.",
+      "est": null,
+      "coverage": "full",
+      "addresses": [
+        {
+          "address": "1Archive1n2C579dMsAu3iC6tWzuQJz8dN",
+          "label": "Public address",
+          "sats": 25938608,
+          "source": "https://archive.org/donate/cryptocurrency/",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 25938608
+    },
+    {
       "id": "pool-est3lar",
       "name": "Est3lar",
       "category": "CORP",
@@ -10037,27 +12770,91 @@ var ENTITIES = {
       "total": 23970006
     },
     {
-      "id": "ross-ulbricht",
-      "name": "Ross Ulbricht (Dread Pirate Roberts)",
-      "category": "PERSON",
-      "icon": "person",
-      "badge": "Silk Road",
+      "id": "ransom-unknown-ransomware",
+      "name": "Unattributed ransomware wallets",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
       "evidence": "attributed",
       "live": true,
-      "description": "Silk Road's founder. The wallet below is the one the FBI seized as his personal holdings; it is empty now, and the funds were auctioned.",
+      "description": "Wallets the ransomware tag pack records without naming the family. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
       "est": null,
       "coverage": "partial",
       "addresses": [
         {
-          "address": "1HB5XMLmzFVj8ALj6mfBsbifRoD4miY36v",
+          "address": "14vo1ZB8Gi9duKcCVa6zUpdiRRpCz5GKBF",
           "label": "Public address",
-          "sats": 20148071,
-          "source": "https://www.justice.gov/",
+          "sats": 58976,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14KmxKrAUJFMaL1S9tv22xiuJFpdCvrp5X",
+          "label": "Public address",
+          "sats": 7139,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1HqoNfpAJFMy9E36DBSk1ktPQ9o9fn2RxX",
+          "label": "Public address",
+          "sats": 600,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "17gH1u6VJwhVD9cWR59jfeinLMzag2GZ43",
+          "label": "Public address",
+          "sats": 37442,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1ACKcumkx4M3aQisMMLq32EubPkUNiUfTC",
+          "label": "Public address",
+          "sats": 1,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1Meeds2ZxoQDcYR38apYPwJaCnA9LzRNdR",
+          "label": "Public address",
+          "sats": 20000000,
+          "source": "https://chainquery.com/sources/graphsense",
           "note": "",
           "live": true
         }
       ],
-      "total": 20148071
+      "total": 20104158
+    },
+    {
+      "id": "pool-tigerpool",
+      "name": "TigerPool.net",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "TigerPool.net payout addresses from the GraphSense miners tag pack, which extracts them from the pool's own coinbase outputs. A pool address holds only what the pool has not swept yet, so the figure moves with its payout cycle.",
+      "extra": "A small 2013-2014 pool.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "39pLhpmYEhYaz6MrxvBVndTEK1x45MAsdN",
+          "label": "Pool payout address",
+          "sats": 18298403,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 18298403
     },
     {
       "id": "pool-zulupool",
@@ -10104,6 +12901,29 @@ var ENTITIES = {
         }
       ],
       "total": 16554295
+    },
+    {
+      "id": "ransom-noobcrypt",
+      "name": "NoobCrypt",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A 2016 family that targeted businesses through remote-desktop servers. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1JrYNuMaE4VXKrod2gA9keBo6nzPvtaoZ6",
+          "label": "Public address",
+          "sats": 14846000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 14846000
     },
     {
       "id": "pool-poolin",
@@ -10177,6 +12997,78 @@ var ENTITIES = {
       "total": 11714897
     },
     {
+      "id": "ofac-secondeye-solution",
+      "name": "SECONDEYE SOLUTION",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "A front company OFAC designated in 2023 for moving bitcoin for the fentanyl trade.",
+      "extra": "SDN list entry 30518 (narcotics trafficking), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1G9CKRHA3mx22DoT1QyNYrh85VSQ19Y1em",
+          "label": "Public address",
+          "sats": 11565258,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 11565258
+    },
+    {
+      "id": "pool-bitfury",
+      "name": "BitFury",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "BitFury payout addresses from the GraphSense miners tag pack, which extracts them from the pool's own coinbase outputs. A pool address holds only what the pool has not swept yet, so the figure moves with its payout cycle.",
+      "extra": "The mining hardware company's own pool, before it moved to selling equipment and running datacentres.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1GbVUSW5WJmRCpaCJ4hanUny77oDaWW4to",
+          "label": "Pool payout address",
+          "sats": 5750898,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1PDxvLzJuQEHH1ucGVrkSHgVfJxRFXqEP",
+          "label": "Pool payout address",
+          "sats": 245910,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1DrK44np3gMKuvcGeFVv9Jk67zodP52eMu",
+          "label": "Pool payout address",
+          "sats": 1000,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3JJfSJGBpTnaibi58ZPKxSL5xozQqLVSRA",
+          "label": "Pool payout address",
+          "sats": 547,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 5998355
+    },
+    {
       "id": "laszlo-hanyecz",
       "name": "Laszlo Hanyecz (Pizza Day)",
       "category": "PERSON",
@@ -10207,6 +13099,84 @@ var ENTITIES = {
         }
       ],
       "total": 5707823
+    },
+    {
+      "id": "ransom-kelly",
+      "name": "Kelly",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A ransomware family tracked by Ransomwhere. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1FuPAucXqBXvhzzXguCyQAH7AbGHg6xfrM",
+          "label": "Public address",
+          "sats": 5000000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 5000000
+    },
+    {
+      "id": "ponzi-ponzi-io",
+      "name": "Ponzi.io",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Ponzi scheme",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A doubling scheme that named itself. The wallet attribution is the GraphSense ponzi tag pack's.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1ponziUjuCVdB167ZmTWH48AURW1vE64q",
+          "label": "Public address",
+          "sats": 3938990,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "14ji9KmegNHhTchf4ftkt3J1ywmijGjd6M",
+          "label": "Public address",
+          "sats": 10000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 3948990
+    },
+    {
+      "id": "andreas-antonopoulos",
+      "name": "Andreas M. Antonopoulos",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "Public tip address",
+      "evidence": "official",
+      "live": true,
+      "description": "The author of Mastering Bitcoin and one of the most travelled bitcoin educators. He published this vanity address in his own writing as the one he uses for tips and donations.",
+      "extra": "He named 1andreas3batLhQa2FawWjeyjCqyBzypd in a 2014 article he wrote for Boing Boing and keeps a donation page at aantonop.com. The 2017 donation wave that followed Roger Ver's criticism landed here.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1andreas3batLhQa2FawWjeyjCqyBzypd",
+          "label": "Public address",
+          "sats": 3723829,
+          "source": "https://boingboing.net/2014/06/04/intro-to-bitcoin.html",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 3723829
     },
     {
       "id": "hydra",
@@ -11215,6 +14185,61 @@ var ENTITIES = {
       "total": 2354640
     },
     {
+      "id": "pool-lubian",
+      "name": "Lubian.com",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Lubian.com payout addresses from the GraphSense miners tag pack, which extracts them from the pool's own coinbase outputs. A pool address holds only what the pool has not swept yet, so the figure moves with its payout cycle.",
+      "extra": "The Chinese pool whose 2020 coinbase outputs became the LuBian wallet cluster the DOJ seized in 2024.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3LJp4U6dskT61xtc7CsnweAPyuxENX5AH6",
+          "label": "Pool payout address",
+          "sats": 852388,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "3Qac5VGZ3C2CpF7XsN3ykWsEuELFa3Nnwx",
+          "label": "Pool payout address",
+          "sats": 851817,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1704205
+    },
+    {
+      "id": "bter-hack",
+      "name": "Bter Hack (2015)",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Exchange hack",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The Chinese exchange Bter lost 7,170 BTC in February 2015; the pack tags the receiving wallets. Attribution comes from the hacks tag pack.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1Ni8z1MbaF4ri8GGE67BWtLu66YnXj2BuW",
+          "label": "Public address",
+          "sats": 1642361,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1642361
+    },
+    {
       "id": "pool-canoepool",
       "name": "CanoePool",
       "category": "CORP",
@@ -11531,6 +14556,77 @@ var ENTITIES = {
       "total": 1110000
     },
     {
+      "id": "bitcoin-faucet",
+      "name": "Bitcoin Faucet (2010)",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "First faucet",
+      "evidence": "official",
+      "live": true,
+      "description": "Gavin Andresen's freebitcoins.appspot.com gave five bitcoin to anyone who asked, the first faucet on the network. This is the donation address printed on the page.",
+      "extra": "In March 2012 Andresen posted that the server had been broken into and that the address was then controlled by the thief. Its balance is what he and the thief left behind.",
+      "est": null,
+      "coverage": "full",
+      "addresses": [
+        {
+          "address": "15VjRaDX9zpbA8LVnbrCAFzrVzN7ixHNsC",
+          "label": "Public address",
+          "sats": 924374,
+          "source": "https://web.archive.org/web/20100703032414/http:/freebitcoins.appspot.com/",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 924374
+    },
+    {
+      "id": "ransom-bucbi",
+      "name": "Bucbi",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A 2014 ransomware family that encrypted files and demanded payment in bitcoin. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1MfVk1utxgvGjMFV3K3CzXsDRDZznj5tey",
+          "label": "Public address",
+          "sats": 896000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 896000
+    },
+    {
+      "id": "ofac-oko-design-bureau",
+      "name": "OKO DESIGN BUREAU",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "A Russian design bureau designated under the Russia sanctions programme.",
+      "extra": "SDN list entry 48432 (Russia sanctions), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "13fhnkmpBBWXUQucJd6efWvXdEj78DKavk",
+          "label": "Public address",
+          "sats": 800000,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 800000
+    },
+    {
       "id": "pool-miningcity",
       "name": "MiningCity",
       "category": "CORP",
@@ -11552,6 +14648,29 @@ var ENTITIES = {
         }
       ],
       "total": 730000
+    },
+    {
+      "id": "nicehash-hack",
+      "name": "NiceHash Hack (2017)",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Exchange hack",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The December 2017 breach in which 4,700 BTC was taken from NiceHash's mining marketplace. Attribution comes from the hacks tag pack.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1EnJHhq8Jq8vDuZA5ahVh6H4t6jh1mB4rq",
+          "label": "Public address",
+          "sats": 673176,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 673176
     },
     {
       "id": "pool-58coin",
@@ -11606,6 +14725,85 @@ var ENTITIES = {
         }
       ],
       "total": 509296
+    },
+    {
+      "id": "betcoin-hack",
+      "name": "Betco.in Hack",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Exchange hack",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A 2014 gambling site breach tracked in the hacks pack. Attribution comes from the hacks tag pack.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "18hzngAgi6F1bXQv1iJxFYwgY44WHhBVwj",
+          "label": "Public address",
+          "sats": 450000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "184VFd8519G6WPg78r8YTvkL2zQ8aLxw9Q",
+          "label": "Public address",
+          "sats": 21674,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 471674
+    },
+    {
+      "id": "ofac-xiaojun-huang",
+      "name": "Xiaojun HUANG",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by the U.S. Treasury's OFAC under the ILLICIT-DRUGS-EO14059 programme. The addresses are the bitcoin addresses the SDN list records for this party.",
+      "extra": "SDN list entry 50867 (the illicit-drug trade), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3NEcQKZ8RwL2eDNhmMPpZ4td9vPsQh9JwM",
+          "label": "Public address",
+          "sats": 443056,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 443056
+    },
+    {
+      "id": "dorian-nakamoto",
+      "name": "Dorian Nakamoto",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "2014 fundraiser",
+      "evidence": "official",
+      "live": true,
+      "description": "The California man Newsweek named as Satoshi Nakamoto in March 2014. Andreas Antonopoulos opened a fundraiser for him the same week, and the community sent 49 BTC to a vanity address starting with his name.",
+      "extra": "The 1Dorian address received about 49 BTC in 2014 and further donations in 2015; the funds were later forwarded to Coinbase. What remains is the dust left behind.",
+      "est": null,
+      "coverage": "full",
+      "addresses": [
+        {
+          "address": "1Dorian4RoXcnBv9hnQ4Y2C1an6NJ4UrjX",
+          "label": "Public address",
+          "sats": 370010,
+          "source": "https://blockworks.com/news/dorian-nakamoto-media-frenzy",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 370010
     },
     {
       "id": "pool-antpool",
@@ -12069,6 +15267,30 @@ var ENTITIES = {
         }
       ],
       "total": 348891
+    },
+    {
+      "id": "ofac-gaza-now",
+      "name": "GAZA NOW",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "A fundraising campaign designated by OFAC as supporting terrorism; the address was published in the SDN list.",
+      "extra": "SDN list entry 47635 (terrorism), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3Q8H2ZWMtc4R1M3mkmhnTjCoYKTeCFigDP",
+          "label": "Public address",
+          "sats": 307545,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 307545
     },
     {
       "id": "binance-hack",
@@ -12819,6 +16041,29 @@ var ENTITIES = {
       "total": 200000
     },
     {
+      "id": "ransom-cryptohost",
+      "name": "CryptoHost",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A 2015 server-locking family. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "18AVPLKGBamXtGpdT3kP2b5Dv3iBUDpjKv",
+          "label": "Public address",
+          "sats": 200000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 200000
+    },
+    {
       "id": "sinbad",
       "name": "Sinbad.io",
       "category": "OTHER",
@@ -12850,6 +16095,30 @@ var ENTITIES = {
       "total": 178516
     },
     {
+      "id": "ofac-valerian-labs-inc",
+      "name": "VALERIAN LABS, INC.",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "A company designated under the fentanyl sanctions programme.",
+      "extra": "SDN list entry 45314 (narcotics trafficking), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qardcxz845jw83vgfvcmewhuxa0ag9gchjwmcfd",
+          "label": "Public address",
+          "sats": 145125,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 145125
+    },
+    {
       "id": "pool-bytepool",
       "name": "BytePool",
       "category": "CORP",
@@ -12871,6 +16140,29 @@ var ENTITIES = {
         }
       ],
       "total": 137422
+    },
+    {
+      "id": "al-qaeda-campaign",
+      "name": "Al-Qaeda fundraising campaign",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Terror financing",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A bitcoin fundraising campaign attributed to al-Qaeda in the GraphSense tag packs. The address is an analytics attribution, not a published wallet.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "15K9Zj1AU2hjT3ebZMtWqDsMv3fFxTNwpf",
+          "label": "Public address",
+          "sats": 117639,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 117639
     },
     {
       "id": "flexcoin",
@@ -13038,6 +16330,54 @@ var ENTITIES = {
         }
       ],
       "total": 104000
+    },
+    {
+      "id": "ofac-ali-khorashadizadeh",
+      "name": "Ali KHORASHADIZADEH",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by OFAC as part of an Iranian sanctions-evasion network.",
+      "extra": "SDN list entry 26137 (Iran sanctions), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "149w62rY42aZBox8fGcmqNsXUzSStKeq8C",
+          "label": "Public address",
+          "sats": 102961,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 102961
+    },
+    {
+      "id": "ofac-mohammad-ghorbaniyan",
+      "name": "Mohammad GHORBANIYAN",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by OFAC in 2018 alongside two bitcoin addresses for sanctions evasion.",
+      "extra": "SDN list entry 26138 (Iran sanctions), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1AjZPMsnmpdK2Rv9KQNfMurTXinscVro9V",
+          "label": "Public address",
+          "sats": 101835,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 101835
     },
     {
       "id": "zaif-hack",
@@ -13700,6 +17040,122 @@ var ENTITIES = {
       "total": 89680
     },
     {
+      "id": "ransom-globeimposter",
+      "name": "GlobeImposter",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A Globe variant that spread through 2017-2019. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1GvgRRnLpUP7KsLZLE23ridD45MUxHoAJ4",
+          "label": "Public address",
+          "sats": 77132,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 77132
+    },
+    {
+      "id": "vircurex-hack",
+      "name": "Vircurex (2014)",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Exchange hack",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The exchange that froze withdrawals in 2014 after two thefts; its wallets are tagged here. Attribution comes from the hacks tag pack.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1AgAwktDcsZQny2DjoBRfFhhxpUuHgL6u6",
+          "label": "Public address",
+          "sats": 72050,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 72050
+    },
+    {
+      "id": "ofac-buy-cash-money-and-money-transfer-company",
+      "name": "BUY CASH MONEY AND MONEY TRANSFER COMPANY",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by the U.S. Treasury's OFAC under the SDGT programme. The addresses are the bitcoin addresses the SDN list records for this party.",
+      "extra": "SDN list entry 45678 (terrorism), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "19D1iGzDr7FyAdiy3ZZdxMd6ttHj1kj6WW",
+          "label": "Public address",
+          "sats": 70326,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 70326
+    },
+    {
+      "id": "ponzi-clearhash",
+      "name": "ClearHash.net",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Ponzi scheme",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A cloud-mining scheme that stopped paying out. The wallet attribution is the GraphSense ponzi tag pack's.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1DXxLzocfWXTHVYv4MTai4LLtXZgcJDknZ",
+          "label": "Public address",
+          "sats": 58503,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 58503
+    },
+    {
+      "id": "bips-hack",
+      "name": "BIPS Hack (2013)",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Exchange hack",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The Danish payment processor whose wallets were drained in 2013. Attribution comes from the hacks tag pack.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1LuG91tcSQxKj32BsCoRkX7yQLfj9LtkCs",
+          "label": "Public address",
+          "sats": 51000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 51000
+    },
+    {
       "id": "pool-f2pool",
       "name": "F2Pool",
       "category": "CORP",
@@ -13729,6 +17185,29 @@ var ENTITIES = {
         }
       ],
       "total": 49983
+    },
+    {
+      "id": "ponzi-bitcoindoubler",
+      "name": "BitcoinDoubler.prv.pl",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Ponzi scheme",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A doubling site tracked in the ponzi tag pack. The wallet attribution is the GraphSense ponzi tag pack's.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "18Smkvyf3gJN4z59FhjJsCu6NhSYmZkNvG",
+          "label": "Public address",
+          "sats": 48258,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 48258
     },
     {
       "id": "pool-whitepool",
@@ -13770,6 +17249,54 @@ var ENTITIES = {
           "label": "Pool payout address",
           "sats": 30000,
           "source": "https://github.com/mempool/mining-pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 30000
+    },
+    {
+      "id": "ofac-hongfei-wang",
+      "name": "Hongfei WANG",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by the U.S. Treasury's OFAC under the ILLICIT-DRUGS-EO14059 programme. The addresses are the bitcoin addresses the SDN list records for this party.",
+      "extra": "SDN list entry 41297 (the illicit-drug trade), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3PKiHs4GY4rFg8dpppNVPXGPqMX6K2cBML",
+          "label": "Public address",
+          "sats": 30000,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 30000
+    },
+    {
+      "id": "ofac-fengbing-xia",
+      "name": "Fengbing XIA",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by the U.S. Treasury's OFAC under the ILLICIT-DRUGS-EO14059 programme. The addresses are the bitcoin addresses the SDN list records for this party.",
+      "extra": "SDN list entry 45350 (the illicit-drug trade), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qkfqh5p2qsakseg5gnwen6zh5xf3elmku2xaup29mw3l0wnncy3es880dss",
+          "label": "Public address",
+          "sats": 30000,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
           "note": "",
           "live": true
         }
@@ -13860,6 +17387,30 @@ var ENTITIES = {
         }
       ],
       "total": 20000
+    },
+    {
+      "id": "ofac-anton-nikolaeyvich-andreyev",
+      "name": "Anton Nikolaeyvich ANDREYEV",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by OFAC for running the sanctioned exchange Garantex.",
+      "extra": "SDN list entry 29703 (cyber-enabled activity), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1DbShx4r8i2XesthoDBf5EkYWz5dsKEusV",
+          "label": "Public address",
+          "sats": 17542,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 17542
     },
     {
       "id": "pool-terra-pool",
@@ -13996,6 +17547,77 @@ var ENTITIES = {
       "total": 15930
     },
     {
+      "id": "ransom-triplem",
+      "name": "TripleM",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A 2016 family that spread through spam attachments. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "35iCvpMMnUWcSWrYtLJLXqe9xo5CYEWRhw",
+          "label": "Public address",
+          "sats": 11840,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 11840
+    },
+    {
+      "id": "martti-malmi",
+      "name": "Martti Malmi (Sirius)",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "Satoshi's first collaborator",
+      "evidence": "official",
+      "live": true,
+      "description": "The developer Satoshi brought in as the second contributor to Bitcoin in 2009. He gave this address in a July 2010 email exchange with Satoshi as the one to send hosting donations to when the project ran out of money.",
+      "extra": "The address appears in the Satoshi-Malmi correspondence he published in 2024 (email of 18 July 2010). It sat empty until 2018, when Laszlo Hanyecz sent a fraction of a bitcoin to it.",
+      "est": null,
+      "coverage": "full",
+      "addresses": [
+        {
+          "address": "14EXchS9j3AAfim6mL4jtw6VWMosSUiG5U",
+          "label": "Public address",
+          "sats": 11647,
+          "source": "https://mmalmi.github.io/satoshi/",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 11647
+    },
+    {
+      "id": "ofac-guanghua-zheng",
+      "name": "Guanghua ZHENG",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by OFAC as part of the fentanyl-laundering network.",
+      "extra": "SDN list entry 26323 (narcotics trafficking), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "18uKfaUjgG52rVeXEi3wxnveww7zZuECtE",
+          "label": "Public address",
+          "sats": 11337,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 11337
+    },
+    {
       "id": "pool-eclipsemc",
       "name": "EclipseMC",
       "category": "CORP",
@@ -14048,6 +17670,154 @@ var ENTITIES = {
         }
       ],
       "total": 10000
+    },
+    {
+      "id": "ransom-cryptolocker",
+      "name": "CryptoLocker",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The 2013 Trojan that made bitcoin ransoms mainstream; the wallets are its payment addresses. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "18iEz617DoDp8CNQUyyrjCcC7XCGDf5SVb",
+          "label": "Public address",
+          "sats": 10000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 10000
+    },
+    {
+      "id": "ransom-ctb-locker",
+      "name": "CTB-Locker",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A 2014 family sold as a ransomware kit. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1A6GJMhpPhCcM557o62scEtuVXNAFe74fa",
+          "label": "Public address",
+          "sats": 10000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 10000
+    },
+    {
+      "id": "ransom-teslacrypt",
+      "name": "TeslaCrypt",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A 2015 family that targeted gamers. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "15Y2TmHrxjmRFxfNUttwb9aU4DifvDpWKM",
+          "label": "Public address",
+          "sats": 10000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 10000
+    },
+    {
+      "id": "ransom-wannaren",
+      "name": "WannaRen",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A 2020 family that spread through pirated software. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1NXTgfGprVktuokv3ZLhGCPCjcKjXbswAM",
+          "label": "Public address",
+          "sats": 9490,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 9490
+    },
+    {
+      "id": "ofac-keyvan-fayyaz-gareh-blagh",
+      "name": "Keyvan Fayyaz Gareh BLAGH",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by the U.S. Treasury's OFAC under the CYBER4 programme. The addresses are the bitcoin addresses the SDN list records for this party.",
+      "extra": "SDN list entry 57061 (cyber-enabled activity), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qr2pwmvkpq5tc5um2g9uh34yyu6wepwx89rts70",
+          "label": "Public address",
+          "sats": 8099,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 8099
+    },
+    {
+      "id": "dustin-trammell",
+      "name": "Dustin D. Trammell",
+      "category": "PERSON",
+      "icon": "person",
+      "badge": "Signed proof",
+      "evidence": "official",
+      "live": true,
+      "description": "An early Bitcoin user who exchanged emails with Satoshi in January 2009 and received 25 BTC from him. He published a signed message proving he controls this address, and another for the coinbase of block 309.",
+      "extra": "Two addresses: 1DCbY2GYVaAMCBpuBNN5GVg3a47pNK1wdi received the 25 BTC from Satoshi in block 286's successor transaction, and 1627A2DbCtVVykWVJmdQz2ERwkw4uiEL22 is the block 309 coinbase key he proved he holds. Both held P2PK outputs that the address statistics leave out; what the table counts is the small later payments.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1DCbY2GYVaAMCBpuBNN5GVg3a47pNK1wdi",
+          "label": "Public address",
+          "sats": 2500,
+          "source": "https://blog.dustintrammell.com/block-286-and-satoshis-coins/",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "1627A2DbCtVVykWVJmdQz2ERwkw4uiEL22",
+          "label": "Public address",
+          "sats": 5000,
+          "source": "https://blog.dustintrammell.com/block-286-and-satoshis-coins/",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 7500
     },
     {
       "id": "samsam",
@@ -14328,6 +18098,30 @@ var ENTITIES = {
       "total": 7070
     },
     {
+      "id": "pool-kncminer",
+      "name": "KNC Miner",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "KNC Miner payout addresses from the GraphSense miners tag pack, which extracts them from the pool's own coinbase outputs. A pool address holds only what the pool has not swept yet, so the figure moves with its payout cycle.",
+      "extra": "The KnCMiner hardware maker's pool.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1Mpce11eUTuP9mxyDixdFbJzPrdNEJkgB4",
+          "label": "Pool payout address",
+          "sats": 7050,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 7050
+    },
+    {
       "id": "tim-draper",
       "name": "Tim Draper",
       "category": "PERSON",
@@ -14372,6 +18166,30 @@ var ENTITIES = {
         }
       ],
       "total": 6401
+    },
+    {
+      "id": "pool-eligius",
+      "name": "Eligius",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "Eligius payout addresses from the GraphSense miners tag pack, which extracts them from the pool's own coinbase outputs. A pool address holds only what the pool has not swept yet, so the figure moves with its payout cycle.",
+      "extra": "Luke Dashjr's pool, which mined 2012-2017 and was known for its coinbase messages.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "18d3HV2bm94UyY4a9DrPfoZ17sXuiDQq2B",
+          "label": "Pool payout address",
+          "sats": 6291,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 6291
     },
     {
       "id": "plustoken",
@@ -14515,6 +18333,29 @@ var ENTITIES = {
       "total": 5150
     },
     {
+      "id": "ransom-7ev3n",
+      "name": "7ev3n",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A 2016 family tracked in the ransomware tag pack. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1Lud76Q98VRHCUiyK7XUs7AgFofrqXeP78",
+          "label": "Public address",
+          "sats": 4937,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 4937
+    },
+    {
       "id": "pool-rawpool",
       "name": "Rawpool",
       "category": "CORP",
@@ -14592,6 +18433,77 @@ var ENTITIES = {
         }
       ],
       "total": 4304
+    },
+    {
+      "id": "ofac-ivan-gennadievich-kondratiev",
+      "name": "Ivan Gennadievich KONDRATIEV",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by the U.S. Treasury's OFAC under the CYBER2 programme. The addresses are the bitcoin addresses the SDN list records for this party.",
+      "extra": "SDN list entry 47682 (cyber-enabled activity), bitcoin addresses 4; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1q5jqgm7nvrhaw2rh2vk0dk8e4gg5g373g0vz07r",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qagp0gy58v8hqvw4p2wsphcxg067rrppp45hexr",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qn6segn8km4nfdp9vueu6msfjsaxaqgun9h60n9",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        },
+        {
+          "address": "bc1qx9upga7f09tsetqf78wa3qrmcjar58mkwz6ng6",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 4000
+    },
+    {
+      "id": "ransom-encrpt3d",
+      "name": "Encrpt3d",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A family tracked by Ransomwhere. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "19B5Bt11oUqYnwSXfBgRpwwDGg5Ajirbjn",
+          "label": "Public address",
+          "sats": 2866,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 2866
     },
     {
       "id": "linode-hack",
@@ -14729,6 +18641,122 @@ var ENTITIES = {
       "total": 2809
     },
     {
+      "id": "ponzi-weeklyponzi",
+      "name": "WeeklyPonzi",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Ponzi scheme",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A weekly-return scheme. The wallet attribution is the GraphSense ponzi tag pack's.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1CHJArco4Qv6cmTZNF7Km7cuATCD1Z1NSu",
+          "label": "Public address",
+          "sats": 2000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 2000
+    },
+    {
+      "id": "ransom-aes-ni",
+      "name": "AES-NI",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A family tracked by Ransomwhere. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1HyasSC2VifTZo7YkUNn33udnWXw3Ffq7T",
+          "label": "Public address",
+          "sats": 1887,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1887
+    },
+    {
+      "id": "ofac-dmitry-yuryevich-khoroshev",
+      "name": "Dmitry Yuryevich KHOROSHEV",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by the U.S. Treasury's OFAC under the CYBER2 programme. The addresses are the bitcoin addresses the SDN list records for this party.",
+      "extra": "SDN list entry 48603 (cyber-enabled activity), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qvhnfknw852ephxyc5hm4q520zmvf9maphetc9z",
+          "label": "Public address",
+          "sats": 1603,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1603
+    },
+    {
+      "id": "ransom-wannasmile",
+      "name": "WannaSmile",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A 2017 WannaCry look-alike. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1KvmWVRxqw8HeFpR2tHBaoTJiTczU7PRzw",
+          "label": "Public address",
+          "sats": 1376,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1376
+    },
+    {
+      "id": "ponzi-bitcoinprofit2",
+      "name": "BitcoinProfit2",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Ponzi scheme",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A cloud-mining scheme tracked in the pack. The wallet attribution is the GraphSense ponzi tag pack's.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1AXTqWYz1Bd3LZnq1Zf9vsgFBpqrKkHopx",
+          "label": "Public address",
+          "sats": 1271,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1271
+    },
+    {
       "id": "pool-bitcoinindia",
       "name": "BitcoinIndia",
       "category": "CORP",
@@ -14822,6 +18850,221 @@ var ENTITIES = {
       "total": 1000
     },
     {
+      "id": "pool-coinlab",
+      "name": "CoinLab",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "CoinLab payout addresses from the GraphSense miners tag pack, which extracts them from the pool's own coinbase outputs. A pool address holds only what the pool has not swept yet, so the figure moves with its payout cycle.",
+      "extra": "The pool run by the company that sued Mt. Gox over its North American licence.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1CoinLabF5Avpp5kor41ngn7prTFMMHFVc",
+          "label": "Pool payout address",
+          "sats": 1000,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "inputsio-hack",
+      "name": "Inputs.io Hack (2013)",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Exchange hack",
+      "evidence": "attributed",
+      "live": true,
+      "description": "The wallet service whose hot wallet was emptied in 2013. Attribution comes from the hacks tag pack.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1EMztWbGCBBrUAHquVeNjWpJKcB8gBzAFx",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "ofac-mujtaba-ali-raza",
+      "name": "Mujtaba Ali RAZA",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by OFAC under its counter-narcotics authority.",
+      "extra": "SDN list entry 30520 (narcotics trafficking), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1KSAbh5trMCTZwhiNsuUQvfTtSSTT8zqRk",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "ofac-yevgeniy-igorevich-polyanin",
+      "name": "Yevgeniy Igorevich POLYANIN",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by the U.S. Treasury's OFAC under the CYBER2 programme. The addresses are the bitcoin addresses the SDN list records for this party.",
+      "extra": "SDN list entry 33858 (cyber-enabled activity), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "389Sft4nJFkPGhbagk9FN4jXncA9piYTuU",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "ofac-yaroslav-vasinskyi",
+      "name": "Yaroslav VASINSKYI",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by the U.S. Treasury's OFAC under the CYBER2 programme. The addresses are the bitcoin addresses the SDN list records for this party.",
+      "extra": "SDN list entry 33859 (cyber-enabled activity), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "35QpLWYkvD3ALhjbge5bK2kd7HfHYcDMu3",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "ofac-amir-hossein-nikaeen-ravari",
+      "name": "Amir Hossein NIKAEEN RAVARI",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by the U.S. Treasury's OFAC under the CYBER2 / IFSR / IRGC programme. The addresses are the bitcoin addresses the SDN list records for this party.",
+      "extra": "SDN list entry 38420 (cyber-enabled activity), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qpaly5nm7pfka9v92d6qvl4fc2l9xzee8a6ys3s",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "ofac-alex-adrianus-martinus-peijnenburg",
+      "name": "Alex Adrianus Martinus PEIJNENBURG",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by the U.S. Treasury's OFAC under the ILLICIT-DRUGS-EO14059 programme. The addresses are the bitcoin addresses the SDN list records for this party.",
+      "extra": "SDN list entry 39585 (the illicit-drug trade), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1N6XqSf3ULpNjko9LrJmHudRoLitjwkETN",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "ofac-zservers",
+      "name": "ZSERVERS",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "A hosting provider designated for supporting ransomware operations.",
+      "extra": "SDN list entry 52830 (cyber-enabled activity), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1M5N4sJ1NHb4fviLVZA5MZLKhLZqU4CPZz",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
+      "id": "ofac-alexander-igorevich-mishin",
+      "name": "Alexander Igorevich MISHIN",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by the U.S. Treasury's OFAC under the CYBER3 programme. The addresses are the bitcoin addresses the SDN list records for this party.",
+      "extra": "SDN list entry 52832 (cyber-enabled activity), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3FfRvC3kSo2SxiQe5e7SSuNdegwgq8iusL",
+          "label": "Public address",
+          "sats": 1000,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 1000
+    },
+    {
       "id": "babylon",
       "name": "Babylon",
       "category": "CORP",
@@ -14853,6 +19096,30 @@ var ENTITIES = {
       "total": 990
     },
     {
+      "id": "ofac-southfront",
+      "name": "SOUTHFRONT",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "A disinformation outlet designated by OFAC, which also listed its bitcoin addresses.",
+      "extra": "SDN list entry 31212 (election interference), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qv7k70u2zynvem59u88ctdlaw7hc735d8xep9rq",
+          "label": "Public address",
+          "sats": 890,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 890
+    },
+    {
       "id": "pool-neopool",
       "name": "Neopool",
       "category": "CORP",
@@ -14876,6 +19143,53 @@ var ENTITIES = {
       "total": 821
     },
     {
+      "id": "ofac-ahmad-khatibi-aghada",
+      "name": "Ahmad KHATIBI AGHADA",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by the U.S. Treasury's OFAC under the CYBER2 / IFSR / IRGC programme. The addresses are the bitcoin addresses the SDN list records for this party.",
+      "extra": "SDN list entry 38419 (cyber-enabled activity), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "bc1qx3e2axj3wsfn0ndtvlwmkghmmgm4583nqg8ngk",
+          "label": "Public address",
+          "sats": 666,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 666
+    },
+    {
+      "id": "ransom-medusalocker",
+      "name": "MedusaLocker",
+      "category": "OTHER",
+      "icon": "hacker",
+      "badge": "Ransomware",
+      "evidence": "attributed",
+      "live": true,
+      "description": "A 2019 family sold as ransomware-as-a-service. The wallets are the GraphSense ransomware tag pack's attribution, not a confession.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1PormUgPR72yv2FRKSVY27U4ekWMKobWjg",
+          "label": "Public address",
+          "sats": 625,
+          "source": "https://chainquery.com/sources/graphsense",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 625
+    },
+    {
       "id": "pool-pega-pool",
       "name": "PEGA Pool",
       "category": "CORP",
@@ -14897,6 +19211,102 @@ var ENTITIES = {
         }
       ],
       "total": 600
+    },
+    {
+      "id": "pool-novablock",
+      "name": "NovaBlock",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "Mining pool",
+      "evidence": "attributed",
+      "live": true,
+      "description": "NovaBlock payout addresses from the GraphSense miners tag pack, which extracts them from the pool's own coinbase outputs. A pool address holds only what the pool has not swept yet, so the figure moves with its payout cycle.",
+      "extra": "A small pool that appeared in 2020 and disappeared soon after.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3QZ3LKzWwWbFb2QMKGzyRo1rZJNWTDnFrv",
+          "label": "Pool payout address",
+          "sats": 600,
+          "source": "https://github.com/MatteoRomiti/Deep_Dive_BTC_Mining_Pools",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 600
+    },
+    {
+      "id": "ofac-xingbiao-shen",
+      "name": "Xingbiao SHEN",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by the U.S. Treasury's OFAC under the ILLICIT-DRUGS-EO14059 programme. The addresses are the bitcoin addresses the SDN list records for this party.",
+      "extra": "SDN list entry 45312 (the illicit-drug trade), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3B7S6zrgxQVQUHTU8wstM23tB9afE7ojuX",
+          "label": "Public address",
+          "sats": 600,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 600
+    },
+    {
+      "id": "ofac-yinyin-tian",
+      "name": "Yinyin TIAN",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by OFAC as part of the fentanyl-laundering network.",
+      "extra": "SDN list entry 28263 (narcotics trafficking), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "1AXUTu9y3H8w4wYx4BjyFWgRhZKDhmcMrn",
+          "label": "Public address",
+          "sats": 546,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 546
+    },
+    {
+      "id": "ofac-jiantong-wang",
+      "name": "Jiantong WANG",
+      "category": "OTHER",
+      "icon": "group",
+      "badge": "OFAC SDN",
+      "evidence": "official",
+      "live": true,
+      "description": "Designated by the U.S. Treasury's OFAC under the ILLICIT-DRUGS-EO14059 programme. The addresses are the bitcoin addresses the SDN list records for this party.",
+      "extra": "SDN list entry 45349 (the illicit-drug trade), bitcoin addresses 1; the balance was read from mempool.space.",
+      "est": null,
+      "coverage": "partial",
+      "addresses": [
+        {
+          "address": "3NNcbBcMZokPB2JC2dxYuZrpgcetvyGeJn",
+          "label": "Public address",
+          "sats": 546,
+          "source": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+          "note": "",
+          "live": true
+        }
+      ],
+      "total": 546
     }
   ]
 };</script>
@@ -17947,6 +22357,12 @@ var ENTITIES = {
        full Top 100 is one press of the + button away. */
     function dashHTML() {
       var s = supplyNow(), t = trackedSats(), cat = catTotals();
+      /* The hero figure is what the tab ranks on, so it carries the Patoshi estimate the
+         same way the cards and the sheet subline do. When an estimate is inside it, the
+         label says so and a line splits the two halves, so the number is never read as
+         chain-verified on its own. */
+      var est = 0, l = list();
+      for (var i = 0; i < l.length; i++) est += estOf(l[i]).sats;
       var bars = CATS.filter(function (c) { return c !== 'ALL'; }).map(function (c) {
         var x = cat[c], share = t > 0 ? x.sats / t * 100 : 0;
         return '<div class="drow"><span class="dn">' + esc(CAT_LABEL[c]) + '</span>' +
@@ -17963,9 +22379,10 @@ var ENTITIES = {
         '</div>';
       return '<div class="dhead2"><span>ENTITY SUMMARY</span><span>' + (s.height ? 'BLOCK #' + fmtInt(s.height) : '—') + '</span></div>' +
         '<div class="dhero">' +
-          '<div class="dl">TRACKED ENTITIES</div>' +
+          '<div class="dl">TRACKED ENTITIES' + (est > 0 ? ' + EST.' : '') + '</div>' +
           '<div class="dbig">' + esc(fmtEnt(t)) + '<span>BTC</span></div>' +
           '<div class="dsub2">' + esc(fmtUsd(usd(t))) + ' · ' + esc(pct(t, s.max)) + '% of the 20,999,999.977 BTC cap</div>' +
+          (est > 0 ? '<div class="dsub2">' + esc('Est. ' + fmtBtcShort(est) + ' BTC + verified ' + fmtEnt(t - est) + ' BTC') + '</div>' : '') +
         '</div>' +
         '<div class="dsupply">' +
           '<div class="drow"><span class="dn">Mined supply</span><span class="dv">' + (mined === null ? '—' : esc(fmtEnt(mined)) + ' BTC') + '</span><span class="dc">' + (mined === null ? '' : esc(pct(mined, s.max)) + '% of 21M') + '</span></div>' +
@@ -18021,8 +22438,11 @@ var ENTITIES = {
       if (typing) restoreWatchTyping(typing);
       txt('entKicker', ES.open ? 'ENTITY · ' + (byId(ES.open) ? byId(ES.open).category : '') : 'ENTITIES · WHALE WATCH');
       txt('entTitle', ES.open ? (byId(ES.open) ? byId(ES.open).name : 'Whale Watch') : 'Whale Watch');
-      txt('entSub', list().length + ' entities · ' + addrCount() + ' public addresses · ' +
-        esc(fmtBtc(trackedSats())) + ' BTC held (verified + est.) · ' + CAT_NOTE[ES.filter]);
+      /* Counts and the held total are written the way the cards write them: thousands
+         separators on the counts, three decimals at most on the BTC figure. txt() sets
+         textContent, so no HTML escape belongs here. */
+      txt('entSub', fmtInt(list().length) + ' entities · ' + fmtInt(addrCount()) + ' public addresses · ' +
+        fmtEnt(trackedSats()) + ' BTC held (verified + est.) · ' + CAT_NOTE[ES.filter]);
     }
 
     function watchTyping() {

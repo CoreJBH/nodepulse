@@ -19,8 +19,9 @@ NodePulse watches Bitcoin **L1 mainnet** first: the reachable full-node network 
 Bitnodes crawler sees it — node count, clear-net/Tor/I2P split, country and continent spread,
 client versions — plus the chain tip, mempool pressure, fee market and the next-block fee
 projection. The Lightning channel graph is a second layer, and **ENTITIES / Whale Watch** a
-third: 20 publicly named entities over 42 verified addresses, ranked by the bitcoin actually
-tracked for them.
+third: 212 publicly named entities over 1,875 verified addresses — 100 companies, 100
+others (hacks, ransomware, mixers, sanctioned parties, mining pools, non-profits), 8
+people and 4 governments — ranked by the bitcoin actually tracked for them.
 
 It runs with **zero dependencies**: no framework, no bundler, no package manager, no CDN, no
 external image or font request; the entire application is a single self-contained document

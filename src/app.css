@@ -726,6 +726,11 @@ body.layer-ent{--ec:0,229,255;--ec2:59,130,246}
   bottom:calc(env(safe-area-inset-bottom,0px) + 150px);
   overflow-y:auto;overscroll-behavior:contain;padding:6px var(--pad) 4px;
   font-family:var(--mono);color:#bff3ff;
+  /* The globe's meridians run behind this panel, and its grey secondary labels
+     (--dim, --dim2) were reading over the brightest lines. A dark scrim keeps the
+     panel's own contrast independent of what the globe draws underneath it. */
+  background:rgba(6,13,24,.82);
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
 }
 body:not(.layer-ent) .ent-dash{display:none !important}
 .ent-dash::-webkit-scrollbar{width:3px}

@@ -1027,6 +1027,12 @@
        full Top 100 is one press of the + button away. */
     function dashHTML() {
       var s = supplyNow(), t = trackedSats(), cat = catTotals();
+      /* The hero figure is what the tab ranks on, so it carries the Patoshi estimate the
+         same way the cards and the sheet subline do. When an estimate is inside it, the
+         label says so and a line splits the two halves, so the number is never read as
+         chain-verified on its own. */
+      var est = 0, l = list();
+      for (var i = 0; i < l.length; i++) est += estOf(l[i]).sats;
       var bars = CATS.filter(function (c) { return c !== 'ALL'; }).map(function (c) {
         var x = cat[c], share = t > 0 ? x.sats / t * 100 : 0;
         return '<div class="drow"><span class="dn">' + esc(CAT_LABEL[c]) + '</span>' +
@@ -1043,9 +1049,10 @@
         '</div>';
       return '<div class="dhead2"><span>ENTITY SUMMARY</span><span>' + (s.height ? 'BLOCK #' + fmtInt(s.height) : '—') + '</span></div>' +
         '<div class="dhero">' +
-          '<div class="dl">TRACKED ENTITIES</div>' +
+          '<div class="dl">TRACKED ENTITIES' + (est > 0 ? ' + EST.' : '') + '</div>' +
           '<div class="dbig">' + esc(fmtEnt(t)) + '<span>BTC</span></div>' +
           '<div class="dsub2">' + esc(fmtUsd(usd(t))) + ' · ' + esc(pct(t, s.max)) + '% of the 20,999,999.977 BTC cap</div>' +
+          (est > 0 ? '<div class="dsub2">' + esc('Est. ' + fmtBtcShort(est) + ' BTC + verified ' + fmtEnt(t - est) + ' BTC') + '</div>' : '') +
         '</div>' +
         '<div class="dsupply">' +
           '<div class="drow"><span class="dn">Mined supply</span><span class="dv">' + (mined === null ? '—' : esc(fmtEnt(mined)) + ' BTC') + '</span><span class="dc">' + (mined === null ? '' : esc(pct(mined, s.max)) + '% of 21M') + '</span></div>' +
@@ -1101,8 +1108,11 @@
       if (typing) restoreWatchTyping(typing);
       txt('entKicker', ES.open ? 'ENTITY · ' + (byId(ES.open) ? byId(ES.open).category : '') : 'ENTITIES · WHALE WATCH');
       txt('entTitle', ES.open ? (byId(ES.open) ? byId(ES.open).name : 'Whale Watch') : 'Whale Watch');
-      txt('entSub', list().length + ' entities · ' + addrCount() + ' public addresses · ' +
-        esc(fmtBtc(trackedSats())) + ' BTC held (verified + est.) · ' + CAT_NOTE[ES.filter]);
+      /* Counts and the held total are written the way the cards write them: thousands
+         separators on the counts, three decimals at most on the BTC figure. txt() sets
+         textContent, so no HTML escape belongs here. */
+      txt('entSub', fmtInt(list().length) + ' entities · ' + fmtInt(addrCount()) + ' public addresses · ' +
+        fmtEnt(trackedSats()) + ' BTC held (verified + est.) · ' + CAT_NOTE[ES.filter]);
     }
 
     function watchTyping() {
