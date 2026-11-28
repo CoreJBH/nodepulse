@@ -513,8 +513,8 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     /recoverFromRendererGone\(\)[\s\S]{0,600}?installWebView\(\)/.test(java));
   check('the release signature is v2 only',
     /enableV1Signing = false/.test(gradle) && !/enableV1Signing = true/.test(gradle));
-  check('the version bumped to 1.1.13 (versionCode 15)',
-    /versionCode = 15/.test(gradle) && /versionName = "1\.1\.13"/.test(gradle));
+  check('the version bumped to 1.2.0 (versionCode 16)',
+    /versionCode = 16/.test(gradle) && /versionName = "1\.2\.0"/.test(gradle));
   check('the unit test that walks the chunk boundaries is in the tree',
     fs.existsSync(path.join(ROOT, 'android', 'app', 'src', 'test', 'java', 'com', 'corejbh', 'nodepulse', 'HttpBridgeChunkTest.java')) &&
     /testImplementation\("junit:junit:4\.13\.2"\)/.test(gradle));
