@@ -119,6 +119,10 @@ A change estimate:
 read during this run), `cache` (all from the saved answers), `mixed`, or `none` (nothing
 could be read — show the balances as unknown, not as zero).
 
+`entity.balance` is the **Verified** part only: the sum of the seeded addresses whose
+balance was read in this run. A card that shows a total adds the estimate the run read
+(`change[]` plus the `Common-Input` balances) and prints the split (§8).
+
 ### Failure modes
 
 The promise does not reject because a mirror was down, a rate limit was hit or the run was
@@ -164,7 +168,8 @@ A three-output transaction, a mixed-type pair, two equally plausible outputs or 
 outputs produce no estimate at all. A change estimate is recorded in `change[]` and attached
 to the cluster of the inputs that produced it (`clusterId`), but it **never joins the
 cluster**: a wrong estimate must not be able to pull a merchant's coins into the entity
-through a later merge.
+through a later merge. It is summed into the entity's displayed total as its own `Est.`
+part, with the verified figure printed beside it (§8), and never into the verified figure.
 
 ## 5. CoinJoin exclusion
 
@@ -220,11 +225,22 @@ to keep spinning.
 
 ## 8. Display rules
 
-* Show `Verified`, `Common-Input` and `Change Est.` as separate badges. A total that mixes
-  them must say so — for example "Verified 12.5 BTC · est. 0.4 BTC".
+* Show `Verified`, `Common-Input` and `Change Est.` as separate badges, and print any total
+  that includes an estimate as the total **with its two parts beside it** — for example
+  `TOTAL 413,475.9984 BTC · Verified 413,475.9894 BTC · Est. 0.00900001 BTC`. The estimate
+  part is the balance of the `Common-Input` addresses the run actually read plus the change
+  outputs it read, each address counted once and never twice. The verified figure is never
+  overwritten by an estimate: the sum is what the ranking and the HUD use, and the split is
+  always printed on the same line or the line under it.
+* The same rule covers an estimate the entity table publishes without a run — the Patoshi
+  pattern (~1.1M BTC) on Satoshi's card. It is added to that entity's held total, the card
+  reads `Verified 109.52 BTC + Patoshi Est. ~1.1M BTC` beside the sum, and the top
+  `HELD BTC` figure and the category ranking add the same parts.
 * Show `coinjoinExcluded` as its own count ("3 coinjoins skipped"), not as missing data.
 * When `truncated`, `rateLimited` or `api.source === 'none'`, say which — "unverified, rate
   limited" is an honest answer; a stale number presented as live is not.
+* An address whose balance was not read contributes nothing to the estimate. A figure that
+  was assumed is not a figure that was read.
 * All figures are sats or BTC, and any fiat figure is USD. The app is English only.
 
 ## 9. Tests

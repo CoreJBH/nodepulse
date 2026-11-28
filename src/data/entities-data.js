@@ -8,7 +8,7 @@
 
    Shape:  { v, at, block, price, priceAt, tracked, list: [entity] }
            entity  = { id, name, category, icon, badge, evidence, live, description,
-                       extra, addresses: [address], total }
+                       extra, est, addresses: [address], total }
            address = { address, label, sats, source, note, live }
 
    `category` is PERSON | CORP | GOV | OTHER (the five filter chips add ALL). `icon` picks
@@ -20,8 +20,12 @@
 
    The block-1 Satoshi address is the one adjusted figure: its 50 BTC P2PK coinbase is
    still unspent but is not in the address statistics, so `sats` carries the corrected
-   51.35275617 BTC and the note explains it. The Patoshi estimate (~1.1M BTC over some
-   20,000 addresses) is never summed into any figure here; it is a badge and a sentence.
+   51.35275617 BTC and the note explains it. `total` is always the sum of the verified
+   addresses listed, and never an estimate. An entity may also carry `est`: an estimate a
+   named source publishes (the Patoshi pattern, ~1.1M BTC over some 20,000 addresses, is
+   the only one). The card adds it to the entity's held total and prints the verified part
+   beside it, so the sum never hides which half came from the chain and which from an
+   estimate.
 
    build.py inlines this file and also writes dist/entities.json, the same payload the app
    tries to refresh from https://corejbh.github.io/nodepulse/entities.json. */
@@ -42,7 +46,12 @@ var ENTITIES = {
       "evidence": "chain",
       "live": true,
       "description": "Bitcoin's creator. The genesis coinbase and the first blocks are fixed in the chain, so the addresses below are facts rather than attributions.",
-      "extra": "Patoshi Pattern: about 22,000 blocks (~1.1M BTC; Whale Alert 2020 estimated 1,122,693 BTC over 22,503 blocks) are spread across some 20,000 coinbase addresses. They are deliberately not swept: 20,000 lookups would only earn a rate limit. The badge marks the estimate, and the tracked figure below never includes it.",
+      "extra": "Patoshi Pattern: about 22,000 blocks (~1.1M BTC; Whale Alert 2020 estimated 1,122,693 BTC over 22,503 blocks) are spread across some 20,000 coinbase addresses. They are deliberately not swept: 20,000 lookups would only earn a rate limit. The badge marks the estimate, the held total adds it, and the verified part is printed beside it.",
+      "est": {
+        "label": "Patoshi Est.",
+        "sats": 110000000000000,
+        "note": "~1,100,000 BTC: the rounded figure for the Patoshi pattern (Whale Alert 2020 counted 1,122,693 BTC over 22,503 blocks). An estimate from a named source, not a read balance."
+      },
       "addresses": [
         {
           "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",

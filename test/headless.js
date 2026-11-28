@@ -2399,11 +2399,14 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     check('four hacker cards keep their own icon inside OTHER',
       ES.data.list.filter(e => e.icon === 'hacker').length === 4 &&
       ES.data.list.filter(e => e.icon === 'hacker').every(e => e.category === 'OTHER'));
-    check('the Satoshi card keeps the Patoshi badge and never sums the estimate',
+    check('the Satoshi card adds the Patoshi estimate to its held total and names both parts',
       E.byId('satoshi').badge === 'Patoshi Pattern' &&
       E.byId('satoshi').total === 10951848759 &&
-      /Patoshi Pattern/.test(E.byId('satoshi').extra) &&
-      !/1,1|1,122,693|1122693/.test(String(E.balanceOf(E.byId('satoshi')).sats)));
+      !!E.byId('satoshi').est && E.byId('satoshi').est.sats === 110000000000000 &&
+      E.heldOf(E.byId('satoshi')) === 110010951848759 &&
+      E.estOf(E.byId('satoshi')).verified === 0 &&
+      /Patoshi Pattern/.test(E.byId('satoshi').extra),
+      E.byId('satoshi').total + ' + ' + (E.byId('satoshi').est || {}).sats + ' = ' + E.heldOf(E.byId('satoshi')));
     const b1 = E.byId('satoshi').addresses.find(a => a.address === '12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX');
     check('the block-1 address carries the unspent P2PK correction, not the API partial',
       b1 && b1.sats === 5135275617 && /P2PK/.test(b1.note), b1 && b1.sats);
@@ -2419,11 +2422,14 @@ check('inline script blocks', scripts.length === 7, scripts.length);
 
     /* ---- ranking ---- */
     const r = E.ranked();
-    check('entities are ranked by the BTC tracked for them, highest first',
-      r.every((x, i) => i === 0 || E.balanceOf(r[i - 1].e).sats >= E.balanceOf(x.e).sats));
+    check('entities are ranked by the BTC they are held to have, verified plus estimate',
+      r.every((x, i) => i === 0 || E.heldOf(r[i - 1].e) >= E.heldOf(x.e)) &&
+      r[0].e.id === 'satoshi' && r[1].e.id === 'binance',
+      r.slice(0, 3).map(x => '#' + x.rank + ' ' + x.e.id + ' ' + E.heldOf(x.e)).join(' · '));
     check('the rank numbers are dense and start at #1', r.every((x, i) => x.rank === i + 1));
-    check('a total is the sum of the addresses listed, never an entity wide estimate',
-      E.byId('blackrock-ibit').total === 90000000000 && E.byId('uk-government').total === 5374481565362);
+    check('an entity total is the verified addresses alone, and the estimate sits beside it',
+      E.byId('blackrock-ibit').total === 90000000000 && E.byId('uk-government').total === 5374481565362 &&
+      E.byId('blackrock-ibit').est === null && E.estOf(E.byId('blackrock-ibit')).sats === 0);
 
     /* ---- switching to the tab ---- */
     NP.layer('l1');
@@ -2437,7 +2443,32 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     await sleep(60);
     runFrames(rafQueue, 1);
     check('the ENTITIES layer is selected', S.layer === 'entities' && els.layerEN.classList.contains('on') &&
-      doc.body.classList.contains('ent') && !doc.body.classList.contains('l1'));
+      doc.body.classList.contains('layer-ent') && !doc.body.classList.contains('ent') &&
+      !doc.body.classList.contains('l1'));
+    /* ---- a layer class must never be able to hide the page ---------------- */
+    /* In Chromium this layer blanked the whole app: the sheet is <div class="ent" id="ent">
+       and its own rule (position:fixed + display:none) also matched <body class="ent">,
+       because layerClass() put the same class on the body — and the layer is saved, so the
+       next boot came up blank too. Two guards: the sheet's selectors are scoped to #ent, and
+       the body's layer class is `layer-ent`, a name no sheet rule uses for anything else. */
+    {
+      const sheetCss = blockBodies[0] || '';
+      const bareEnt = [...sheetCss.matchAll(/(^|[\s,>+~])\.ent(?![\w-])/g)].map(m => m[0].trim());
+      check('no stylesheet rule reaches the body through the sheet class',
+        bareEnt.length === 0, bareEnt.join(', '));
+      check('the entity sheet is scoped to its own element',
+        /#ent\.ent\{[^}]*display:none/.test(sheetCss) && /#ent\.ent\.on\{display:grid\}/.test(sheetCss));
+      check('the body layer class themes the tab and hides nothing',
+        /body\.layer-ent\{--ec:0,229,255/.test(sheetCss) &&
+        /body\.layer-ent #metricsEN\{display:grid\}/.test(sheetCss) &&
+        !/body\.layer-ent\{[^}]*display:/.test(sheetCss),
+        [...doc.body.classList._set].join(' '));
+      /* the class belongs to one element only, so no rule written for the sheet can land
+         on the page frame */
+      const entClassUses = (html.match(/<div class="ent" id="ent"/g) || []).length;
+      check('exactly one element carries the sheet class',
+        entClassUses === 1 && (html.match(/class="ent"/g) || []).length === 1, entClassUses);
+    }
     check('switching tabs moves the globe centre and radius by 0 px',
       G.cy === cyL1 && G.R === rL1 && cyLN === cyL1 && rLN === rL1,
       [cyL1, G.cy, rL1, G.R].join(' / '));
@@ -2448,8 +2479,9 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     check('the subrow names the entity table', /ENTITY ADDRESSES/.test(els.subrow.textContent), els.subrow.textContent);
     check('the legend says the globe draws no address location',
       /PUBLIC ENTITY ADDRESS/.test(els.legend.innerHTML) && /no location/.test(els.legend.innerHTML), els.legend.innerHTML);
-    check('the entity HUD shows the tracked total, the entities and the addresses',
-      /1,013,651/.test(els.vEBtc.textContent) && els.vECount.textContent === '20' && els.vEAddr.textContent === '42',
+    check('the entity HUD shows the held total, the entities and the addresses',
+      /2,113,651/.test(els.vEBtc.textContent) && els.vECount.textContent === '20' && els.vEAddr.textContent === '42' &&
+      /HELD<br>BTC/.test(html),
       els.vEBtc.textContent + ' / ' + els.vECount.textContent + ' / ' + els.vEAddr.textContent);
 
     /* ---- chips: exactly five, ALL first ---- */
@@ -2462,6 +2494,11 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     check('the ranked list is drawn with rank, icon, name and USD value',
       /#1/.test(els.entBody.innerHTML) && /class="ic corp"/.test(els.entBody.innerHTML) &&
       /U\.S\. Government|Binance/.test(els.entBody.innerHTML) && /\$/.test(els.entBody.innerHTML));
+    check('a row that carries an estimate prints the verified part and the estimate apart',
+      /Satoshi Nakamoto/.test(els.entBody.innerHTML) &&
+      /Verified 109\.5185 BTC \+ Patoshi Est\. ~1\.1M BTC/.test(els.entBody.innerHTML) &&
+      /~1,100,109\.5185/.test(els.entBody.innerHTML),
+      (els.entBody.innerHTML.match(/Verified [^<]*/) || [''])[0]);
     check('a hacker row is drawn with the mask icon',
       /class="ic hacker"/.test(els.entBody.innerHTML) &&
       /M12 3\.2c-4\.9/.test(els.entBody.innerHTML));
@@ -2536,6 +2573,9 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       E.balanceOf(E.byId('satoshi')).sats === 13044412447 &&
       stSat.addrs['1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'].src === 'live',
       E.balanceOf(E.byId('satoshi')).sats);
+    check('the held total follows the live read and keeps the estimate beside it',
+      E.heldOf(E.byId('satoshi')) === 13044412447 + 110000000000000,
+      E.heldOf(E.byId('satoshi')) + ' · ' + E.heldBreakdown(E.byId('satoshi')));
 
     /* a mirror that answers 429 is "rate limited", never a zero balance */
     addrMode = '429';
@@ -2586,8 +2626,8 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     E.openEntity('binance');
     await sleep(60);
     check('an entity detail opens from its row', ES.open === 'binance' && E.depth() === 2);
-    check('the detail names the rank, the category and the tracked total',
-      /#1 · Corp/.test(els.entBody.innerHTML) && /Binance/.test(els.entBody.innerHTML) && /BTC/.test(els.entBody.innerHTML),
+    check('the detail names the rank, the category and the held total',
+      /#2 · Corp/.test(els.entBody.innerHTML) && /Binance/.test(els.entBody.innerHTML) && /BTC/.test(els.entBody.innerHTML),
       els.entBody.innerHTML.slice(0, 200));
     check('the detail offers ANALYZE CLUSTER and CANCEL is not shown yet',
       /ANALYZE CLUSTER/.test(els.entBody.innerHTML) && !/data-act="cancel"/.test(els.entBody.innerHTML));
@@ -2604,11 +2644,17 @@ check('inline script blocks', scripts.length === 7, scripts.length);
       cRes.change.length === 1 && cRes.change[0].value === 900001, JSON.stringify(cRes.change));
     const htmlNow = els.entBody.innerHTML;
     if (process.env.DUMP) console.log('DUMP-DETAIL', htmlNow.slice(0, 6000));
+    const tLine = (htmlNow.match(/TOTAL <b>([^<]*)<\/b>/) || [])[1] || '';
     const vLine = (htmlNow.match(/Verified <b>([^<]*)<\/b>/) || [])[1] || '';
-    const eLine = (htmlNow.match(/est\. <b>([^<]*)<\/b>/) || [])[1] || '';
-    check('the estimate is not added to the verified figure',
-      vLine === '413,475.9894 BTC' && eLine === '0.00900001 BTC',
-      'verified "' + vLine + '" · est "' + eLine + '"');
+    const eLine = (htmlNow.match(/Est\. <b>([^<]*)<\/b>/) || [])[1] || '';
+    check('the run total adds the estimate and prints the verified part beside it',
+      tLine === '413,475.9984 BTC' && vLine === '413,475.9894 BTC' && eLine === '0.00900001 BTC',
+      'total "' + tLine + '" · verified "' + vLine + '" · est "' + eLine + '"');
+    check('the estimate joins the entity held total, and the card prints the split',
+      E.heldOf(E.byId('binance')) === 24859759296803 + 16487839644777 + 900001 &&
+      E.estOf(E.byId('binance')).common === 0 && E.estOf(E.byId('binance')).change === 900001 &&
+      /Verified 413,475\.9894 BTC \+ change est\. 0\.00900001 BTC/.test(htmlNow),
+      E.heldOf(E.byId('binance')) + ' · ' + E.heldBreakdown(E.byId('binance')));
     /* the panel is light DOM strings: balanced tags, no inline style, no inline handler */
     {
       const opens = (htmlNow.match(/<div/g) || []).length;
@@ -2669,7 +2715,8 @@ check('inline script blocks', scripts.length === 7, scripts.length);
     NP.layer('l1');
     await sleep(40);
     check('leaving ENTITIES closes the sheet and restores the L1 layer',
-      !E.isOpen() && S.layer === 'l1' && doc.body.classList.contains('l1') && !doc.body.classList.contains('ent'));
+      !E.isOpen() && S.layer === 'l1' && doc.body.classList.contains('l1') &&
+      !doc.body.classList.contains('layer-ent') && !doc.body.classList.contains('ent'));
   }
 
   /* ---- report ---- */

@@ -15,7 +15,12 @@
       "evidence": "chain",
       "live": true,
       "description": "Bitcoin's creator. The genesis coinbase and the first blocks are fixed in the chain, so the addresses below are facts rather than attributions.",
-      "extra": "Patoshi Pattern: about 22,000 blocks (~1.1M BTC; Whale Alert 2020 estimated 1,122,693 BTC over 22,503 blocks) are spread across some 20,000 coinbase addresses. They are deliberately not swept: 20,000 lookups would only earn a rate limit. The badge marks the estimate, and the tracked figure below never includes it.",
+      "extra": "Patoshi Pattern: about 22,000 blocks (~1.1M BTC; Whale Alert 2020 estimated 1,122,693 BTC over 22,503 blocks) are spread across some 20,000 coinbase addresses. They are deliberately not swept: 20,000 lookups would only earn a rate limit. The badge marks the estimate, the held total adds it, and the verified part is printed beside it.",
+      "est": {
+        "label": "Patoshi Est.",
+        "sats": 110000000000000,
+        "note": "~1,100,000 BTC: the rounded figure for the Patoshi pattern (Whale Alert 2020 counted 1,122,693 BTC over 22,503 blocks). An estimate from a named source, not a read balance."
+      },
       "addresses": [
         {
           "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",

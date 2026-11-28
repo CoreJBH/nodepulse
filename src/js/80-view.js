@@ -165,7 +165,11 @@
     if (!b || !b.classList) return;
     b.classList.toggle('l1', layer === 'l1');
     b.classList.toggle('ln', layer === 'ln');
-    b.classList.toggle('ent', layer === 'entities');
+    /* `layer-ent`, not `ent`: the sheet element is the div with id `ent` and class `ent`,
+       and a body class of the same name let the sheet's own `.ent{display:none;
+       position:fixed}` rule match the body and hide the whole page on this layer. One
+       name, one element. */
+    b.classList.toggle('layer-ent', layer === 'entities');
   }
 
   function setLayer(layer) {

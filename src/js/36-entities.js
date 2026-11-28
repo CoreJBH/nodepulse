@@ -12,8 +12,11 @@
      · adopts the seed at boot, then quietly tries https://corejbh.github.io/nodepulse/
        entities.json; a newer payload replaces it in localStorage, a failure changes
        nothing and says nothing (the seed is already the verified table).
-     · ranks entities by the BTC actually tracked for them, highest first. The Patoshi
-       estimate is a badge and a sentence, never part of a total.
+     · ranks entities by the BTC they are held to have, highest first: the addresses read
+       (or their verified seed figure) plus any estimate the card can name — the Patoshi
+       pattern from the table, and the common-input balances and change outputs a finished
+       clustering run read. The verified part is never overwritten; it is printed beside
+       the estimate in every total.
      · reads balances on demand, one address at a time, through Cluster.fetchAddressSummary
        (same 7-minute cache as the clustering engine) with a 429 treated as "rate limited"
        rather than as a zero.
@@ -21,9 +24,9 @@
        counterparty that is another known entity.
      · keeps a watchlist of any address the user adds, in localStorage.
      · runs Cluster.analyzeEntity() for the entity on screen and shows its result by the
-       display rules of docs/cluster-api.md §8: Verified / Common-Input / Change Est. are
-       separate badges, the coinjoin count is its own number, and a truncated, rate-limited
-       or empty run says so instead of showing a stale figure as live.
+       display rules of docs/cluster-api.md §8: the total names its Verified and Est. parts,
+       the three labels stay separate badges, the coinjoin count is its own number, and a
+       truncated, rate-limited or empty run says so instead of showing a stale figure as live.
 
    The panel is light DOM strings, like the rest of the app: no inline handlers (the CSP
    forbids them), one delegated click listener, and the same esc() on every value that came
@@ -54,6 +57,7 @@
       watch: [], watchLive: Object.create(null),
       live: Object.create(null),
       tx: Object.create(null),
+      ests: Object.create(null),          // entity id -> what its last clustering run read beyond the seeds
       price: null, priceAt: 0, priceSrc: '',
       run: null, remote: 'idle', err: '',
       index: null, ranked: null
@@ -81,7 +85,7 @@
       if (!id || !name) return null;
       if (CATS.indexOf(raw.category) < 0) return null;
       var list = isArr(raw.addresses) ? raw.addresses : [];
-      var addrs = [], total = 0, liveAny = false;
+      var addrs = [], total = 0, liveAny = false, est = normEst(raw.est);
       for (var i = 0; i < list.length && addrs.length < 60; i++) {
         var a = list[i];
         if (!isObj(a) || !validAddr(a.address)) continue;
@@ -108,8 +112,22 @@
         live: liveAny,
         description: typeof raw.description === 'string' ? raw.description.slice(0, 600) : '',
         extra: typeof raw.extra === 'string' ? raw.extra.slice(0, 900) : '',
+        est: est,
         addresses: addrs,
         total: total
+      };
+    }
+
+    /* The estimate a seed entity carries (the Patoshi pattern), typed like a balance: a
+       whole number of satoshis off an unapproved payload is dropped, not rounded. */
+    function normEst(raw) {
+      if (!isObj(raw)) return null;
+      var v = sats(raw.sats);
+      if (v === null || v <= 0) return null;
+      return {
+        label: typeof raw.label === 'string' && raw.label ? raw.label.slice(0, 40) : 'Est.',
+        sats: v,
+        note: typeof raw.note === 'string' ? raw.note.slice(0, 400) : ''
       };
     }
 
@@ -195,13 +213,87 @@
       return out;
     }
 
+    /* ------------------------------------------------------------ estimates */
+    /* What a finished run read beyond the verified addresses, each address counted once:
+       the balance of a Common-Input address the run actually read, and a change output it
+       read out of a transaction. A verified seed and any address already counted here is
+       skipped, so the two parts cannot double-count the same coins. An address whose
+       balance was not read contributes nothing: an estimate is a figure that was read,
+       never one that was assumed. */
+    function runEstimate(r) {
+      var out = { verified: 0, common: 0, change: 0, commonN: 0, changeN: 0, sats: 0 };
+      if (!r) return out;
+      if (r.entity && sats(r.entity.balance) !== null) out.verified = r.entity.balance;
+      var seen = Object.create(null), i, j, a, m;
+      if (isArr(r.addresses)) for (i = 0; i < r.addresses.length; i++) {
+        a = r.addresses[i];
+        if (isObj(a) && a.verified === true) seen[a.address] = true;
+      }
+      var clusters = isArr(r.clusters) ? r.clusters : [];
+      for (i = 0; i < clusters.length; i++) {
+        var mem = isArr(clusters[i].addresses) ? clusters[i].addresses : [];
+        for (j = 0; j < mem.length; j++) {
+          m = mem[j];
+          if (!isObj(m) || !validAddr(m.address)) continue;
+          if (m.verified === true || seen[m.address]) { seen[m.address] = true; continue; }
+          seen[m.address] = true;
+          if (sats(m.balance) === null) continue;
+          out.common += m.balance; out.commonN++;
+        }
+      }
+      var ch = isArr(r.change) ? r.change : [];
+      for (i = 0; i < ch.length; i++) {
+        a = ch[i];
+        if (!isObj(a) || !validAddr(a.address) || seen[a.address]) continue;
+        if (sats(a.value) === null) continue;
+        seen[a.address] = true;
+        out.change += a.value; out.changeN++;
+      }
+      out.sats = out.common + out.change;
+      return out;
+    }
+
+    /* The estimated part of an entity: the seed's own estimate where the table names one,
+       plus what a finished run on this entity read. Kept per id, so the number survives
+       closing the card and the ranking does not fall back when the sheet is reopened. */
+    function estOf(e) {
+      var seed = e.est ? e.est.sats : 0;
+      var run = ES.ests[e.id] || null;
+      return {
+        seed: seed, run: run ? run.sats : 0,
+        common: run ? run.common : 0, change: run ? run.change : 0,
+        commonN: run ? run.commonN : 0, changeN: run ? run.changeN : 0,
+        verified: run ? run.verified : 0,
+        sats: seed + (run ? run.sats : 0)
+      };
+    }
+    /* The one figure the tab ranks on and the HUD adds up: what the addresses hold plus
+       the estimates printed beside it. */
+    function heldOf(e) { return balanceOf(e).sats + estOf(e).sats; }
+
+    /* A large estimate reads in millions (the Patoshi ~1.1M BTC), a small one in the sats
+       formatter's own precision; neither is ever rounded into the total it is added to. */
+    function fmtBtcShort(v) {
+      if (!num(v)) return '—';
+      if (v >= 1e14) {
+        var m = v / 1e14;
+        return (m >= 10 ? m.toFixed(1) : m.toFixed(2)).replace(/\.?0+$/, '') + 'M';
+      }
+      return fmtBtc(v);
+    }
+    /* The breakdown printed with every total that carries an estimate. */
+    function heldBreakdown(e) {
+      var b = balanceOf(e), o = estOf(e);
+      var out = 'Verified ' + fmtBtc(b.sats) + ' BTC';
+      if (o.seed) out += ' + ' + (e.est.label || 'Est.') + ' ~' + fmtBtcShort(o.seed) + ' BTC';
+      if (o.common) out += ' + common-input ' + fmtBtc(o.common) + ' BTC';
+      if (o.change) out += ' + change est. ' + fmtBtc(o.change) + ' BTC';
+      return out;
+    }
+
     function trackedSats() {
       var sum = 0, l = list();
-      for (var i = 0; i < l.length; i++) {
-        var st = ES.live[l[i].id];
-        if (!st) { sum += l[i].total; continue; }
-        sum += balanceOf(l[i]).sats;
-      }
+      for (var i = 0; i < l.length; i++) sum += heldOf(l[i]);
       return sum;
     }
 
@@ -400,13 +492,14 @@
     }
 
     /* ----------------------------------------------------------------- rank */
-    /* Ranked by the BTC actually tracked for each entity, highest first. The Patoshi
-       estimate is not in this number and the card says so, which is why Satoshi sits
-       below the exchanges rather than at #1 on an estimate. */
+    /* Ranked by the BTC the entity is held to have — the addresses read plus the estimate
+       printed beside them — highest first. Every row that carries an estimate prints the
+       verified part with it, so the rank is never a number without its basis: Satoshi sits
+       at #1 on ~1.1M BTC of Patoshi estimate with 109.52 BTC verified and says exactly that. */
     function ranked() {
       if (ES.ranked) return ES.ranked;
       var l = list().slice();
-      l.sort(function (a, b) { return balanceOf(b).sats - balanceOf(a).sats || (a.name < b.name ? -1 : 1); });
+      l.sort(function (a, b) { return heldOf(b) - heldOf(a) || (a.name < b.name ? -1 : 1); });
       var out = l.map(function (e, i) { return { e: e, rank: i + 1 }; });
       ES.ranked = out;
       return out;
@@ -489,8 +582,9 @@
     }
 
     function rowHTML(x) {
-      var e = x.e, b = balanceOf(e), st = ES.live[e.id];
+      var e = x.e, b = balanceOf(e), st = ES.live[e.id], o = estOf(e);
       var state = st ? st.state : 'idle';
+      var held = b.sats + o.sats;
       return '<div class="erow" data-act="open" data-id="' + esc(e.id) + '" role="button" tabindex="0">' +
         '<div class="rk">#' + x.rank + '</div>' +
         '<div class="ic ' + esc(e.icon) + '">' + icon(e.icon) + '</div>' +
@@ -500,9 +594,10 @@
             badgesHTML(e) +
             '<span class="st ' + esc(state) + '">' + esc(liveWord(statusOf(st))) + '</span>' +
           '</div>' +
+          (o.sats ? '<div class="estb">' + esc(heldBreakdown(e)) + '</div>' : '') +
         '</div>' +
-        '<div class="val">' + esc(fmtBtc(b.sats)) + '<span class="u">BTC</span>' +
-          '<small>' + esc(fmtUsd(usd(b.sats))) + '</small></div>' +
+        '<div class="val">' + (o.sats ? '~' : '') + esc(fmtBtc(held)) + '<span class="u">BTC</span>' +
+          '<small>' + esc(fmtUsd(usd(held))) + '</small></div>' +
       '</div>';
     }
 
@@ -613,7 +708,8 @@
       if (!run) {
         return '<button class="cta" data-act="analyze">ANALYZE CLUSTER</button>' +
           '<div class="cnote">Common-input ownership and change estimation over the addresses above, ' +
-          'one transaction list at a time through the mempool mirrors. Nothing is guessed into a balance.</div>';
+          'one transaction list at a time through the mempool mirrors. The verified balances stay ' +
+          'verified; whatever the heuristics find is added to the total as an estimate and named beside it.</div>';
       }
       if (run.state === 'running') {
         var pct = run.total ? Math.round(run.done / run.total * 100) : 0;
@@ -631,16 +727,16 @@
         return '<div class="cnote warn">' + esc(run.err || 'the run did not answer') + '</div>' +
           '<button class="cta" data-act="analyze">TRY AGAIN</button>';
       }
-      var verifiedSats = null, estSats = 0, i;
+      var verifiedSats = null, o = runEstimate(r);
       if (r.entity && sats(r.entity.balance) !== null) verifiedSats = r.entity.balance;
-      var est = 0;
-      for (i = 0; i < (r.change || []).length; i++) est += num(r.change[i].value) ? r.change[i].value : 0;
-      estSats = est;
+      var totalSats = (verifiedSats === null ? 0 : verifiedSats) + o.sats;
       var head = '<div class="csrc">' +
         (r.api && r.api.source === 'none'
           ? '<span class="warn">unverified · no figure could be read</span>'
-          : '<span>Verified <b>' + (verifiedSats === null ? 'unknown' : fmtBtc(verifiedSats) + ' BTC') + '</b></span>' +
-            '<span>· est. <b>' + fmtBtc(estSats) + ' BTC</b> across ' + (r.change || []).length + ' change output(s)</span>') +
+          : '<span>TOTAL <b>' + fmtBtc(totalSats) + ' BTC</b></span>' +
+            '<span>· Verified <b>' + (verifiedSats === null ? 'unknown' : fmtBtc(verifiedSats) + ' BTC') + '</b></span>' +
+            '<span>· Est. <b>' + fmtBtc(o.sats) + ' BTC</b> · ' + fmtInt(o.commonN) + ' common-input, ' +
+            fmtInt(o.changeN) + ' ' + plural(o.changeN, 'change output', 'change outputs') + '</span>') +
         '</div>';
       var flags = '';
       if (r.aborted) flags += '<span class="tag warn">cancelled · partial result</span>';
@@ -668,7 +764,7 @@
       });
       var change = '';
       if ((r.change || []).length) {
-        change = '<div class="cch"><div class="cchh">CHANGE ESTIMATES · never added to a cluster</div>' +
+        change = '<div class="cch"><div class="cchh">CHANGE ESTIMATES · added to the total, never to a cluster</div>' +
           r.change.slice(0, 6).map(function (c) {
             return '<div class="cm"><span class="badge ce">' + esc(Cluster.labels.change) + '</span>' +
               '<span class="ca">' + esc(shortHash(c.address, 10, 6)) + '</span>' +
@@ -689,24 +785,27 @@
     }
 
     function detailHTML(e) {
-      var b = balanceOf(e), st = ES.live[e.id];
+      var b = balanceOf(e), st = ES.live[e.id], o = estOf(e);
+      var held = b.sats + o.sats;
       var addrs = e.addresses.map(addrRowHTML).join('');
       return '<div class="det">' +
         '<div class="dhead">' +
           '<div class="dic ' + esc(e.icon) + '">' + icon(e.icon) + '</div>' +
           '<div class="dttl"><div class="dsub">#' + rankOf(e.id) + ' · ' + esc(CAT_LABEL[e.category] || e.category) +
-            ' · tracked ' + esc(fmtBtc(b.sats)) + ' BTC</div>' +
+            ' · held ' + (o.sats ? '~' : '') + esc(fmtBtc(held)) + ' BTC</div>' +
             '<h2>' + esc(e.name) + '</h2></div>' +
         '</div>' +
         '<div class="dtags">' + badgesHTML(e) + '<span class="st ' + esc(statusOf(st)) + '">' + esc(liveWord(statusOf(st))) + '</span></div>' +
         '<p class="ddesc">' + esc(e.description) + '</p>' +
         '<div class="dbal">' +
-          '<div><span class="k">TRACKED BALANCE</span><b>' + esc(fmtBtc(b.sats)) + '</b><span class="u">BTC</span></div>' +
-          '<div><span class="k">USD</span><b>' + esc(fmtUsd(usd(b.sats))) + '</b></div>' +
+          '<div><span class="k">HELD BALANCE</span>' + (o.sats ? '<b>~</b>' : '') + '<b>' + esc(fmtBtc(held)) + '</b><span class="u">BTC</span>' +
+            (o.sats ? '<span class="bd">' + esc(heldBreakdown(e)) + '</span>' : '') + '</div>' +
+          '<div><span class="k">USD</span><b>' + esc(fmtUsd(usd(held))) + '</b></div>' +
           '<div><span class="k">ADDRESSES</span><b>' + b.known + ' / ' + b.total + '</b><span class="u">read</span></div>' +
         '</div>' +
-        '<div class="dnote">' + esc(priceNote()) + ' · the tracked figure is the sum of the addresses listed below, not the entity\'s whole holding.</div>' +
+        '<div class="dnote">' + esc(priceNote()) + ' · the held figure is the sum of the addresses listed below plus the estimates named beside it, not the entity\'s whole holding.</div>' +
         (e.extra ? '<div class="dextra"><b>Note</b> ' + esc(e.extra) + '</div>' : '') +
+        (e.est && e.est.note ? '<div class="dextra"><b>' + esc(e.est.label) + '</b> ' + esc(e.est.note) + '</div>' : '') +
         '<div class="dsec"><span>PUBLIC ADDRESSES</span><span>' + e.addresses.length + ' · ' + esc(EVIDENCE[e.evidence]) + '</span></div>' +
         addrs +
         '<div class="dsec"><span>CLUSTERING</span><span>on demand · docs/cluster-api.md</span></div>' +
@@ -737,7 +836,7 @@
       txt('entKicker', ES.open ? 'ENTITY · ' + (byId(ES.open) ? byId(ES.open).category : '') : 'ENTITIES · WHALE WATCH');
       txt('entTitle', ES.open ? (byId(ES.open) ? byId(ES.open).name : 'Whale Watch') : 'Whale Watch');
       txt('entSub', list().length + ' entities · ' + addrCount() + ' public addresses · ' +
-        esc(fmtBtc(trackedSats())) + ' BTC tracked · ' + CAT_NOTE[ES.filter]);
+        esc(fmtBtc(trackedSats())) + ' BTC held (verified + est.) · ' + CAT_NOTE[ES.filter]);
     }
 
     /* The progress line is repainted on every onProgress tick, so it is kept to one
@@ -839,6 +938,9 @@
         ES.run.state = res.aborted ? 'aborted' : (res.ok ? 'done' : 'error');
         ES.run.result = res;
         ES.run.err = res.error || '';
+        /* The estimate this run read joins the entity's held total (and so the ranking and
+           the HUD), with the verified part printed beside it on every screen that shows it. */
+        if (res && res.ok) { ES.ests[id] = runEstimate(res); ES.ranked = null; }
         flush();
         return res;
       }, function (err) {
@@ -986,6 +1088,7 @@
       watchAdd: watchAdd, watchDel: watchDel, toggleTx: toggleTx, act: onAct,
       usd: usd, fmtUsd: fmtUsd, ranked: ranked, filtered: filtered, byId: byId,
       balanceOf: balanceOf, liveState: liveState, trackedSats: trackedSats,
+      heldOf: heldOf, estOf: estOf, runEstimate: runEstimate, heldBreakdown: heldBreakdown,
       addrCount: addrCount, entityOfAddress: entityOfAddress,
       state: ES, cats: CATS, remoteUrl: REMOTE_URL
     };
